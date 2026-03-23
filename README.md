@@ -129,8 +129,10 @@ make frontend-build
 ### Persisted Runs
 
 - Every `POST /backtest` call now persists a run manifest and serialized response under `runs/<run_id>/`.
-- The API response includes `run_info.run_id`, `artifact_dir`, and artifact paths for the persisted files.
-- The API endpoints `GET /runs/{run_id}` and `GET /runs/{run_id}/response` expose those persisted artifacts.
+- The API response includes `run_info.run_id`, `artifact_dir`, artifact paths, and a `data_fingerprint`.
+- The API exposes `GET /runs`, `GET /runs/{run_id}`, `GET /runs/{run_id}/response`, `GET /runs/{run_id}/config`, and `GET /runs/{run_id}/data-profile`.
+- Trades can be exported from a persisted run with `GET /runs/{run_id}/strategies/{strategy_name}/trades.csv`.
+- The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
 
 ### Option 3: Python API
 

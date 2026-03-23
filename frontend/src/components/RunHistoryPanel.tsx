@@ -56,6 +56,9 @@ export default function RunHistoryPanel({
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {new Date(run.created_at).toLocaleString('pt-BR')}
               </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Data: {run.data_fingerprint.slice(0, 12)}
+              </div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {run.strategy_names.slice(0, 3).map((strategy) => (
                   <span

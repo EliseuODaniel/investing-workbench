@@ -1,18 +1,21 @@
 """Command line interface for backtesting."""
 
 import argparse
+import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
+
 import pandas as pd
 
-from .config import AppConfig, create_default_config, load_strategy, BenchmarkConfig
+from .benchmarks import get_benchmark_data, get_selic_benchmark
+from .bitcoin_martingale.application.runs import RunBacktestService
+from .config import AppConfig, create_default_config, load_strategy
 from .data import get_data
 from .engine import BacktestEngine
-from .metrics import compare_strategies, calculate_metrics, print_metrics
+from .metrics import calculate_metrics, compare_strategies, print_metrics
 from .plots import create_strategy_report
-from .benchmarks import get_benchmark_data, get_selic_benchmark
 
 
 def run_backtest(
@@ -42,7 +45,8 @@ def run_backtest(
         return {}
 
     if verbose:
-        print(f"Loading data from {config.backtest.start_date} to {config.backtest.end_date or 'today'}")
+        end_date = config.backtest.end_date or "today"
+        print(f"Loading data from {config.backtest.start_date} to {end_date}")
 
     # Load data
     try:
@@ -76,7 +80,7 @@ def run_backtest(
                 yield_frequency=config.backtest.yield_frequency,
                 use_real_selic=config.backtest.use_real_selic,
                 selic_path=config.backtest.selic_path,
-                selic_fallback_rate=config.backtest.selic_fallback_rate
+                selic_fallback_rate=config.backtest.selic_fallback_rate,
             )
 
             # Run backtest
@@ -105,9 +109,9 @@ def run_backtest(
 
     # Generate comparison if multiple strategies
     if len(results) > 1 and verbose:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("STRATEGY COMPARISON")
-        print("="*60)
+        print("=" * 60)
 
         comparison = compare_strategies(results, config.backtest.initial_capital)
 
@@ -124,9 +128,13 @@ def run_backtest(
             ]
 
             display_df = comparison[key_columns].copy()
-            display_df.loc[:, "total_return"] = display_df["total_return"].apply(lambda x: f"{x:.2%}")
+            display_df.loc[:, "total_return"] = display_df["total_return"].apply(
+                lambda x: f"{x:.2%}"
+            )
             display_df.loc[:, "cagr"] = display_df["cagr"].apply(lambda x: f"{x:.2%}")
-            display_df.loc[:, "max_drawdown"] = display_df["max_drawdown"].apply(lambda x: f"{x:.2%}")
+            display_df.loc[:, "max_drawdown"] = display_df["max_drawdown"].apply(
+                lambda x: f"{x:.2%}"
+            )
             display_df.loc[:, "hit_rate"] = display_df["hit_rate"].apply(lambda x: f"{x:.2%}")
 
             print(display_df.to_string(index=False))
@@ -174,20 +182,21 @@ def process_benchmarks(config: AppConfig, data: pd.DataFrame, verbose: bool = Tr
                     start_date=start_date,
                     end_date=end_date,
                     initial_capital=initial_capital,
-                    cache_dir=config.backtest.cache_path.replace('/btc_brl.parquet', '')
+                    cache_dir=config.backtest.cache_path.replace("/btc_brl.parquet", ""),
                 )
 
                 for ticker, data in benchmark_data.items():
                     benchmark_config = next(b for b in enabled_benchmarks if b.ticker == ticker)
                     benchmarks[benchmark_config.name] = {
-                        'equity_curve': data['equity_curve'],
-                        'metrics': data['metrics'],
-                        'ticker': ticker,
-                        'name': benchmark_config.name
+                        "equity_curve": data["equity_curve"],
+                        "metrics": data["metrics"],
+                        "ticker": ticker,
+                        "name": benchmark_config.name,
                     }
 
                     if verbose:
-                        print(f"✓ {benchmark_config.name}: {data['metrics']['total_return']:.2%} return")
+                        total_return = data["metrics"]["total_return"]
+                        print(f"✓ {benchmark_config.name}: {total_return:.2%} return")
 
             except Exception as e:
                 if verbose:
@@ -206,14 +215,14 @@ def process_benchmarks(config: AppConfig, data: pd.DataFrame, verbose: bool = Tr
                 use_real_selic=config.backtest.use_real_selic,
                 selic_path=config.backtest.selic_path,
                 selic_fallback_rate=config.backtest.selic_fallback_rate,
-                cache_dir=config.backtest.cache_path.replace('/btc_brl.parquet', '')
+                cache_dir=config.backtest.cache_path.replace("/btc_brl.parquet", ""),
             )
 
-            benchmarks['SELIC'] = {
-                'equity_curve': selic_data['equity_curve'],
-                'metrics': selic_data['metrics'],
-                'ticker': 'SELIC',
-                'name': 'SELIC'
+            benchmarks["SELIC"] = {
+                "equity_curve": selic_data["equity_curve"],
+                "metrics": selic_data["metrics"],
+                "ticker": "SELIC",
+                "name": "SELIC",
             }
 
             if verbose:
@@ -241,13 +250,15 @@ def main():
     # Run command
     run_parser = subparsers.add_parser("run", help="Run backtest strategies")
     run_parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=str,
         default="configs/martingale.yaml",
         help="Configuration file path",
     )
     run_parser.add_argument(
-        "--strategies", "-s",
+        "--strategies",
+        "-s",
         nargs="+",
         help="Specific strategies to run (default: all)",
     )
@@ -257,7 +268,8 @@ def main():
         help="Skip plot generation",
     )
     run_parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="Suppress verbose output",
     )
@@ -311,7 +323,8 @@ def main():
     # Init command
     init_parser = subparsers.add_parser("init", help="Initialize configuration")
     init_parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=str,
         default="configs/martingale.yaml",
         help="Configuration file path to create",
@@ -320,13 +333,51 @@ def main():
     # Validate command
     validate_parser = subparsers.add_parser("validate", help="Validate configuration")
     validate_parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=str,
         default="configs/martingale.yaml",
         help="Configuration file to validate",
     )
 
+    runs_list_parser = subparsers.add_parser("runs-list", help="List persisted runs")
+    runs_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of runs to display",
+    )
+
+    runs_show_parser = subparsers.add_parser("runs-show", help="Show a persisted run manifest")
+    runs_show_parser.add_argument("--run-id", required=True, help="Run identifier")
+
+    runs_config_parser = subparsers.add_parser(
+        "runs-config",
+        help="Show the resolved config snapshot for a persisted run",
+    )
+    runs_config_parser.add_argument("--run-id", required=True, help="Run identifier")
+
+    runs_profile_parser = subparsers.add_parser(
+        "runs-data-profile",
+        help="Show the dataset profile for a persisted run",
+    )
+    runs_profile_parser.add_argument("--run-id", required=True, help="Run identifier")
+
+    runs_export_parser = subparsers.add_parser(
+        "runs-export-csv",
+        help="Export persisted strategy trades to CSV",
+    )
+    runs_export_parser.add_argument("--run-id", required=True, help="Run identifier")
+    runs_export_parser.add_argument("--strategy", required=True, help="Strategy name")
+    runs_export_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Optional output file path; defaults to stdout",
+    )
+
     args = parser.parse_args()
+    service = RunBacktestService()
 
     if args.command == "run":
         # Load configuration
@@ -354,14 +405,15 @@ def main():
             # Override benchmark settings with CLI arguments
             if args.benchmarks:
                 from .config import BenchmarkConfig
+
                 # Create benchmark configs from CLI arguments
                 cli_benchmarks = []
                 for ticker in args.benchmarks:
-                    cli_benchmarks.append(BenchmarkConfig(
-                        ticker=ticker,
-                        name=ticker,  # Use ticker as name for CLI
-                        enabled=True
-                    ))
+                    cli_benchmarks.append(
+                        BenchmarkConfig(
+                            ticker=ticker, name=ticker, enabled=True  # Use ticker as name for CLI
+                        )
+                    )
                 config.backtest.benchmarks = cli_benchmarks
 
             if args.include_selic_benchmark:
@@ -388,9 +440,11 @@ def main():
 
         # Process benchmarks if any are configured
         benchmarks = {}
-        if (config.backtest.benchmarks or
-            config.backtest.include_selic_benchmark or
-            config.backtest.include_buy_hold_benchmark):
+        if (
+            config.backtest.benchmarks
+            or config.backtest.include_selic_benchmark
+            or config.backtest.include_buy_hold_benchmark
+        ):
 
             # Load data for benchmark processing
             data = get_data(
@@ -403,16 +457,18 @@ def main():
 
             # Include benchmarks in comparison if enabled
             if benchmarks and not args.quiet and len(results) > 1:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("BENCHMARK COMPARISON")
-                print("="*60)
+                print("=" * 60)
 
                 for name, benchmark_data in benchmarks.items():
-                    metrics = benchmark_data['metrics']
-                    print(f"{name:15} | Return: {metrics['total_return']:+.2%} | "
-                          f"CAGR: {metrics['cagr']:+.2%} | "
-                          f"Max DD: {metrics['max_drawdown']:+.2%} | "
-                          f"Sharpe: {metrics['sharpe_ratio']:.2f}")
+                    metrics = benchmark_data["metrics"]
+                    print(
+                        f"{name:15} | Return: {metrics['total_return']:+.2%} | "
+                        f"CAGR: {metrics['cagr']:+.2%} | "
+                        f"Max DD: {metrics['max_drawdown']:+.2%} | "
+                        f"Sharpe: {metrics['sharpe_ratio']:.2f}"
+                    )
 
     elif args.command == "init":
         # Create default configuration
@@ -447,6 +503,56 @@ def main():
 
         except Exception as e:
             print(f"Configuration validation failed: {e}")
+            sys.exit(1)
+
+    elif args.command == "runs-list":
+        try:
+            runs = service.list_runs()[: args.limit]
+            for run in runs:
+                print(
+                    f"{run['run_id']} | {run['created_at']} | "
+                    f"{run['config_path']} | strategies={len(run['strategy_names'])}"
+                )
+        except Exception as e:
+            print(f"Failed to list runs: {e}")
+            sys.exit(1)
+
+    elif args.command == "runs-show":
+        try:
+            manifest = service.get_run_manifest(args.run_id)
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load run manifest: {e}")
+            sys.exit(1)
+
+    elif args.command == "runs-config":
+        try:
+            config_snapshot = service.get_run_config_snapshot(args.run_id)
+            print(json.dumps(config_snapshot, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load run config snapshot: {e}")
+            sys.exit(1)
+
+    elif args.command == "runs-data-profile":
+        try:
+            data_profile = service.get_run_data_profile(args.run_id)
+            print(json.dumps(data_profile, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load run data profile: {e}")
+            sys.exit(1)
+
+    elif args.command == "runs-export-csv":
+        try:
+            csv_content = service.get_trades_csv(args.run_id, args.strategy)
+            if args.output:
+                output_path = Path(args.output)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(csv_content, encoding="utf-8")
+                print(f"CSV exported to {output_path}")
+            else:
+                print(csv_content, end="")
+        except Exception as e:
+            print(f"Failed to export trades CSV: {e}")
             sys.exit(1)
 
     else:

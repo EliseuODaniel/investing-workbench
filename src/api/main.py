@@ -87,6 +87,24 @@ async def get_run_response(run_id: str):
         raise to_http_exception(exc) from exc
 
 
+@app.get("/runs/{run_id}/config")
+async def get_run_config(run_id: str):
+    """Return the resolved config snapshot for a run."""
+    try:
+        return service.get_run_config_snapshot(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/runs/{run_id}/data-profile")
+async def get_run_data_profile(run_id: str):
+    """Return the dataset profile for a run."""
+    try:
+        return service.get_run_data_profile(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
 @app.get("/runs")
 async def list_runs():
     """List persisted runs."""

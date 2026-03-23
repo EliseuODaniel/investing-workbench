@@ -145,3 +145,6 @@ class RunSummary(BaseModel):
     benchmark_names: List[str]
     request_payload: Dict[str, Any]
     data_info: Dict[str, Any]
+    config_snapshot_path: str
+    data_profile_path: str
+    data_fingerprint: str

@@ -5,6 +5,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.models import BacktestRequest
+from src.bitcoin_martingale.application.runs import RunBacktestService
+from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
 
 client = TestClient(app)
 
@@ -103,8 +106,36 @@ class TestPersistedRunsEndpoint:
         assert response.status_code == 404
         assert "Run response not found" in response.json()["detail"]
 
+    def test_run_config_not_found(self):
+        """Unknown config snapshots should return 404."""
+        response = client.get("/runs/does-not-exist/config")
+        assert response.status_code == 404
+        assert "Run config snapshot not found" in response.json()["detail"]
+
+    def test_run_data_profile_not_found(self):
+        """Unknown data profiles should return 404."""
+        response = client.get("/runs/does-not-exist/data-profile")
+        assert response.status_code == 404
+        assert "Run data profile not found" in response.json()["detail"]
+
     def test_run_strategy_csv_not_found(self):
         """Unknown strategy exports should return 404."""
         response = client.get("/runs/does-not-exist/strategies/foo/trades.csv")
         assert response.status_code == 404
         assert "Run response not found" in response.json()["detail"]
+
+    def test_run_config_and_data_profile_success(self, tmp_path):
+        """Persisted config snapshots and data profiles should be exposed by the API."""
+        repository = LocalRunsRepository(base_dir=tmp_path)
+        patched_service = RunBacktestService(runs_repository=repository)
+        response_model = patched_service.run(BacktestRequest(config_path="configs/test.yaml"))
+        run_id = response_model.run_info["run_id"]
+
+        with patch("src.api.main.service", patched_service):
+            config_response = client.get(f"/runs/{run_id}/config")
+            data_profile_response = client.get(f"/runs/{run_id}/data-profile")
+
+        assert config_response.status_code == 200
+        assert config_response.json()["backtest"]["cache_path"] == "data/btc_brl.parquet"
+        assert data_profile_response.status_code == 200
+        assert data_profile_response.json()["data_fingerprint"]

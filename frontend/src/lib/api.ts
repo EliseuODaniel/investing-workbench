@@ -3,6 +3,8 @@ import {
   ConfigInfo,
   BacktestRequest,
   BacktestResponse,
+  RunConfigSnapshot,
+  RunDataProfile,
   RunSummary,
 } from '../types/api';
 
@@ -34,6 +36,16 @@ export const apiClient = {
 
   getRunResponse: async (runId: string): Promise<BacktestResponse> => {
     const response = await api.get(`/runs/${runId}/response`);
+    return response.data;
+  },
+
+  getRunConfig: async (runId: string): Promise<RunConfigSnapshot> => {
+    const response = await api.get(`/runs/${runId}/config`);
+    return response.data;
+  },
+
+  getRunDataProfile: async (runId: string): Promise<RunDataProfile> => {
+    const response = await api.get(`/runs/${runId}/data-profile`);
     return response.data;
   },
 

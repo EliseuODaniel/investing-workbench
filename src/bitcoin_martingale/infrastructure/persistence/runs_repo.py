@@ -20,6 +20,8 @@ class PersistedRunArtifacts:
     artifact_dir: Path
     manifest_path: Path
     response_path: Path
+    config_snapshot_path: Path
+    data_profile_path: Path
 
 
 class LocalRunsRepository:
@@ -33,6 +35,8 @@ class LocalRunsRepository:
         *,
         manifest: RunManifest,
         response: BacktestResponse,
+        config_snapshot: dict[str, Any],
+        data_profile: dict[str, Any],
     ) -> PersistedRunArtifacts:
         """Persist manifest and response data for a run."""
         artifact_dir = self.base_dir / manifest.run_id
@@ -40,6 +44,8 @@ class LocalRunsRepository:
 
         manifest_path = artifact_dir / "manifest.json"
         response_path = artifact_dir / "response.json"
+        config_snapshot_path = artifact_dir / "config_resolved.json"
+        data_profile_path = artifact_dir / "data_profile.json"
 
         manifest_path.write_text(
             json.dumps(manifest.to_dict(), indent=2, sort_keys=True),
@@ -49,11 +55,21 @@ class LocalRunsRepository:
             json.dumps(response.model_dump(mode="json"), indent=2, sort_keys=True),
             encoding="utf-8",
         )
+        config_snapshot_path.write_text(
+            json.dumps(config_snapshot, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        data_profile_path.write_text(
+            json.dumps(data_profile, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
 
         return PersistedRunArtifacts(
             artifact_dir=artifact_dir,
             manifest_path=manifest_path,
             response_path=response_path,
+            config_snapshot_path=config_snapshot_path,
+            data_profile_path=data_profile_path,
         )
 
     def get_manifest(self, run_id: str) -> dict[str, object]:
@@ -69,6 +85,20 @@ class LocalRunsRepository:
         if not response_path.exists():
             raise FileNotFoundError(f"Run response not found: {run_id}")
         return json.loads(response_path.read_text(encoding="utf-8"))
+
+    def get_config_snapshot(self, run_id: str) -> dict[str, object]:
+        """Load the resolved config snapshot for a persisted run."""
+        config_snapshot_path = self.base_dir / run_id / "config_resolved.json"
+        if not config_snapshot_path.exists():
+            raise FileNotFoundError(f"Run config snapshot not found: {run_id}")
+        return json.loads(config_snapshot_path.read_text(encoding="utf-8"))
+
+    def get_data_profile(self, run_id: str) -> dict[str, object]:
+        """Load the dataset profile for a persisted run."""
+        data_profile_path = self.base_dir / run_id / "data_profile.json"
+        if not data_profile_path.exists():
+            raise FileNotFoundError(f"Run data profile not found: {run_id}")
+        return json.loads(data_profile_path.read_text(encoding="utf-8"))
 
     def list_runs(self) -> list[dict[str, object]]:
         """List persisted runs ordered from newest to oldest."""

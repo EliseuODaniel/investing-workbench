@@ -273,6 +273,10 @@ POST /backtest
 | Field | Type | Description |
 |-------|------|-------------|
 | `start_date` | string | Data start date |
+| `end_date` | string | Data end date |
+| `total_days` | integer | Number of price rows used |
+| `initial_price` | number | First closing price in the dataset |
+| `final_price` | number | Final closing price in the dataset |
 
 ### 3. Get Persisted Run Manifest
 
@@ -291,10 +295,33 @@ GET /runs/{run_id}/response
 ```
 
 Returns the persisted `response.json` payload for a previously executed run.
-| `end_date` | string | Data end date |
-| `total_days` | integer | Number of data points |
-| `data_source` | string | Data source symbol |
-| `cache_used` | boolean | Whether cached data was used |
+
+### 5. Get Persisted Run Config Snapshot
+
+**Endpoint**
+```
+GET /runs/{run_id}/config
+```
+
+Returns the resolved config used during the run, including any request overrides.
+
+### 6. Get Persisted Run Data Profile
+
+**Endpoint**
+```
+GET /runs/{run_id}/data-profile
+```
+
+Returns the dataset profile with columns, row count, timestamps, cache path, and `data_fingerprint`.
+
+### 7. List Persisted Runs
+
+**Endpoint**
+```
+GET /runs
+```
+
+Returns persisted manifests ordered from newest to oldest.
 
 **Example Request**
 ```bash
@@ -307,20 +334,21 @@ curl -X POST "http://localhost:8001/backtest" \
      }'
 ```
 
-### 3. Export Trades
+### 8. Export Trades From a Persisted Run
 
-Download trade data for a specific strategy (placeholder endpoint).
+Download trade data for a specific strategy from a persisted run.
 
 **Endpoint**
 ```
-GET /reports/{strategy}/download
+GET /runs/{run_id}/strategies/{strategy_name}/trades.csv
 ```
 
 **Path Parameters**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `strategy` | string | URL-encoded strategy name |
+| `run_id` | string | Persisted run identifier |
+| `strategy_name` | string | URL-encoded strategy name |
 
 **Response**
 ```
@@ -329,7 +357,7 @@ CSV file with trade data
 
 **Example Request**
 ```bash
-curl -X GET "http://localhost:8001/reports/Risk-Cap%20Martingale/download" \
+curl -X GET "http://localhost:8001/runs/run_20260323T120000Z_abcd1234/strategies/Risk-Cap%20Martingale/trades.csv" \
      -o trades.csv
 ```
 

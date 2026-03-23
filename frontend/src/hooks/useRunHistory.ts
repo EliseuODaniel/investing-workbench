@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../lib/api';
-import { BacktestResponse, RunSummary } from '../types/api';
+import {
+  BacktestResponse,
+  RunConfigSnapshot,
+  RunDataProfile,
+  RunSummary,
+} from '../types/api';
 
 export function useRunHistory(onError?: (message: string) => void) {
   const [runs, setRuns] = useState<RunSummary[]>([]);
@@ -33,10 +38,27 @@ export function useRunHistory(onError?: (message: string) => void) {
     }
   };
 
+  const loadRunArtifacts = async (
+    runId: string
+  ): Promise<{ configSnapshot: RunConfigSnapshot; dataProfile: RunDataProfile } | null> => {
+    try {
+      const [configSnapshot, dataProfile] = await Promise.all([
+        apiClient.getRunConfig(runId),
+        apiClient.getRunDataProfile(runId),
+      ]);
+      return { configSnapshot, dataProfile };
+    } catch (error) {
+      console.error('Failed to load persisted run artifacts:', error);
+      onError?.('Failed to load persisted run artifacts');
+      return null;
+    }
+  };
+
   return {
     runs,
     isLoadingRuns,
     refreshRuns,
     loadRunResponse,
+    loadRunArtifacts,
   };
 }

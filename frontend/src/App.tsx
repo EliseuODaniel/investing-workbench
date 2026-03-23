@@ -13,9 +13,11 @@ import VisibilityControls from './components/VisibilityControls';
 import SelicInfoPanel from './components/SelicInfoPanel';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
+import RunArtifactsPanel from './components/RunArtifactsPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import RunHistoryPanel from './components/RunHistoryPanel';
+import { RunConfigSnapshot, RunDataProfile } from './types/api';
 
 type AppState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -31,7 +33,11 @@ function App() {
     handleConfigChange,
     handleRequestChange,
   } = useConfigs(setError);
-  const { runs, isLoadingRuns, refreshRuns, loadRunResponse } = useRunHistory(setError);
+  const { runs, isLoadingRuns, refreshRuns, loadRunResponse, loadRunArtifacts } =
+    useRunHistory(setError);
+  const [runConfigSnapshot, setRunConfigSnapshot] = useState<RunConfigSnapshot | null>(null);
+  const [runDataProfile, setRunDataProfile] = useState<RunDataProfile | null>(null);
+  const [isLoadingArtifacts, setIsLoadingArtifacts] = useState(false);
 
   // Visibility controls state
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
@@ -51,6 +57,8 @@ function App() {
 
     setAppState('loading');
     setError(null);
+    setRunConfigSnapshot(null);
+    setRunDataProfile(null);
 
     try {
       const response = await apiClient.runBacktest({
@@ -61,10 +69,15 @@ function App() {
       setBacktestResponse(response);
       setAppState('success');
       refreshRuns();
+      if (response.run_info?.run_id) {
+        await hydrateRunArtifacts(response.run_info.run_id);
+      }
     } catch (err: any) {
       console.error('Backtest failed:', err);
       setError(err.response?.data?.detail || 'Failed to run backtest');
       setAppState('error');
+      setRunConfigSnapshot(null);
+      setRunDataProfile(null);
     }
   };
 
@@ -141,13 +154,27 @@ function App() {
     navigator.clipboard.writeText(summary);
   };
 
+  const hydrateRunArtifacts = async (runId: string) => {
+    setIsLoadingArtifacts(true);
+    try {
+      const artifacts = await loadRunArtifacts(runId);
+      setRunConfigSnapshot(artifacts?.configSnapshot ?? null);
+      setRunDataProfile(artifacts?.dataProfile ?? null);
+    } finally {
+      setIsLoadingArtifacts(false);
+    }
+  };
+
   const handleLoadRun = async (runId: string) => {
+    setRunConfigSnapshot(null);
+    setRunDataProfile(null);
     const response = await loadRunResponse(runId);
     if (!response) return;
 
     setBacktestResponse(response);
     setAppState('success');
     setActiveTab('overview');
+    await hydrateRunArtifacts(runId);
   };
 
   return (
@@ -323,6 +350,14 @@ function App() {
                     {backtestResponse.run_info?.run_id && (
                       <div className="mt-4 text-center text-xs text-green-700 dark:text-green-300">
                         Run ID: <span className="font-mono">{backtestResponse.run_info.run_id}</span>
+                        {backtestResponse.run_info.data_fingerprint && (
+                          <>
+                            {' '}| Data:{' '}
+                            <span className="font-mono">
+                              {backtestResponse.run_info.data_fingerprint.slice(0, 12)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -330,13 +365,20 @@ function App() {
 
                 {/* Warnings Panel */}
                 {warnings.length > 0 && (
-                  <WarningsPanel
+              <WarningsPanel
                     warnings={warnings}
                     onDismiss={() => {
                       /* In this view we only display warnings; stateful dismissal can be added later */
                     }}
                   />
                 )}
+
+                <RunArtifactsPanel
+                  runId={backtestResponse.run_info?.run_id}
+                  configSnapshot={runConfigSnapshot}
+                  dataProfile={runDataProfile}
+                  isLoading={isLoadingArtifacts}
+                />
 
                 {/* SELIC Info Panel */}
                 {backtestRequest.apply_cash_yield && (

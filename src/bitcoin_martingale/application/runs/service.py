@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+import hashlib
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -74,6 +76,8 @@ class RunBacktestService:
         strategies_to_run = self._resolve_strategies(config, request)
         data = self._load_market_data(config, request)
         run_id = self._build_run_id()
+        config_snapshot = self._build_config_snapshot(config)
+        data_profile = self._build_data_profile(config, data)
 
         buy_hold_equity = self._build_buy_hold_curve(data, config.backtest.initial_capital)
         results = self._run_strategies(config, strategies_to_run, data)
@@ -94,6 +98,7 @@ class RunBacktestService:
         run_info = {
             "run_id": run_id,
             "artifact_dir": str(self.runs_repository.base_dir / run_id),
+            "data_fingerprint": data_profile["data_fingerprint"],
         }
         response.run_info = run_info
         persisted = self._persist_run(
@@ -101,11 +106,15 @@ class RunBacktestService:
             request=request,
             response=response,
             config_path=request.config_path or "configs/martingale.yaml",
+            config_snapshot=config_snapshot,
+            data_profile=data_profile,
         )
         response.run_info.update(
             {
                 "manifest_path": str(persisted.manifest_path),
                 "response_path": str(persisted.response_path),
+                "config_snapshot_path": str(persisted.config_snapshot_path),
+                "data_profile_path": str(persisted.data_profile_path),
             }
         )
         persisted.response_path.write_text(
@@ -125,6 +134,14 @@ class RunBacktestService:
     def get_run_response(self, run_id: str) -> dict[str, object]:
         """Fetch a previously persisted run response payload."""
         return self.runs_repository.get_response_payload(run_id)
+
+    def get_run_config_snapshot(self, run_id: str) -> dict[str, object]:
+        """Fetch the resolved config used by a persisted run."""
+        return self.runs_repository.get_config_snapshot(run_id)
+
+    def get_run_data_profile(self, run_id: str) -> dict[str, object]:
+        """Fetch the persisted dataset profile for a run."""
+        return self.runs_repository.get_data_profile(run_id)
 
     def list_runs(self) -> list[dict[str, object]]:
         """List persisted runs for history views."""
@@ -215,6 +232,29 @@ class RunBacktestService:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         suffix = uuid4().hex[:8]
         return f"run_{timestamp}_{suffix}"
+
+    def _build_config_snapshot(self, config: AppConfig) -> dict[str, Any]:
+        """Serialize the resolved config after request overrides are applied."""
+        return asdict(config)
+
+    def _build_data_profile(self, config: AppConfig, data: pd.DataFrame) -> dict[str, Any]:
+        """Capture a lightweight, reproducible description of the dataset."""
+        index_name = getattr(data.index, "name", None)
+        return {
+            "asset": config.backtest.data_source,
+            "cache_path": config.backtest.cache_path,
+            "row_count": len(data),
+            "columns": list(data.columns),
+            "index_name": index_name,
+            "start_timestamp": data.index[0].isoformat(),
+            "end_timestamp": data.index[-1].isoformat(),
+            "data_fingerprint": self._build_data_fingerprint(data),
+        }
+
+    def _build_data_fingerprint(self, data: pd.DataFrame) -> str:
+        """Build a stable fingerprint for the exact dataset used in the run."""
+        hashed = pd.util.hash_pandas_object(data, index=True)
+        return hashlib.sha256(hashed.values.tobytes()).hexdigest()
 
     def _build_buy_hold_curve(
         self, data: pd.DataFrame, initial_capital: float
@@ -415,16 +455,27 @@ class RunBacktestService:
         request: BacktestRequest,
         response: BacktestResponse,
         config_path: str,
+        config_snapshot: dict[str, Any],
+        data_profile: dict[str, Any],
     ):
         benchmark_names = list(response.benchmarks.keys()) if response.benchmarks else []
+        artifact_dir = self.runs_repository.base_dir / run_id
         manifest = RunManifest(
             run_id=run_id,
             created_at=datetime.now(UTC),
             config_path=config_path,
-            artifact_dir=str(self.runs_repository.base_dir / run_id),
+            artifact_dir=str(artifact_dir),
             strategy_names=list(response.results.keys()),
             benchmark_names=benchmark_names,
             request_payload=request.model_dump(exclude_none=True),
             data_info=response.data_info,
+            config_snapshot_path=str(artifact_dir / "config_resolved.json"),
+            data_profile_path=str(artifact_dir / "data_profile.json"),
+            data_fingerprint=str(data_profile["data_fingerprint"]),
         )
-        return self.runs_repository.persist_run(manifest=manifest, response=response)
+        return self.runs_repository.persist_run(
+            manifest=manifest,
+            response=response,
+            config_snapshot=config_snapshot,
+            data_profile=data_profile,
+        )

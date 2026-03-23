@@ -85,8 +85,11 @@ export interface BacktestResponse {
   run_info?: {
     run_id: string;
     artifact_dir: string;
+    data_fingerprint?: string;
     manifest_path?: string;
     response_path?: string;
+    config_snapshot_path?: string;
+    data_profile_path?: string;
   };
   data_info: {
     start_date: string;
@@ -95,6 +98,46 @@ export interface BacktestResponse {
     initial_price: number;
     final_price: number;
   };
+}
+
+export interface BenchmarkConfigSnapshot {
+  ticker: string;
+  name: string;
+  enabled: boolean;
+}
+
+export interface StrategyConfigSnapshot {
+  name: string;
+  class_path: string;
+  parameters: Record<string, unknown>;
+}
+
+export interface RunConfigSnapshot {
+  backtest: {
+    initial_capital: number;
+    start_date: string;
+    end_date?: string | null;
+    data_source: string;
+    cache_path: string;
+    output_dir: string;
+    apply_cash_yield?: boolean;
+    benchmarks?: BenchmarkConfigSnapshot[] | null;
+    include_selic_benchmark?: boolean;
+    include_buy_hold_benchmark?: boolean;
+  };
+  strategies: StrategyConfigSnapshot[];
+  plotting?: Record<string, unknown> | null;
+}
+
+export interface RunDataProfile {
+  asset: string;
+  cache_path: string;
+  row_count: number;
+  columns: string[];
+  index_name?: string | null;
+  start_timestamp: string;
+  end_timestamp: string;
+  data_fingerprint: string;
 }
 
 export interface RunSummary {
@@ -106,4 +149,7 @@ export interface RunSummary {
   benchmark_names: string[];
   request_payload: Record<string, unknown>;
   data_info: Record<string, unknown>;
+  config_snapshot_path: string;
+  data_profile_path: string;
+  data_fingerprint: string;
 }
