@@ -132,6 +132,7 @@ make frontend-build
 - The API response includes `run_info.run_id`, `artifact_dir`, artifact paths, and a `data_fingerprint`.
 - The API exposes `GET /runs`, `GET /runs/{run_id}`, `GET /runs/{run_id}/response`, `GET /runs/{run_id}/config`, and `GET /runs/{run_id}/data-profile`.
 - Trades can be exported from a persisted run with `GET /runs/{run_id}/strategies/{strategy_name}/trades.csv`.
+- The frontend can now select up to 3 persisted runs and compare their best-performing strategies side by side.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
 
 ### Option 3: Python API

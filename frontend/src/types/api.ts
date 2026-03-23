@@ -153,3 +153,21 @@ export interface RunSummary {
   data_profile_path: string;
   data_fingerprint: string;
 }
+
+export interface ComparisonRun {
+  summary: RunSummary;
+  response: BacktestResponse;
+}
+
+export interface ComparisonRunOverview {
+  runId: string;
+  createdAt: string;
+  configPath: string;
+  strategyCount: number;
+  totalTrades: number;
+  bestStrategyName: string;
+  bestReturn: number;
+  bestSharpe: number;
+  bestDrawdown: number;
+  dataFingerprint: string;
+}

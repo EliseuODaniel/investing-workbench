@@ -14,8 +14,10 @@ import SelicInfoPanel from './components/SelicInfoPanel';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
 import RunArtifactsPanel from './components/RunArtifactsPanel';
+import RunComparisonPanel from './components/RunComparisonPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
+import { useRunComparison } from './hooks/useRunComparison';
 import RunHistoryPanel from './components/RunHistoryPanel';
 import { RunConfigSnapshot, RunDataProfile } from './types/api';
 
@@ -35,6 +37,13 @@ function App() {
   } = useConfigs(setError);
   const { runs, isLoadingRuns, refreshRuns, loadRunResponse, loadRunArtifacts } =
     useRunHistory(setError);
+  const {
+    selectedRunIds,
+    comparisonRuns,
+    isLoadingComparison,
+    toggleRunSelection,
+    clearComparison,
+  } = useRunComparison(runs, setError);
   const [runConfigSnapshot, setRunConfigSnapshot] = useState<RunConfigSnapshot | null>(null);
   const [runDataProfile, setRunDataProfile] = useState<RunDataProfile | null>(null);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState(false);
@@ -211,6 +220,8 @@ function App() {
               isLoading={isLoadingRuns}
               onRefresh={refreshRuns}
               onLoadRun={handleLoadRun}
+              selectedRunIds={selectedRunIds}
+              onToggleCompare={toggleRunSelection}
             />
           </div>
 
@@ -233,6 +244,12 @@ function App() {
             {appState === 'loading' && (
               <LoadingSpinner message="Running backtest analysis..." />
             )}
+
+            <RunComparisonPanel
+              comparisonRuns={comparisonRuns}
+              isLoading={isLoadingComparison}
+              onClear={clearComparison}
+            />
 
             {/* Results */}
             {appState === 'success' && backtestResponse && (
