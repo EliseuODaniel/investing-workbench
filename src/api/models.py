@@ -171,3 +171,16 @@ class OptimizationPlanRequest(BaseModel):
     random_seed: int = Field(default=42, description="Random seed for deterministic planning")
     objective: str = Field(default="sharpe_ratio", description="Metric used for ranking")
     direction: str = Field(default="maximize", description="maximize or minimize")
+
+
+class WalkForwardRequestModel(BaseModel):
+    """Request model for walk-forward and out-of-sample validation."""
+
+    config_path: str = Field(description="Path to config file")
+    strategies: Optional[List[str]] = Field(
+        None,
+        description="Strategy names to include in validation",
+    )
+    train_window_days: int = Field(default=90, description="Rows per training window")
+    test_window_days: int = Field(default=30, description="Rows per test window")
+    step_days: int = Field(default=30, description="Rows to advance between windows")

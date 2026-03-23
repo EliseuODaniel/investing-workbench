@@ -424,6 +424,42 @@ GET /optimizations/{optimization_id}/results
 
 Returns ranked trial results, linked persisted run ids, warnings, and objective values.
 
+### 16. Execute Walk-Forward Validation
+
+**Endpoint**
+```
+POST /walkforward
+```
+
+Executes persisted walk-forward validation with rolling train and test windows.
+
+### 17. List Persisted Walk-Forward Validations
+
+**Endpoint**
+```
+GET /walkforward
+```
+
+Returns persisted walk-forward manifests ordered from newest to oldest.
+
+### 18. Get Persisted Walk-Forward Manifest
+
+**Endpoint**
+```
+GET /walkforward/{walkforward_id}
+```
+
+Returns summary metadata and aggregated strategy summaries for a persisted validation.
+
+### 19. Get Persisted Walk-Forward Results
+
+**Endpoint**
+```
+GET /walkforward/{walkforward_id}/results
+```
+
+Returns all window-level train and test metrics for a persisted walk-forward execution.
+
 ## Data Models
 
 ### BacktestRequest

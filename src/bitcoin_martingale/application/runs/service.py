@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from contextlib import redirect_stdout
-from copy import deepcopy
-from dataclasses import asdict
 import hashlib
 import io
 import logging
+from contextlib import redirect_stdout
+from copy import deepcopy
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -27,13 +27,13 @@ from src.api.models import (
     Trade,
 )
 from src.benchmarks import get_benchmark_data, get_selic_benchmark
+from src.bitcoin_martingale.domain.runs import RunManifest
+from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
+from src.bitcoin_martingale.infrastructure.reporting import PersistedRunHTMLReportBuilder
 from src.config import AppConfig, BenchmarkConfig, load_strategy
 from src.data import get_data
 from src.engine import BacktestEngine
 from src.metrics import calculate_metrics
-from src.bitcoin_martingale.domain.runs import RunManifest
-from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
-from src.bitcoin_martingale.infrastructure.reporting import PersistedRunHTMLReportBuilder
 
 logger = logging.getLogger(__name__)
 

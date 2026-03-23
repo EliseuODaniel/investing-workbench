@@ -11,9 +11,11 @@ from src.bitcoin_martingale.application.optimizations import (
     OptimizationPlanningService,
 )
 from src.bitcoin_martingale.application.runs import RunBacktestService
+from src.bitcoin_martingale.application.walkforward import WalkForwardValidationService
 from src.bitcoin_martingale.infrastructure.persistence import (
     LocalOptimizationsRepository,
     LocalRunsRepository,
+    LocalWalkForwardRepository,
 )
 
 client = TestClient(app)
@@ -227,3 +229,34 @@ class TestOptimizationsEndpoint:
         assert manifest_response.json()["optimization_id"] == optimization_id
         assert results_response.status_code == 200
         assert len(results_response.json()["ranked_results"]) == 2
+
+
+class TestWalkForwardEndpoint:
+    """Test walk-forward validation endpoints."""
+
+    def test_execute_walkforward_and_fetch_results(self, tmp_path):
+        repository = LocalWalkForwardRepository(base_dir=tmp_path / "walkforward")
+        patched_service = WalkForwardValidationService(repository=repository)
+        request_data = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "train_window_days": 45,
+            "test_window_days": 20,
+            "step_days": 20,
+        }
+
+        with patch("src.api.main.walkforward_service", patched_service):
+            execute_response = client.post("/walkforward", json=request_data)
+            walkforward_id = execute_response.json()["walkforward_id"]
+            list_response = client.get("/walkforward")
+            manifest_response = client.get(f"/walkforward/{walkforward_id}")
+            results_response = client.get(f"/walkforward/{walkforward_id}/results")
+
+        assert execute_response.status_code == 200
+        assert execute_response.json()["window_count"] > 0
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["walkforward_id"] == walkforward_id
+        assert manifest_response.status_code == 200
+        assert manifest_response.json()["walkforward_id"] == walkforward_id
+        assert results_response.status_code == 200
+        assert len(results_response.json()["results"]) > 0

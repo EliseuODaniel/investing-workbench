@@ -12,11 +12,13 @@ from ..bitcoin_martingale.application.optimizations import (
     OptimizationPlanningService,
 )
 from ..bitcoin_martingale.application.runs import RunBacktestService
+from ..bitcoin_martingale.application.walkforward import WalkForwardValidationService
 from ..bitcoin_martingale.domain.optimizations import (
     OptimizationDirection,
     OptimizationMode,
     OptimizationRequest,
 )
+from ..bitcoin_martingale.domain.walkforward import WalkForwardRequest
 from ..bitcoin_martingale.infrastructure.logging import configure_logging
 from ..bitcoin_martingale.interfaces.api.errors import to_http_exception
 from .models import (
@@ -24,6 +26,7 @@ from .models import (
     BacktestResponse,
     ConfigInfo,
     OptimizationPlanRequest,
+    WalkForwardRequestModel,
 )
 
 configure_logging()
@@ -31,6 +34,7 @@ logger = logging.getLogger(__name__)
 service = RunBacktestService()
 optimization_planner = OptimizationPlanningService()
 optimization_service = OptimizationExecutionService(run_service=service)
+walkforward_service = WalkForwardValidationService()
 
 app = FastAPI(
     title="Bitcoin Martingale Backtest API",
@@ -51,6 +55,17 @@ def _to_optimization_request(request: OptimizationPlanRequest) -> OptimizationRe
         random_seed=request.random_seed,
         objective=request.objective,
         direction=OptimizationDirection(request.direction),
+    )
+
+
+def _to_walkforward_request(request: WalkForwardRequestModel) -> WalkForwardRequest:
+    """Convert API payloads into walk-forward domain requests."""
+    return WalkForwardRequest(
+        config_path=request.config_path,
+        strategy_names=request.strategies,
+        train_window_days=request.train_window_days,
+        test_window_days=request.test_window_days,
+        step_days=request.step_days,
     )
 
 # Add CORS middleware
@@ -226,5 +241,42 @@ async def get_optimization_results(optimization_id: str) -> dict[str, Any]:
     """Return the persisted ranked results for an optimization job."""
     try:
         return optimization_service.get_results(optimization_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/walkforward")
+async def execute_walkforward(request: WalkForwardRequestModel) -> dict[str, Any]:
+    """Execute and persist walk-forward validation."""
+    try:
+        walkforward_request = _to_walkforward_request(request)
+        return walkforward_service.execute(walkforward_request).results_dict()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/walkforward")
+async def list_walkforward_executions() -> list[dict[str, Any]]:
+    """List persisted walk-forward validations."""
+    try:
+        return walkforward_service.list_executions()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/walkforward/{walkforward_id}")
+async def get_walkforward_manifest(walkforward_id: str) -> dict[str, Any]:
+    """Return the persisted manifest for a walk-forward validation."""
+    try:
+        return walkforward_service.get_manifest(walkforward_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/walkforward/{walkforward_id}/results")
+async def get_walkforward_results(walkforward_id: str) -> dict[str, Any]:
+    """Return the persisted results for a walk-forward validation."""
+    try:
+        return walkforward_service.get_results(walkforward_id)
     except Exception as exc:
         raise to_http_exception(exc) from exc

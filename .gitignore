@@ -17,6 +17,7 @@ frontend/dist/
 /reports/
 /runs/
 /optimizations/
+/walkforward/
 data/*.parquet
 data/*_benchmark.parquet
 

@@ -16,11 +16,13 @@ from .bitcoin_martingale.application.optimizations import (
     OptimizationPlanningService,
 )
 from .bitcoin_martingale.application.runs import RunBacktestService
+from .bitcoin_martingale.application.walkforward import WalkForwardValidationService
 from .bitcoin_martingale.domain.optimizations import (
     OptimizationDirection,
     OptimizationMode,
     OptimizationRequest,
 )
+from .bitcoin_martingale.domain.walkforward import WalkForwardRequest
 from .config import AppConfig, create_default_config, load_strategy
 from .data import get_data
 from .engine import BacktestEngine
@@ -549,9 +551,73 @@ def main():
         help="Optimization identifier",
     )
 
+    walkforward_run_parser = subparsers.add_parser(
+        "walkforward-run",
+        help="Execute persisted walk-forward validation with rolling train/test windows",
+    )
+    walkforward_run_parser.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        default="configs/martingale.yaml",
+        help="Configuration file path",
+    )
+    walkforward_run_parser.add_argument(
+        "--strategies",
+        "-s",
+        nargs="+",
+        help="Specific strategies to include in validation",
+    )
+    walkforward_run_parser.add_argument(
+        "--train-days",
+        type=int,
+        default=90,
+        help="Number of rows in each training window",
+    )
+    walkforward_run_parser.add_argument(
+        "--test-days",
+        type=int,
+        default=30,
+        help="Number of rows in each test window",
+    )
+    walkforward_run_parser.add_argument(
+        "--step-days",
+        type=int,
+        default=30,
+        help="Rows to advance between windows",
+    )
+
+    walkforward_list_parser = subparsers.add_parser(
+        "walkforward-list",
+        help="List persisted walk-forward validations",
+    )
+    walkforward_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of validations to display",
+    )
+
+    walkforward_show_parser = subparsers.add_parser(
+        "walkforward-show",
+        help="Show a persisted walk-forward manifest",
+    )
+    walkforward_show_parser.add_argument("--walkforward-id", required=True, help="Walk-forward id")
+
+    walkforward_results_parser = subparsers.add_parser(
+        "walkforward-results",
+        help="Show persisted walk-forward results",
+    )
+    walkforward_results_parser.add_argument(
+        "--walkforward-id",
+        required=True,
+        help="Walk-forward id",
+    )
+
     args = parser.parse_args()
     service = RunBacktestService()
     optimization_service = OptimizationExecutionService()
+    walkforward_service = WalkForwardValidationService()
 
     if args.command == "run":
         # Load configuration
@@ -775,6 +841,50 @@ def main():
             print(json.dumps(results, indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to load optimization results: {e}")
+            sys.exit(1)
+
+    elif args.command == "walkforward-run":
+        try:
+            request = WalkForwardRequest(
+                config_path=args.config,
+                strategy_names=args.strategies,
+                train_window_days=args.train_days,
+                test_window_days=args.test_days,
+                step_days=args.step_days,
+            )
+            results = walkforward_service.execute(request)
+            print(json.dumps(results.results_dict(), indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to execute walk-forward validation: {e}")
+            sys.exit(1)
+
+    elif args.command == "walkforward-list":
+        try:
+            executions = walkforward_service.list_executions()[: args.limit]
+            for execution in executions:
+                print(
+                    f"{execution['walkforward_id']} | {execution['created_at']} | "
+                    f"windows={execution['window_count']} | "
+                    f"strategies={len(execution['strategy_names'])}"
+                )
+        except Exception as e:
+            print(f"Failed to list walk-forward validations: {e}")
+            sys.exit(1)
+
+    elif args.command == "walkforward-show":
+        try:
+            manifest = walkforward_service.get_manifest(args.walkforward_id)
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load walk-forward manifest: {e}")
+            sys.exit(1)
+
+    elif args.command == "walkforward-results":
+        try:
+            results = walkforward_service.get_results(args.walkforward_id)
+            print(json.dumps(results, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load walk-forward results: {e}")
             sys.exit(1)
 
     else:

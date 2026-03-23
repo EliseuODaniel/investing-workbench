@@ -194,6 +194,7 @@ Started in this cycle:
 - CLI preview flow started
 - optimization execution and persistence started
 - optimization API endpoints started
+- walk-forward validation and persisted out-of-sample windows started
 
 Not started yet:
 - robustness lab
