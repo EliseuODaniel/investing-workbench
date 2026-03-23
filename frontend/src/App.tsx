@@ -5,6 +5,7 @@ import { downloadNodeAsPng } from './lib/exportImage';
 import { BacktestResponse } from './types/api';
 import { formatCurrency, formatPercent } from './lib/utils';
 import BacktestForm from './components/BacktestForm';
+import DatasetManagerPanel from './components/DatasetManagerPanel';
 import MetricsCards from './components/MetricsCards';
 import LoadingSpinner from './components/LoadingSpinner';
 import DarkModeToggle from './components/DarkModeToggle';
@@ -286,6 +287,17 @@ function App() {
               onRequestChange={handleRequestChange}
               onRunBacktest={handleRunBacktest}
               isLoading={appState === 'loading'}
+            />
+            <DatasetManagerPanel
+              currentCachePath={backtestRequest.cache_path}
+              onApplyDataset={(dataset) => {
+                handleRequestChange({
+                  cache_path: dataset.path,
+                  data_source: dataset.name,
+                });
+                setError(null);
+              }}
+              onError={setError}
             />
             <RunHistoryPanel
               runs={runs}

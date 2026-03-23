@@ -217,6 +217,10 @@ class RunBacktestService:
             config.backtest.end_date = request.end_date
         if request.initial_capital is not None:
             config.backtest.initial_capital = request.initial_capital
+        if request.data_source is not None:
+            config.backtest.data_source = request.data_source
+        if request.cache_path is not None:
+            config.backtest.cache_path = request.cache_path
         if request.apply_cash_yield is not None:
             config.backtest.apply_cash_yield = request.apply_cash_yield
         if request.selic_rate_annual is not None:

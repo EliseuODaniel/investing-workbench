@@ -70,6 +70,7 @@ Status at handoff:
 ## Known Intentional Limits
 
 - Parameter optimization, walk-forward validation, and Monte Carlo robustness now exist as persisted backend workflows.
+- Dataset cataloging and dataset selection now exist across the API, CLI, and frontend.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
@@ -79,5 +80,6 @@ If the project continues, the highest-value optional items are:
 - Parameter optimization with Optuna.
 - Frontend views for walk-forward and Monte Carlo workflows.
 - Monte Carlo robustness storytelling and warnings inside the UI.
+- Dataset import/refresh and stronger quality validation workflows.
 - A user guide focused on interpreting strategy results.
 - Visual polish and deeper dashboard storytelling.

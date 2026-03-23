@@ -19,6 +19,8 @@ class BacktestRequest(BaseModel):
     drop_step: Optional[float] = Field(None, description="Price drop step")
     take_profit: Optional[float] = Field(None, description="Take profit percentage")
     max_layers: Optional[int] = Field(None, description="Maximum number of layers")
+    data_source: Optional[str] = Field(None, description="Logical data source name")
+    cache_path: Optional[str] = Field(None, description="Local dataset cache path to use")
     force_download: Optional[bool] = Field(False, description="Force data download")
     apply_cash_yield: Optional[bool] = Field(
         None, description="Enable cash yield based on SELIC rate"
@@ -132,6 +134,30 @@ class ConfigInfo(BaseModel):
         default_factory=list,
         description="Available strategies in this config",
     )
+
+
+class DatasetSummaryModel(BaseModel):
+    """Summary of a discovered local dataset."""
+
+    dataset_id: str
+    name: str
+    path: str
+    format: str
+    category: str
+    row_count: int
+    start_timestamp: Optional[str]
+    end_timestamp: Optional[str]
+    columns: List[str]
+    file_size_bytes: int
+    last_modified: str
+    data_fingerprint: str
+
+
+class DatasetDetailModel(DatasetSummaryModel):
+    """Detailed inspection payload for one local dataset."""
+
+    preview_rows: List[Dict[str, Any]]
+    validation_warnings: List[str]
 
 
 class RunSummary(BaseModel):

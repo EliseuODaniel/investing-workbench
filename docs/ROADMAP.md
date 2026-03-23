@@ -18,6 +18,7 @@
 - Backlog: richer dataset management.
 
 ## Phase 4
+- Completed: dataset catalog and dataset manager slice across API, CLI, and frontend.
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
 

@@ -11,6 +11,7 @@ import pandas as pd
 import yaml
 
 from .benchmarks import get_benchmark_data, get_selic_benchmark
+from .bitcoin_martingale.application.datasets import DatasetCatalogService
 from .bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from .bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
@@ -380,6 +381,23 @@ def main():
         help="Configuration file to validate",
     )
 
+    datasets_list_parser = subparsers.add_parser(
+        "datasets-list",
+        help="List discovered local datasets",
+    )
+    datasets_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="Maximum number of datasets to display",
+    )
+
+    datasets_show_parser = subparsers.add_parser(
+        "datasets-show",
+        help="Show detailed metadata for one dataset",
+    )
+    datasets_show_parser.add_argument("--dataset-id", required=True, help="Dataset identifier")
+
     runs_list_parser = subparsers.add_parser("runs-list", help="List persisted runs")
     runs_list_parser.add_argument(
         "--limit",
@@ -696,6 +714,7 @@ def main():
 
     args = parser.parse_args()
     service = RunBacktestService()
+    dataset_service = DatasetCatalogService()
     optimization_service = OptimizationExecutionService()
     walkforward_service = WalkForwardValidationService()
     montecarlo_service = MonteCarloSimulationService(run_service=service)
@@ -824,6 +843,26 @@ def main():
 
         except Exception as e:
             print(f"Configuration validation failed: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-list":
+        try:
+            datasets = dataset_service.list_datasets()[: args.limit]
+            for dataset in datasets:
+                print(
+                    f"{dataset['dataset_id']} | {dataset['category']} | "
+                    f"{dataset['format']} | rows={dataset['row_count']} | {dataset['path']}"
+                )
+        except Exception as e:
+            print(f"Failed to list datasets: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-show":
+        try:
+            dataset = dataset_service.get_dataset(args.dataset_id)
+            print(json.dumps(dataset, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load dataset metadata: {e}")
             sys.exit(1)
 
     elif args.command == "runs-list":

@@ -150,6 +150,7 @@ make frontend-build
 - Persisted Monte Carlo jobs can be inspected with `python -m src montecarlo-list`, `python -m src montecarlo-show --montecarlo-id <id>`, and `python -m src montecarlo-results --montecarlo-id <id>`.
 - The frontend now includes Walk-Forward Lab and Monte Carlo Lab workspaces for executing and reviewing robustness jobs directly from the UI.
 - The frontend now includes a unified Research Overview panel that summarizes persisted optimization, walk-forward, and Monte Carlo workflows in one place.
+- The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
 
 ### Option 3: Python API
 

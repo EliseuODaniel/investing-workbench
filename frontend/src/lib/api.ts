@@ -3,6 +3,8 @@ import {
   ConfigInfo,
   BacktestRequest,
   BacktestResponse,
+  DatasetDetail,
+  DatasetSummary,
   MonteCarloManifest,
   MonteCarloRequestPayload,
   MonteCarloResultsPayload,
@@ -70,6 +72,17 @@ export const apiClient = {
     const response = await api.get(`/runs/${runId}/report.html`, {
       responseType: 'blob',
     });
+    return response.data;
+  },
+
+  // Dataset catalog operations
+  listDatasets: async (): Promise<DatasetSummary[]> => {
+    const response = await api.get('/datasets');
+    return response.data;
+  },
+
+  getDataset: async (datasetId: string): Promise<DatasetDetail> => {
+    const response = await api.get(`/datasets/${datasetId}`);
     return response.data;
   },
 

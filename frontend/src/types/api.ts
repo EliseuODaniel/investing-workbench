@@ -66,6 +66,8 @@ export interface BacktestRequest {
   drop_step?: number;
   take_profit?: number;
   max_layers?: number;
+  data_source?: string;
+  cache_path?: string;
   force_download?: boolean;
   apply_cash_yield?: boolean;
   selic_rate_annual?: number;
@@ -249,6 +251,26 @@ export interface OptimizationResultsPayload {
   warnings: string[];
   ranked_results: OptimizationTrialResult[];
   results: OptimizationTrialResult[];
+}
+
+export interface DatasetSummary {
+  dataset_id: string;
+  name: string;
+  path: string;
+  format: string;
+  category: string;
+  row_count: number;
+  start_timestamp?: string | null;
+  end_timestamp?: string | null;
+  columns: string[];
+  file_size_bytes: number;
+  last_modified: string;
+  data_fingerprint: string;
+}
+
+export interface DatasetDetail extends DatasetSummary {
+  preview_rows: Array<Record<string, unknown>>;
+  validation_warnings: string[];
 }
 
 export interface WalkForwardRequestPayload {

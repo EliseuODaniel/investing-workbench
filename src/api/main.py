@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from ..bitcoin_martingale.application.datasets import DatasetCatalogService
 from ..bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from ..bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
@@ -27,6 +28,8 @@ from .models import (
     BacktestRequest,
     BacktestResponse,
     ConfigInfo,
+    DatasetDetailModel,
+    DatasetSummaryModel,
     MonteCarloRequestModel,
     OptimizationPlanRequest,
     WalkForwardRequestModel,
@@ -35,6 +38,7 @@ from .models import (
 configure_logging()
 logger = logging.getLogger(__name__)
 service = RunBacktestService()
+dataset_service = DatasetCatalogService()
 optimization_planner = OptimizationPlanningService()
 optimization_service = OptimizationExecutionService(run_service=service)
 walkforward_service = WalkForwardValidationService()
@@ -111,6 +115,24 @@ async def get_configs():
     """List available configuration files."""
     try:
         return service.list_configs()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/datasets", response_model=list[DatasetSummaryModel])
+async def list_datasets():
+    """List discovered local datasets."""
+    try:
+        return dataset_service.list_datasets()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/datasets/{dataset_id}", response_model=DatasetDetailModel)
+async def get_dataset(dataset_id: str):
+    """Inspect a discovered local dataset."""
+    try:
+        return dataset_service.get_dataset(dataset_id)
     except Exception as exc:
         raise to_http_exception(exc) from exc
 

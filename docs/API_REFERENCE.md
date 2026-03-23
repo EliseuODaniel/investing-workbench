@@ -95,6 +95,24 @@ curl -X GET "http://localhost:8001/configs" \
      -H "Content-Type: application/json"
 ```
 
+### 1A. List Local Datasets
+
+**Endpoint**
+```
+GET /datasets
+```
+
+Returns discovered local datasets from the `data/` directory, including parquet caches, benchmark files, and CSV rate files.
+
+### 1B. Inspect Local Dataset
+
+**Endpoint**
+```
+GET /datasets/{dataset_id}
+```
+
+Returns detailed dataset metadata, preview rows, validation warnings, and the dataset fingerprint.
+
 ### 2. Run Backtest
 
 Execute backtest with specified parameters and strategies.
@@ -131,6 +149,8 @@ POST /backtest
 | `start_date` | string | No | null | Start date (YYYY-MM-DD) |
 | `end_date` | string | No | null | End date (YYYY-MM-DD) |
 | `initial_capital` | number | No | 30000 | Initial capital amount |
+| `data_source` | string | No | null | Logical dataset label used in manifests |
+| `cache_path` | string | No | null | Local dataset path to use for this run |
 | `base_bet` | number | No | null | Base bet amount for Martingale |
 | `multiplier` | number | No | null | Position size multiplier |
 | `drop_step` | number | No | null | Price drop step percentage |

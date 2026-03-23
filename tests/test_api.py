@@ -48,6 +48,25 @@ class TestConfigsEndpoint:
             assert "Configs directory not found" in response.json()["detail"]
 
 
+class TestDatasetsEndpoint:
+    """Test dataset catalog endpoints."""
+
+    def test_list_datasets(self):
+        response = client.get("/datasets")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+        assert any(item["path"] == "data/btc_brl.parquet" for item in response.json())
+
+    def test_get_dataset_detail(self):
+        list_response = client.get("/datasets")
+        dataset_id = list_response.json()[0]["dataset_id"]
+
+        response = client.get(f"/datasets/{dataset_id}")
+        assert response.status_code == 200
+        assert response.json()["dataset_id"] == dataset_id
+        assert "preview_rows" in response.json()
+
+
 class TestBacktestEndpoint:
     """Test /backtest endpoint."""
 

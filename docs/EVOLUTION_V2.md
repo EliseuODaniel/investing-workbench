@@ -199,6 +199,6 @@ Started in this cycle:
 - frontend optimization workspace started
 
 Remaining backlog:
-- dataset manager
 - didactic robustness storytelling
 - deeper cross-workflow drilldowns and ranking
+- dataset import, refresh, and richer validation workflows
