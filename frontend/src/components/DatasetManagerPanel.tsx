@@ -4,8 +4,11 @@ import {
   Fingerprint,
   Loader2,
   RefreshCw,
+  RotateCcw,
+  ShieldCheck,
   Wand2,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useDatasets } from '../hooks/useDatasets';
 import { formatDateTime } from '../lib/utils';
 
@@ -20,14 +23,21 @@ export default function DatasetManagerPanel({
   onApplyDataset,
   onError,
 }: DatasetManagerPanelProps) {
+  const [sourcePath, setSourcePath] = useState('');
+  const [datasetName, setDatasetName] = useState('');
+  const [refreshStartDate, setRefreshStartDate] = useState('2020-01-01');
   const {
     datasets,
     selectedDatasetId,
     selectedDataset,
     isLoadingDatasets,
     isLoadingSelectedDataset,
+    isImportingDataset,
+    isRefreshingDataset,
     refreshDatasets,
     loadDataset,
+    importDataset,
+    refreshDataset,
   } = useDatasets(onError);
 
   return (
@@ -60,6 +70,44 @@ export default function DatasetManagerPanel({
       </div>
 
       <div className="space-y-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Import Local Dataset
+          </div>
+          <input
+            value={sourcePath}
+            onChange={(event) => setSourcePath(event.target.value)}
+            placeholder="/abs/path/to/file.csv"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+          />
+          <input
+            value={datasetName}
+            onChange={(event) => setDatasetName(event.target.value)}
+            placeholder="Optional destination name"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              importDataset(sourcePath, datasetName || undefined, false).then((response) => {
+                if (response) {
+                  setSourcePath('');
+                  setDatasetName('');
+                }
+              });
+            }}
+            disabled={!sourcePath.trim() || isImportingDataset}
+            className="inline-flex items-center rounded-lg bg-cyan-600 px-3 py-2 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+          >
+            {isImportingDataset ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <FileStack className="h-3 w-3 mr-1" />
+            )}
+            Import into data/
+          </button>
+        </div>
+
         <div className="space-y-2 max-h-56 overflow-auto">
           {datasets.map((dataset) => {
             const isActive = dataset.dataset_id === selectedDatasetId;
@@ -163,6 +211,31 @@ export default function DatasetManagerPanel({
                 </div>
               </div>
 
+              {selectedDataset.validation && (
+                <div className="rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-3">
+                  <div className="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                    <ShieldCheck className="h-3 w-3 mr-1" />
+                    Validation
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-gray-700 dark:text-gray-300">
+                    <div>Missing values: {selectedDataset.validation.missing_value_count}</div>
+                    <div>Duplicate rows: {selectedDataset.validation.duplicate_index_count}</div>
+                    <div>Date gaps: {selectedDataset.validation.date_gap_count}</div>
+                    <div>Price anomalies: {selectedDataset.validation.price_anomaly_count}</div>
+                    <div>
+                      Missing OHLC cols:{' '}
+                      {selectedDataset.validation.missing_required_columns.length > 0
+                        ? selectedDataset.validation.missing_required_columns.join(', ')
+                        : 'none'}
+                    </div>
+                    <div>
+                      Refresh:{' '}
+                      {selectedDataset.validation.supported_refresh ? 'supported' : 'static only'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-3">
                 <div className="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   <Fingerprint className="h-3 w-3 mr-1" />
@@ -182,6 +255,32 @@ export default function DatasetManagerPanel({
                   {JSON.stringify(selectedDataset.preview_rows, null, 2)}
                 </pre>
               </div>
+
+              {selectedDataset.validation?.supported_refresh && (
+                <div className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Refresh Dataset
+                  </div>
+                  <input
+                    value={refreshStartDate}
+                    onChange={(event) => setRefreshStartDate(event.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => refreshDataset(selectedDataset.dataset_id, refreshStartDate)}
+                    disabled={isRefreshingDataset}
+                    className="inline-flex items-center rounded-lg bg-slate-700 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {isRefreshingDataset ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                    )}
+                    Refresh Cache
+                  </button>
+                </div>
+              )}
 
               {selectedDataset.validation_warnings.length > 0 && (
                 <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 px-3 py-3 text-xs text-amber-800 dark:text-amber-200">

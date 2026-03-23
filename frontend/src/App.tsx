@@ -17,6 +17,7 @@ import WalkForwardWorkspace from './components/WalkForwardWorkspace';
 import MonteCarloWorkspace from './components/MonteCarloWorkspace';
 import OptimizationWorkspace from './components/OptimizationWorkspace';
 import ResearchOverviewPanel from './components/ResearchOverviewPanel';
+import ResearchDrilldownPanel from './components/ResearchDrilldownPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
@@ -338,6 +339,7 @@ function App() {
             </Suspense>
 
             <ResearchOverviewPanel onError={setError} />
+            <ResearchDrilldownPanel onError={setError} />
 
             <OptimizationWorkspace
               selectedConfigPath={selectedConfig?.path}

@@ -113,6 +113,24 @@ GET /datasets/{dataset_id}
 
 Returns detailed dataset metadata, preview rows, validation warnings, and the dataset fingerprint.
 
+### 1C. Import Local Dataset
+
+**Endpoint**
+```
+POST /datasets/import
+```
+
+Imports a local CSV or Parquet file into the managed `data/` directory.
+
+### 1D. Refresh Supported Dataset
+
+**Endpoint**
+```
+POST /datasets/{dataset_id}/refresh
+```
+
+Refreshes a supported cached market or benchmark dataset in place. Static imports remain inspectable but may not support refresh.
+
 ### 2. Run Backtest
 
 Execute backtest with specified parameters and strategies.

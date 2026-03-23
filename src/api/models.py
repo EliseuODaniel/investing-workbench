@@ -158,6 +158,25 @@ class DatasetDetailModel(DatasetSummaryModel):
 
     preview_rows: List[Dict[str, Any]]
     validation_warnings: List[str]
+    validation: Optional[Dict[str, Any]]
+
+
+class DatasetImportRequest(BaseModel):
+    """Request model for importing a local dataset into the data catalog."""
+
+    source_path: str = Field(description="Absolute or relative path to the source file")
+    dataset_name: Optional[str] = Field(
+        None,
+        description="Optional destination filename or stem inside data/",
+    )
+    overwrite: bool = Field(default=False, description="Overwrite existing dataset if present")
+
+
+class DatasetRefreshRequest(BaseModel):
+    """Request model for refreshing a supported dataset."""
+
+    start_date: str = Field(default="2020-01-01", description="Refresh start date")
+    end_date: Optional[str] = Field(None, description="Refresh end date")
 
 
 class RunSummary(BaseModel):

@@ -398,6 +398,38 @@ def main():
     )
     datasets_show_parser.add_argument("--dataset-id", required=True, help="Dataset identifier")
 
+    datasets_import_parser = subparsers.add_parser(
+        "datasets-import",
+        help="Import a local CSV or Parquet file into data/",
+    )
+    datasets_import_parser.add_argument("--source-path", required=True, help="Source dataset path")
+    datasets_import_parser.add_argument(
+        "--dataset-name",
+        default=None,
+        help="Optional destination filename or stem inside data/",
+    )
+    datasets_import_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite an existing dataset if it already exists",
+    )
+
+    datasets_refresh_parser = subparsers.add_parser(
+        "datasets-refresh",
+        help="Refresh a supported cached dataset in place",
+    )
+    datasets_refresh_parser.add_argument("--dataset-id", required=True, help="Dataset identifier")
+    datasets_refresh_parser.add_argument(
+        "--start-date",
+        default="2020-01-01",
+        help="Refresh start date in YYYY-MM-DD",
+    )
+    datasets_refresh_parser.add_argument(
+        "--end-date",
+        default=None,
+        help="Optional refresh end date in YYYY-MM-DD",
+    )
+
     runs_list_parser = subparsers.add_parser("runs-list", help="List persisted runs")
     runs_list_parser.add_argument(
         "--limit",
@@ -863,6 +895,30 @@ def main():
             print(json.dumps(dataset, indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to load dataset metadata: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-import":
+        try:
+            dataset = dataset_service.import_dataset(
+                source_path=args.source_path,
+                dataset_name=args.dataset_name,
+                overwrite=args.overwrite,
+            )
+            print(json.dumps(dataset, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to import dataset: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-refresh":
+        try:
+            dataset = dataset_service.refresh_dataset(
+                args.dataset_id,
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
+            print(json.dumps(dataset, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to refresh dataset: {e}")
             sys.exit(1)
 
     elif args.command == "runs-list":

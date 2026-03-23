@@ -19,6 +19,7 @@
 
 ## Phase 4
 - Completed: dataset catalog and dataset manager slice across API, CLI, and frontend.
+- Completed: dataset import, supported refresh flows, and richer validation diagnostics.
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
 

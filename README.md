@@ -151,6 +151,8 @@ make frontend-build
 - The frontend now includes Walk-Forward Lab and Monte Carlo Lab workspaces for executing and reviewing robustness jobs directly from the UI.
 - The frontend now includes a unified Research Overview panel that summarizes persisted optimization, walk-forward, and Monte Carlo workflows in one place.
 - The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
+- The Dataset Manager now supports importing local CSV/Parquet files into `data/`, refreshing supported cached datasets, and exposing richer validation diagnostics.
+- The frontend now includes a Research Drilldown panel that cross-checks optimization winners against walk-forward behavior and Monte Carlo tail risk.
 
 ### Option 3: Python API
 

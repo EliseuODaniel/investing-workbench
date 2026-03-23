@@ -1,5 +1,5 @@
 """Dataset catalog domain models."""
 
-from .models import DatasetDetail, DatasetSummary
+from .models import DatasetDetail, DatasetSummary, DatasetValidationSummary
 
-__all__ = ["DatasetDetail", "DatasetSummary"]
+__all__ = ["DatasetDetail", "DatasetSummary", "DatasetValidationSummary"]

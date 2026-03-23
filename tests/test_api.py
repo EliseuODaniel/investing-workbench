@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.models import BacktestRequest
+from src.bitcoin_martingale.application.datasets import DatasetCatalogService
 from src.bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from src.bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
@@ -65,6 +66,22 @@ class TestDatasetsEndpoint:
         assert response.status_code == 200
         assert response.json()["dataset_id"] == dataset_id
         assert "preview_rows" in response.json()
+
+    def test_import_dataset(self, tmp_path):
+        source_path = tmp_path / "import.csv"
+        source_path.write_text("Date,Open,High,Low,Close\n2024-01-01,1,2,0.5,1.5\n", encoding="utf-8")
+
+        with patch(
+            "src.api.main.dataset_service",
+            DatasetCatalogService(data_dir=tmp_path / "data"),
+        ):
+            response = client.post(
+                "/datasets/import",
+                json={"source_path": str(source_path)},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["name"] == "import"
 
 
 class TestBacktestEndpoint:

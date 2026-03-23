@@ -271,6 +271,26 @@ export interface DatasetSummary {
 export interface DatasetDetail extends DatasetSummary {
   preview_rows: Array<Record<string, unknown>>;
   validation_warnings: string[];
+  validation?: {
+    datetime_index_detected: boolean;
+    duplicate_index_count: number;
+    missing_value_count: number;
+    date_gap_count: number;
+    missing_required_columns: string[];
+    price_anomaly_count: number;
+    supported_refresh: boolean;
+  } | null;
+}
+
+export interface DatasetImportRequestPayload {
+  source_path: string;
+  dataset_name?: string;
+  overwrite?: boolean;
+}
+
+export interface DatasetRefreshRequestPayload {
+  start_date: string;
+  end_date?: string;
 }
 
 export interface WalkForwardRequestPayload {

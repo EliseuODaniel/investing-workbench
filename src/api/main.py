@@ -29,6 +29,8 @@ from .models import (
     BacktestResponse,
     ConfigInfo,
     DatasetDetailModel,
+    DatasetImportRequest,
+    DatasetRefreshRequest,
     DatasetSummaryModel,
     MonteCarloRequestModel,
     OptimizationPlanRequest,
@@ -133,6 +135,32 @@ async def get_dataset(dataset_id: str):
     """Inspect a discovered local dataset."""
     try:
         return dataset_service.get_dataset(dataset_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/datasets/import", response_model=DatasetDetailModel)
+async def import_dataset(request: DatasetImportRequest):
+    """Import a local CSV or Parquet file into the managed dataset catalog."""
+    try:
+        return dataset_service.import_dataset(
+            source_path=request.source_path,
+            dataset_name=request.dataset_name,
+            overwrite=request.overwrite,
+        )
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/datasets/{dataset_id}/refresh", response_model=DatasetDetailModel)
+async def refresh_dataset(dataset_id: str, request: DatasetRefreshRequest):
+    """Refresh a supported cached dataset in place."""
+    try:
+        return dataset_service.refresh_dataset(
+            dataset_id,
+            start_date=request.start_date,
+            end_date=request.end_date,
+        )
     except Exception as exc:
         raise to_http_exception(exc) from exc
 

@@ -1,15 +1,15 @@
 """Tests for benchmark functionality."""
 
-import pytest
-import pandas as pd
-import numpy as np
-from pathlib import Path
-import tempfile
 import os
-from unittest.mock import patch, MagicMock
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
 
 from src.benchmarks import BenchmarkData, get_benchmark_data, get_selic_benchmark
-from src.config import BenchmarkConfig, BacktestConfig, AppConfig, StrategyConfig
+from src.config import AppConfig, BacktestConfig, BenchmarkConfig, StrategyConfig
 
 
 class TestBenchmarkData:
@@ -354,8 +354,6 @@ class TestBenchmarkIntegration:
         )
 
         # Test serialization
-        import tempfile
-        import yaml
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             temp_path = f.name

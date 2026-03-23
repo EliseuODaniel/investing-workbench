@@ -4,6 +4,8 @@ import {
   BacktestRequest,
   BacktestResponse,
   DatasetDetail,
+  DatasetImportRequestPayload,
+  DatasetRefreshRequestPayload,
   DatasetSummary,
   MonteCarloManifest,
   MonteCarloRequestPayload,
@@ -83,6 +85,19 @@ export const apiClient = {
 
   getDataset: async (datasetId: string): Promise<DatasetDetail> => {
     const response = await api.get(`/datasets/${datasetId}`);
+    return response.data;
+  },
+
+  importDataset: async (request: DatasetImportRequestPayload): Promise<DatasetDetail> => {
+    const response = await api.post('/datasets/import', request);
+    return response.data;
+  },
+
+  refreshDataset: async (
+    datasetId: string,
+    request: DatasetRefreshRequestPayload
+  ): Promise<DatasetDetail> => {
+    const response = await api.post(`/datasets/${datasetId}/refresh`, request);
     return response.data;
   },
 

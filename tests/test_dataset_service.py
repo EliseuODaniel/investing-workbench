@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pandas as pd
+
 from src.bitcoin_martingale.application.datasets import DatasetCatalogService
 
 
@@ -23,3 +27,40 @@ def test_dataset_catalog_returns_detail() -> None:
     assert detail["dataset_id"] == datasets[0]["dataset_id"]
     assert "preview_rows" in detail
     assert "validation_warnings" in detail
+    assert "validation" in detail
+
+
+def test_dataset_imports_csv(tmp_path: Path) -> None:
+    source_path = tmp_path / "sample.csv"
+    pd.DataFrame(
+        {
+            "Date": ["2024-01-01", "2024-01-02"],
+            "Open": [1.0, 2.0],
+            "High": [2.0, 3.0],
+            "Low": [0.5, 1.5],
+            "Close": [1.5, 2.5],
+        }
+    ).to_csv(source_path, index=False)
+
+    service = DatasetCatalogService(data_dir=tmp_path / "data")
+    detail = service.import_dataset(source_path=str(source_path))
+
+    assert detail["name"] == "sample"
+    assert detail["path"].endswith("sample.csv")
+
+
+def test_dataset_refresh_rejects_unsupported_dataset(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True)
+    dataset_path = data_dir / "custom.csv"
+    pd.DataFrame({"value": [1, 2, 3]}).to_csv(dataset_path, index=False)
+
+    service = DatasetCatalogService(data_dir=data_dir)
+    dataset_id = service.list_datasets()[0]["dataset_id"]
+
+    try:
+        service.refresh_dataset(dataset_id)
+    except NotImplementedError as exc:
+        assert "not supported" in str(exc)
+    else:
+        raise AssertionError("Expected refresh to be unsupported for custom CSV datasets")

@@ -8,6 +8,8 @@ export function useDatasets(onError: (message: string | null) => void) {
   const [selectedDataset, setSelectedDataset] = useState<DatasetDetail | null>(null);
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isLoadingSelectedDataset, setIsLoadingSelectedDataset] = useState(false);
+  const [isImportingDataset, setIsImportingDataset] = useState(false);
+  const [isRefreshingDataset, setIsRefreshingDataset] = useState(false);
 
   const selectedSummary = useMemo(
     () =>
@@ -58,6 +60,50 @@ export function useDatasets(onError: (message: string | null) => void) {
     }
   }, [loadDataset, selectedDatasetId]);
 
+  const importDataset = useCallback(
+    async (sourcePath: string, datasetName?: string, overwrite?: boolean) => {
+      setIsImportingDataset(true);
+      try {
+        const response = await apiClient.importDataset({
+          source_path: sourcePath,
+          dataset_name: datasetName || undefined,
+          overwrite: overwrite || false,
+        });
+        await refreshDatasets();
+        setSelectedDatasetId(response.dataset_id);
+        setSelectedDataset(response);
+        return response;
+      } catch (error: any) {
+        onError(error.response?.data?.detail || 'Failed to import dataset');
+        return null;
+      } finally {
+        setIsImportingDataset(false);
+      }
+    },
+    [onError, refreshDatasets]
+  );
+
+  const refreshDataset = useCallback(
+    async (datasetId: string, startDate: string, endDate?: string) => {
+      setIsRefreshingDataset(true);
+      try {
+        const response = await apiClient.refreshDataset(datasetId, {
+          start_date: startDate,
+          end_date: endDate || undefined,
+        });
+        await refreshDatasets();
+        setSelectedDataset(response);
+        return response;
+      } catch (error: any) {
+        onError(error.response?.data?.detail || 'Failed to refresh dataset');
+        return null;
+      } finally {
+        setIsRefreshingDataset(false);
+      }
+    },
+    [onError, refreshDatasets]
+  );
+
   return {
     datasets,
     selectedDatasetId,
@@ -65,7 +111,11 @@ export function useDatasets(onError: (message: string | null) => void) {
     selectedSummary,
     isLoadingDatasets,
     isLoadingSelectedDataset,
+    isImportingDataset,
+    isRefreshingDataset,
     refreshDatasets,
     loadDataset,
+    importDataset,
+    refreshDataset,
   };
 }
