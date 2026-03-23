@@ -6,6 +6,7 @@ interface QuickActionsProps {
   onDownloadCSV: (strategy: string) => void;
   onDownloadPNG: () => void;
   onDownloadHTML: () => void;
+  onSaveProject: () => void;
   onShareResults: () => void;
   onCopySummary: () => void;
   onCopyLink: () => void;
@@ -17,6 +18,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onDownloadCSV,
   onDownloadPNG,
   onDownloadHTML,
+  onSaveProject,
   onShareResults,
   onCopySummary,
   onCopyLink,
@@ -128,6 +130,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         </button>
 
         <button
+          onClick={onSaveProject}
           className="flex items-center justify-center px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium rounded transition-colors"
         >
           <FileText className="h-3 w-3 mr-1" />

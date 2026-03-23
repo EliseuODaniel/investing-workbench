@@ -3,7 +3,7 @@ import { Play, BarChart3, AlertCircle, TrendingUp, List, DollarSign } from 'luci
 import { apiClient } from './lib/api';
 import { downloadNodeAsPng } from './lib/exportImage';
 import { BacktestResponse } from './types/api';
-import { formatCurrency, formatPercent } from './lib/utils';
+import { downloadJSON, formatCurrency, formatPercent } from './lib/utils';
 import BacktestForm from './components/BacktestForm';
 import DatasetManagerPanel from './components/DatasetManagerPanel';
 import MetricsCards from './components/MetricsCards';
@@ -253,6 +253,28 @@ function App() {
       console.error('Copy URL failed:', err);
       setError('Failed to copy run URL');
     });
+  };
+
+  const saveProjectBundle = () => {
+    if (!backtestResponse) return;
+
+    const runId = backtestResponse.run_info?.run_id ?? 'unsaved-run';
+    const payload = {
+      exported_at: new Date().toISOString(),
+      run_id: runId,
+      request: {
+        config_path: selectedConfig?.path ?? null,
+        ...backtestRequest,
+      },
+      warnings,
+      run_info: backtestResponse.run_info ?? null,
+      data_info: backtestResponse.data_info,
+      config_snapshot: runConfigSnapshot,
+      data_profile: runDataProfile,
+      response: backtestResponse,
+    };
+
+    downloadJSON(payload, `${runId}_project_bundle.json`);
   };
 
   useEffect(() => {
@@ -558,6 +580,7 @@ function App() {
                   onDownloadCSV={downloadCSV}
                   onDownloadPNG={downloadPNG}
                   onDownloadHTML={downloadHTML}
+                  onSaveProject={saveProjectBundle}
                   onShareResults={shareResults}
                   onCopySummary={copySummary}
                   onCopyLink={copyRunLink}

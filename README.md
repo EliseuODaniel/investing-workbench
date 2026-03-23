@@ -156,6 +156,7 @@ make frontend-build
 - Datasets now keep provenance metadata and event history, so imports and refreshes are auditable through the API and Dataset Manager.
 - Supported datasets can now store a persisted refresh policy, show when they are due, and be refreshed in batch through the API, CLI, and Dataset Manager.
 - The frontend now includes a guided interpretation panel that explains return vs risk trade-offs and helps users read each run more critically.
+- The quick actions panel now exports a full JSON project bundle with request, response, artifacts, and warnings for the current run.
 
 ### Option 3: Python API
 

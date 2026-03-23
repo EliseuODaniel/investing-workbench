@@ -75,6 +75,7 @@ Status at handoff:
 - Dataset provenance and event history are now persisted for managed datasets.
 - Supported datasets now expose persisted refresh policies, due-state tracking, and manual batch refresh execution.
 - The frontend now includes a didactic interpretation layer for reading strategy results with explicit return-vs-risk guidance.
+- The frontend quick actions now export a complete JSON project bundle for the current run.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
