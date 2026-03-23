@@ -15,6 +15,7 @@ import RunArtifactsPanel from './components/RunArtifactsPanel';
 import WalkForwardWorkspace from './components/WalkForwardWorkspace';
 import MonteCarloWorkspace from './components/MonteCarloWorkspace';
 import OptimizationWorkspace from './components/OptimizationWorkspace';
+import ResearchOverviewPanel from './components/ResearchOverviewPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
@@ -323,6 +324,8 @@ function App() {
                 onClear={clearComparison}
               />
             </Suspense>
+
+            <ResearchOverviewPanel onError={setError} />
 
             <OptimizationWorkspace
               selectedConfigPath={selectedConfig?.path}

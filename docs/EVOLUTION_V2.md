@@ -201,4 +201,4 @@ Started in this cycle:
 Remaining backlog:
 - dataset manager
 - didactic robustness storytelling
-- richer cross-workflow research dashboarding
+- deeper cross-workflow drilldowns and ranking
