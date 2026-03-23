@@ -7,6 +7,48 @@ from typing import Any
 
 
 @dataclass(slots=True)
+class DatasetProvenanceEntry:
+    """One recorded lifecycle event for a dataset."""
+
+    event_type: str
+    occurred_at: str
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize one provenance event."""
+        return {
+            "event_type": self.event_type,
+            "occurred_at": self.occurred_at,
+            "details": self.details,
+        }
+
+
+@dataclass(slots=True)
+class DatasetProvenance:
+    """High-level provenance and event history for a dataset."""
+
+    managed: bool
+    source_kind: str
+    source_path: str | None = None
+    refresh_strategy: str | None = None
+    imported_at: str | None = None
+    last_refreshed_at: str | None = None
+    history: list[DatasetProvenanceEntry] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize provenance details."""
+        return {
+            "managed": self.managed,
+            "source_kind": self.source_kind,
+            "source_path": self.source_path,
+            "refresh_strategy": self.refresh_strategy,
+            "imported_at": self.imported_at,
+            "last_refreshed_at": self.last_refreshed_at,
+            "history": [entry.to_dict() for entry in self.history],
+        }
+
+
+@dataclass(slots=True)
 class DatasetValidationSummary:
     """Structured validation details for a dataset."""
 
@@ -73,6 +115,7 @@ class DatasetDetail(DatasetSummary):
     preview_rows: list[dict[str, Any]] = field(default_factory=list)
     validation_warnings: list[str] = field(default_factory=list)
     validation: DatasetValidationSummary | None = None
+    provenance: DatasetProvenance | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the detail payload."""
@@ -81,4 +124,5 @@ class DatasetDetail(DatasetSummary):
             "preview_rows": self.preview_rows,
             "validation_warnings": self.validation_warnings,
             "validation": self.validation.to_dict() if self.validation else None,
+            "provenance": self.provenance.to_dict() if self.provenance else None,
         }

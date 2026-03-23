@@ -112,6 +112,7 @@ GET /datasets/{dataset_id}
 ```
 
 Returns detailed dataset metadata, preview rows, validation warnings, and the dataset fingerprint.
+The detail payload also includes validation metrics plus provenance and event history when available.
 
 ### 1C. Import Local Dataset
 

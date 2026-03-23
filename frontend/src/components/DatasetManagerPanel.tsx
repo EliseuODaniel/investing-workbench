@@ -236,6 +236,62 @@ export default function DatasetManagerPanel({
                 </div>
               )}
 
+              {selectedDataset.provenance && (
+                <div className="rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-3">
+                  <div className="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                    <Database className="h-3 w-3 mr-1" />
+                    Provenance
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-gray-700 dark:text-gray-300">
+                    <div>Source kind: {selectedDataset.provenance.source_kind}</div>
+                    <div>
+                      Managed: {selectedDataset.provenance.managed ? 'yes' : 'no'}
+                    </div>
+                    <div>
+                      Refresh strategy:{' '}
+                      {selectedDataset.provenance.refresh_strategy ?? 'none'}
+                    </div>
+                    <div>
+                      Imported at:{' '}
+                      {selectedDataset.provenance.imported_at
+                        ? formatDateTime(selectedDataset.provenance.imported_at)
+                        : 'n/a'}
+                    </div>
+                  </div>
+                  {selectedDataset.provenance.source_path && (
+                    <div className="mt-2 text-[11px] font-mono break-all text-gray-600 dark:text-gray-300">
+                      {selectedDataset.provenance.source_path}
+                    </div>
+                  )}
+                  {selectedDataset.provenance.history.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {selectedDataset.provenance.history
+                        .slice()
+                        .reverse()
+                        .slice(0, 4)
+                        .map((entry) => (
+                          <div
+                            key={`${entry.event_type}-${entry.occurred_at}`}
+                            className="rounded border border-gray-200 dark:border-gray-700 px-2 py-2"
+                          >
+                            <div className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+                              {entry.event_type}
+                            </div>
+                            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                              {formatDateTime(entry.occurred_at)}
+                            </div>
+                            {Object.keys(entry.details).length > 0 && (
+                              <pre className="mt-1 text-[10px] whitespace-pre-wrap break-words text-gray-600 dark:text-gray-300">
+                                {JSON.stringify(entry.details, null, 2)}
+                              </pre>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-3">
                 <div className="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   <Fingerprint className="h-3 w-3 mr-1" />

@@ -72,6 +72,7 @@ Status at handoff:
 - Parameter optimization, walk-forward validation, and Monte Carlo robustness now exist as persisted backend workflows.
 - Dataset cataloging and dataset selection now exist across the API, CLI, and frontend.
 - Dataset import, supported refresh flows, richer validation diagnostics, and research drilldowns are now available.
+- Dataset provenance and event history are now persisted for managed datasets.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 

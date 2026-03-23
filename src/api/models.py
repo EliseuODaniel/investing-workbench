@@ -159,6 +159,7 @@ class DatasetDetailModel(DatasetSummaryModel):
     preview_rows: List[Dict[str, Any]]
     validation_warnings: List[str]
     validation: Optional[Dict[str, Any]]
+    provenance: Optional[Dict[str, Any]]
 
 
 class DatasetImportRequest(BaseModel):

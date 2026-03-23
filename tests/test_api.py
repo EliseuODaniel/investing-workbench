@@ -66,6 +66,7 @@ class TestDatasetsEndpoint:
         assert response.status_code == 200
         assert response.json()["dataset_id"] == dataset_id
         assert "preview_rows" in response.json()
+        assert "provenance" in response.json()
 
     def test_import_dataset(self, tmp_path):
         source_path = tmp_path / "import.csv"
@@ -82,6 +83,7 @@ class TestDatasetsEndpoint:
 
         assert response.status_code == 200
         assert response.json()["name"] == "import"
+        assert response.json()["provenance"]["source_kind"] == "imported"
 
 
 class TestBacktestEndpoint:

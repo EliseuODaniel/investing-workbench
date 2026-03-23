@@ -21,6 +21,7 @@ frontend/dist/
 /montecarlo/
 data/*.parquet
 data/*_benchmark.parquet
+/data/.catalog/
 
 coverage/
 .coverage

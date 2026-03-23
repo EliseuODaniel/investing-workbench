@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,8 @@ import pandas as pd
 from src.benchmarks import BenchmarkData
 from src.bitcoin_martingale.domain.datasets import (
     DatasetDetail,
+    DatasetProvenance,
+    DatasetProvenanceEntry,
     DatasetSummary,
     DatasetValidationSummary,
 )
@@ -23,6 +27,7 @@ class DatasetCatalogService:
 
     def __init__(self, data_dir: Path | str = "data") -> None:
         self.data_dir = Path(data_dir)
+        self.metadata_dir = self.data_dir / ".catalog"
         self.benchmark_data = BenchmarkData(cache_dir=str(self.data_dir))
 
     def list_datasets(self) -> list[dict[str, object]]:
@@ -60,6 +65,27 @@ class DatasetCatalogService:
             raise ValueError(f"Dataset already exists: {target}")
 
         shutil.copy2(source, target)
+        self._write_metadata(
+            target,
+            {
+                "managed": True,
+                "source_kind": "imported",
+                "source_path": str(source.resolve()),
+                "refresh_strategy": None,
+                "imported_at": self._now_iso(),
+                "last_refreshed_at": None,
+                "history": [
+                    {
+                        "event_type": "imported",
+                        "occurred_at": self._now_iso(),
+                        "details": {
+                            "source_path": str(source.resolve()),
+                            "overwrite": overwrite,
+                        },
+                    }
+                ],
+            },
+        )
         return self._build_detail(target).to_dict()
 
     def refresh_dataset(
@@ -91,6 +117,30 @@ class DatasetCatalogService:
             )
         else:
             raise NotImplementedError("Dataset refresh is not supported for this dataset")
+
+        metadata = self._load_metadata(dataset_path)
+        history = list(metadata.get("history", []))
+        history.append(
+            {
+                "event_type": "refreshed",
+                "occurred_at": self._now_iso(),
+                "details": {
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "refresh_strategy": refresh_spec["kind"],
+                },
+            }
+        )
+        metadata.update(
+            {
+                "managed": True,
+                "source_kind": metadata.get("source_kind", "inferred"),
+                "refresh_strategy": refresh_spec["kind"],
+                "last_refreshed_at": self._now_iso(),
+                "history": history,
+            }
+        )
+        self._write_metadata(dataset_path, metadata)
 
         return self._build_detail(dataset_path).to_dict()
 
@@ -142,6 +192,7 @@ class DatasetCatalogService:
             preview_rows=preview_rows,
             validation_warnings=validation_warnings,
             validation=self._build_validation_summary(dataframe, dataset_path),
+            provenance=self._build_provenance(dataset_path),
         )
 
     def _read_dataset(self, dataset_path: Path) -> pd.DataFrame:
@@ -270,6 +321,9 @@ class DatasetCatalogService:
     def _to_iso_timestamp(self, unix_seconds: float) -> str:
         return pd.Timestamp(unix_seconds, unit="s", tz="UTC").isoformat()
 
+    def _now_iso(self) -> str:
+        return datetime.now(UTC).isoformat()
+
     def _count_date_gaps(self, index: pd.DatetimeIndex) -> int:
         if len(index) < 2:
             return 0
@@ -305,3 +359,71 @@ class DatasetCatalogService:
                 "ticker": stem.replace("_benchmark", "").replace("__", "^"),
             }
         return None
+
+    def _metadata_path(self, dataset_path: Path) -> Path:
+        self.metadata_dir.mkdir(parents=True, exist_ok=True)
+        return self.metadata_dir / f"{self._build_dataset_id(dataset_path)}.json"
+
+    def _load_metadata(self, dataset_path: Path) -> dict[str, Any]:
+        metadata_path = self._metadata_path(dataset_path)
+        if metadata_path.exists():
+            return json.loads(metadata_path.read_text(encoding="utf-8"))
+        return self._build_inferred_metadata(dataset_path)
+
+    def _write_metadata(self, dataset_path: Path, metadata: dict[str, Any]) -> None:
+        metadata_path = self._metadata_path(dataset_path)
+        metadata_path.write_text(
+            json.dumps(metadata, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def _build_inferred_metadata(self, dataset_path: Path) -> dict[str, Any]:
+        refresh_spec = self._build_refresh_spec(dataset_path)
+        return {
+            "managed": False,
+            "source_kind": "inferred",
+            "source_path": str(dataset_path),
+            "refresh_strategy": refresh_spec["kind"] if refresh_spec else None,
+            "imported_at": None,
+            "last_refreshed_at": None,
+            "history": [
+                {
+                    "event_type": "discovered",
+                    "occurred_at": self._to_iso_timestamp(dataset_path.stat().st_mtime),
+                    "details": {
+                        "path": str(dataset_path),
+                    },
+                }
+            ],
+        }
+
+    def _build_provenance(self, dataset_path: Path) -> DatasetProvenance:
+        metadata = self._load_metadata(dataset_path)
+        history = [
+            DatasetProvenanceEntry(
+                event_type=str(entry.get("event_type", "unknown")),
+                occurred_at=str(entry.get("occurred_at", "")),
+                details=dict(entry.get("details", {})),
+            )
+            for entry in metadata.get("history", [])
+            if isinstance(entry, dict)
+        ]
+        return DatasetProvenance(
+            managed=bool(metadata.get("managed", False)),
+            source_kind=str(metadata.get("source_kind", "inferred")),
+            source_path=str(metadata["source_path"]) if metadata.get("source_path") else None,
+            refresh_strategy=(
+                str(metadata["refresh_strategy"])
+                if metadata.get("refresh_strategy")
+                else None
+            ),
+            imported_at=(
+                str(metadata["imported_at"]) if metadata.get("imported_at") else None
+            ),
+            last_refreshed_at=(
+                str(metadata["last_refreshed_at"])
+                if metadata.get("last_refreshed_at")
+                else None
+            ),
+            history=history,
+        )

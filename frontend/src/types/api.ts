@@ -280,6 +280,19 @@ export interface DatasetDetail extends DatasetSummary {
     price_anomaly_count: number;
     supported_refresh: boolean;
   } | null;
+  provenance?: {
+    managed: boolean;
+    source_kind: string;
+    source_path?: string | null;
+    refresh_strategy?: string | null;
+    imported_at?: string | null;
+    last_refreshed_at?: string | null;
+    history: Array<{
+      event_type: string;
+      occurred_at: string;
+      details: Record<string, unknown>;
+    }>;
+  } | null;
 }
 
 export interface DatasetImportRequestPayload {
