@@ -18,6 +18,7 @@ import MonteCarloWorkspace from './components/MonteCarloWorkspace';
 import OptimizationWorkspace from './components/OptimizationWorkspace';
 import ResearchOverviewPanel from './components/ResearchOverviewPanel';
 import ResearchDrilldownPanel from './components/ResearchDrilldownPanel';
+import ResultsInterpretationPanel from './components/ResultsInterpretationPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
@@ -505,6 +506,8 @@ function App() {
                   dataProfile={runDataProfile}
                   isLoading={isLoadingArtifacts}
                 />
+
+                <ResultsInterpretationPanel results={backtestResponse.results} />
 
                 {/* SELIC Info Panel */}
                 {backtestRequest.apply_cash_yield && (

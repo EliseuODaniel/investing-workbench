@@ -21,6 +21,7 @@
 - Completed: dataset catalog and dataset manager slice across API, CLI, and frontend.
 - Completed: dataset import, supported refresh flows, and richer validation diagnostics.
 - Completed: persisted dataset refresh policies, due-state tracking, and manual batch refresh execution.
+- Completed: didactic frontend interpretation layer for run results.
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
 

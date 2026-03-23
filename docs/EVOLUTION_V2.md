@@ -199,7 +199,7 @@ Started in this cycle:
 - frontend optimization workspace started
 
 Remaining backlog:
-- didactic robustness storytelling
+- didactic robustness storytelling started in the frontend run interpretation layer
 - deeper cross-workflow drilldowns and ranking
 - scheduled dataset refresh automation and provenance expansion completed for manual batch execution
 - future optional step: background refresh workers and notifications

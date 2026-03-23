@@ -74,6 +74,7 @@ Status at handoff:
 - Dataset import, supported refresh flows, richer validation diagnostics, and research drilldowns are now available.
 - Dataset provenance and event history are now persisted for managed datasets.
 - Supported datasets now expose persisted refresh policies, due-state tracking, and manual batch refresh execution.
+- The frontend now includes a didactic interpretation layer for reading strategy results with explicit return-vs-risk guidance.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
@@ -85,5 +86,5 @@ If the project continues, the highest-value optional items are:
 - Monte Carlo robustness storytelling and warnings inside the UI.
 - Dataset import/refresh and stronger quality validation workflows.
 - Optional background refresh workers and notifications.
-- A user guide focused on interpreting strategy results.
+- A fuller user guide focused on interpreting strategy results.
 - Visual polish and deeper dashboard storytelling.
