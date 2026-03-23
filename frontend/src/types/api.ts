@@ -82,6 +82,12 @@ export interface BacktestResponse {
   results: Record<string, StrategyResult>;
   buy_hold_equity: EquityPoint[];
   benchmarks?: Record<string, BenchmarkResult>;
+  run_info?: {
+    run_id: string;
+    artifact_dir: string;
+    manifest_path?: string;
+    response_path?: string;
+  };
   data_info: {
     start_date: string;
     end_date: string;

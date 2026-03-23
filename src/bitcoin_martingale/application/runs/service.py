@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import pandas as pd
 import yaml
@@ -25,12 +26,17 @@ from src.config import AppConfig, BenchmarkConfig, load_strategy
 from src.data import get_data
 from src.engine import BacktestEngine
 from src.metrics import calculate_metrics
+from src.bitcoin_martingale.domain.runs import RunManifest
+from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
 
 logger = logging.getLogger(__name__)
 
 
 class RunBacktestService:
     """Service layer for API and CLI orchestration."""
+
+    def __init__(self, runs_repository: LocalRunsRepository | None = None) -> None:
+        self.runs_repository = runs_repository or LocalRunsRepository()
 
     def list_configs(self) -> list[ConfigInfo]:
         """List available YAML configs for the application."""
@@ -67,12 +73,13 @@ class RunBacktestService:
         config = self._load_config(request)
         strategies_to_run = self._resolve_strategies(config, request)
         data = self._load_market_data(config, request)
+        run_id = self._build_run_id()
 
         buy_hold_equity = self._build_buy_hold_curve(data, config.backtest.initial_capital)
         results = self._run_strategies(config, strategies_to_run, data)
         benchmarks = self._process_benchmarks(config)
 
-        return BacktestResponse(
+        response = BacktestResponse(
             results=results,
             buy_hold_equity=buy_hold_equity,
             benchmarks=benchmarks if benchmarks else None,
@@ -84,10 +91,40 @@ class RunBacktestService:
                 "final_price": float(data.iloc[-1]["Close"]),
             },
         )
+        run_info = {
+            "run_id": run_id,
+            "artifact_dir": str(self.runs_repository.base_dir / run_id),
+        }
+        response.run_info = run_info
+        persisted = self._persist_run(
+            run_id=run_id,
+            request=request,
+            response=response,
+            config_path=request.config_path or "configs/martingale.yaml",
+        )
+        response.run_info.update(
+            {
+                "manifest_path": str(persisted.manifest_path),
+                "response_path": str(persisted.response_path),
+            }
+        )
+        persisted.response_path.write_text(
+            response.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+        return response
 
     def download_csv(self, strategy: str) -> None:
         """Placeholder download hook until run persistence is implemented."""
         raise NotImplementedError(f"CSV download is not implemented yet for strategy '{strategy}'.")
+
+    def get_run_manifest(self, run_id: str) -> dict[str, object]:
+        """Fetch a previously persisted run manifest."""
+        return self.runs_repository.get_manifest(run_id)
+
+    def get_run_response(self, run_id: str) -> dict[str, object]:
+        """Fetch a previously persisted run response payload."""
+        return self.runs_repository.get_response_payload(run_id)
 
     def _load_config(self, request: BacktestRequest) -> AppConfig:
         config_path = request.config_path or "configs/martingale.yaml"
@@ -164,6 +201,12 @@ class RunBacktestService:
             end=config.backtest.end_date,
             cache_path=cache_path,
         )
+
+    def _build_run_id(self) -> str:
+        """Create a unique, sortable run identifier."""
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        suffix = uuid4().hex[:8]
+        return f"run_{timestamp}_{suffix}"
 
     def _build_buy_hold_curve(
         self, data: pd.DataFrame, initial_capital: float
@@ -356,3 +399,24 @@ class RunBacktestService:
                 selic_rates_used=None,
             ),
         )
+
+    def _persist_run(
+        self,
+        *,
+        run_id: str,
+        request: BacktestRequest,
+        response: BacktestResponse,
+        config_path: str,
+    ):
+        benchmark_names = list(response.benchmarks.keys()) if response.benchmarks else []
+        manifest = RunManifest(
+            run_id=run_id,
+            created_at=datetime.now(UTC),
+            config_path=config_path,
+            artifact_dir=str(self.runs_repository.base_dir / run_id),
+            strategy_names=list(response.results.keys()),
+            benchmark_names=benchmark_names,
+            request_payload=request.model_dump(exclude_none=True),
+            data_info=response.data_info,
+        )
+        return self.runs_repository.persist_run(manifest=manifest, response=response)

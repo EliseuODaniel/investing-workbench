@@ -66,3 +66,21 @@ async def download_csv(strategy: str):
         service.download_csv(strategy)
     except Exception as exc:
         raise to_http_exception(exc) from exc
+
+
+@app.get("/runs/{run_id}")
+async def get_run_manifest(run_id: str):
+    """Return the persisted manifest for a run."""
+    try:
+        return service.get_run_manifest(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/runs/{run_id}/response")
+async def get_run_response(run_id: str):
+    """Return the persisted response payload for a run."""
+    try:
+        return service.get_run_response(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc

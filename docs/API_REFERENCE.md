@@ -142,6 +142,12 @@ POST /backtest
 
 ```json
 {
+  "run_info": {
+    "run_id": "run_20260323T120000Z_ab12cd34",
+    "artifact_dir": "runs/run_20260323T120000Z_ab12cd34",
+    "manifest_path": "runs/run_20260323T120000Z_ab12cd34/manifest.json",
+    "response_path": "runs/run_20260323T120000Z_ab12cd34/response.json"
+  },
   "results": {
     "Risk-Cap Martingale": {
       "strategy_name": "Risk-Cap Martingale",
@@ -207,6 +213,15 @@ POST /backtest
 }
 ```
 
+#### Run Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `run_id` | string | Unique persisted run identifier |
+| `artifact_dir` | string | Directory containing the run artifacts |
+| `manifest_path` | string | Path to the persisted `manifest.json` |
+| `response_path` | string | Path to the persisted `response.json` |
+
 **Response Fields**
 
 #### Strategy Result
@@ -258,6 +273,24 @@ POST /backtest
 | Field | Type | Description |
 |-------|------|-------------|
 | `start_date` | string | Data start date |
+
+### 3. Get Persisted Run Manifest
+
+**Endpoint**
+```
+GET /runs/{run_id}
+```
+
+Returns the persisted `manifest.json` for a previously executed run.
+
+### 4. Get Persisted Run Response
+
+**Endpoint**
+```
+GET /runs/{run_id}/response
+```
+
+Returns the persisted `response.json` payload for a previously executed run.
 | `end_date` | string | Data end date |
 | `total_days` | integer | Number of data points |
 | `data_source` | string | Data source symbol |

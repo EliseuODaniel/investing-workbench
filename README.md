@@ -126,6 +126,12 @@ make frontend-test
 make frontend-build
 ```
 
+### Persisted Runs
+
+- Every `POST /backtest` call now persists a run manifest and serialized response under `runs/<run_id>/`.
+- The API response includes `run_info.run_id`, `artifact_dir`, and artifact paths for the persisted files.
+- The API endpoints `GET /runs/{run_id}` and `GET /runs/{run_id}/response` expose those persisted artifacts.
+
 ### Option 3: Python API
 
 ```python

@@ -80,3 +80,19 @@ class TestCSVDowloadEndpoint:
         response = client.get("/reports/test_strategy/download")
         assert response.status_code == 501
         assert "detail" in response.json()
+
+
+class TestPersistedRunsEndpoint:
+    """Test persisted run artifact endpoints."""
+
+    def test_run_manifest_not_found(self):
+        """Unknown run ids should return 404."""
+        response = client.get("/runs/does-not-exist")
+        assert response.status_code == 404
+        assert "Run manifest not found" in response.json()["detail"]
+
+    def test_run_response_not_found(self):
+        """Unknown persisted responses should return 404."""
+        response = client.get("/runs/does-not-exist/response")
+        assert response.status_code == 404
+        assert "Run response not found" in response.json()["detail"]

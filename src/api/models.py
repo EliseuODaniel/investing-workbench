@@ -115,6 +115,10 @@ class BacktestResponse(BaseModel):
         None,
         description="Benchmark results",
     )
+    run_info: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Information about the persisted run artifacts",
+    )
     data_info: Dict[str, Any] = Field(description="Information about the data used")
 
 

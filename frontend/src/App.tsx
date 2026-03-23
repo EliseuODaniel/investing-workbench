@@ -313,6 +313,11 @@ function App() {
                         </div>
                       </div>
                     </div>
+                    {backtestResponse.run_info?.run_id && (
+                      <div className="mt-4 text-center text-xs text-green-700 dark:text-green-300">
+                        Run ID: <span className="font-mono">{backtestResponse.run_info.run_id}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
