@@ -14,6 +14,8 @@ import SelicInfoPanel from './components/SelicInfoPanel';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
 import { useConfigs } from './hooks/useConfigs';
+import { useRunHistory } from './hooks/useRunHistory';
+import RunHistoryPanel from './components/RunHistoryPanel';
 
 type AppState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -29,6 +31,7 @@ function App() {
     handleConfigChange,
     handleRequestChange,
   } = useConfigs(setError);
+  const { runs, isLoadingRuns, refreshRuns, loadRunResponse } = useRunHistory(setError);
 
   // Visibility controls state
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
@@ -57,6 +60,7 @@ function App() {
 
       setBacktestResponse(response);
       setAppState('success');
+      refreshRuns();
     } catch (err: any) {
       console.error('Backtest failed:', err);
       setError(err.response?.data?.detail || 'Failed to run backtest');
@@ -92,36 +96,24 @@ function App() {
   const strategyNames = backtestResponse ? Object.keys(backtestResponse.results) : [];
 
   const downloadCSV = (strategyName: string) => {
-    if (!backtestResponse) return;
+    if (!backtestResponse?.run_info?.run_id) return;
 
-    const result = backtestResponse.results[strategyName];
-    if (!result) return;
-
-    // Create CSV content for trades
-    const tradesHeaders = ['timestamp', 'action', 'price', 'layer', 'pnl'];
-    const tradesRows = result.trades.map((trade: any) => [
-      trade.timestamp,
-      trade.action,
-      trade.price,
-      trade.layer,
-      trade.pnl || ''
-    ]);
-
-    const csvContent = [
-      tradesHeaders.join(','),
-      ...tradesRows.map(row => row.join(','))
-    ].join('\n');
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${strategyName}_trades.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    apiClient
+      .downloadCSV(backtestResponse.run_info.run_id, strategyName)
+      .then((blob) => {
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${strategyName}_trades.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      })
+      .catch((err) => {
+        console.error('CSV download failed:', err);
+        setError('Failed to download CSV for persisted run');
+      });
   };
 
   const downloadPNG = () => {
@@ -147,6 +139,15 @@ function App() {
     ).join('\n')}`;
 
     navigator.clipboard.writeText(summary);
+  };
+
+  const handleLoadRun = async (runId: string) => {
+    const response = await loadRunResponse(runId);
+    if (!response) return;
+
+    setBacktestResponse(response);
+    setAppState('success');
+    setActiveTab('overview');
   };
 
   return (
@@ -177,6 +178,12 @@ function App() {
               onRequestChange={handleRequestChange}
               onRunBacktest={handleRunBacktest}
               isLoading={appState === 'loading'}
+            />
+            <RunHistoryPanel
+              runs={runs}
+              isLoading={isLoadingRuns}
+              onRefresh={refreshRuns}
+              onLoadRun={handleLoadRun}
             />
           </div>
 

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from src.api.models import BacktestResponse
 from src.bitcoin_martingale.domain.runs import RunManifest
@@ -66,3 +69,45 @@ class LocalRunsRepository:
         if not response_path.exists():
             raise FileNotFoundError(f"Run response not found: {run_id}")
         return json.loads(response_path.read_text(encoding="utf-8"))
+
+    def list_runs(self) -> list[dict[str, object]]:
+        """List persisted runs ordered from newest to oldest."""
+        if not self.base_dir.exists():
+            return []
+
+        manifests: list[dict[str, object]] = []
+        for manifest_path in sorted(self.base_dir.glob("*/manifest.json"), reverse=True):
+            manifests.append(json.loads(manifest_path.read_text(encoding="utf-8")))
+
+        manifests.sort(key=lambda manifest: str(manifest.get("created_at", "")), reverse=True)
+        return manifests
+
+    def build_trades_csv(self, run_id: str, strategy_name: str) -> str:
+        """Build a CSV export of trades for a strategy from a persisted response."""
+        payload = self.get_response_payload(run_id)
+        results = cast(dict[str, Any], payload.get("results", {}))
+        if strategy_name not in results:
+            raise FileNotFoundError(
+                f"Strategy '{strategy_name}' not found in persisted run: {run_id}"
+            )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "action", "price", "quantity", "layer", "pnl"])
+
+        strategy_payload = cast(dict[str, Any], results[strategy_name])
+        trades = cast(list[dict[str, Any]], strategy_payload.get("trades", []))
+
+        for trade in trades:
+            writer.writerow(
+                [
+                    trade.get("timestamp"),
+                    trade.get("action"),
+                    trade.get("price"),
+                    trade.get("quantity"),
+                    trade.get("layer"),
+                    trade.get("pnl"),
+                ]
+            )
+
+        return output.getvalue()

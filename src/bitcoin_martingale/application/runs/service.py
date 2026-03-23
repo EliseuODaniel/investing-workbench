@@ -126,6 +126,14 @@ class RunBacktestService:
         """Fetch a previously persisted run response payload."""
         return self.runs_repository.get_response_payload(run_id)
 
+    def list_runs(self) -> list[dict[str, object]]:
+        """List persisted runs for history views."""
+        return self.runs_repository.list_runs()
+
+    def get_trades_csv(self, run_id: str, strategy_name: str) -> str:
+        """Generate a trades CSV for a persisted run and strategy."""
+        return self.runs_repository.build_trades_csv(run_id, strategy_name)
+
     def _load_config(self, request: BacktestRequest) -> AppConfig:
         config_path = request.config_path or "configs/martingale.yaml"
         if not Path(config_path).exists():

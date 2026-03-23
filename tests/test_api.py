@@ -85,6 +85,12 @@ class TestCSVDowloadEndpoint:
 class TestPersistedRunsEndpoint:
     """Test persisted run artifact endpoints."""
 
+    def test_list_runs_endpoint(self):
+        """The runs listing endpoint should respond successfully."""
+        response = client.get("/runs")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
     def test_run_manifest_not_found(self):
         """Unknown run ids should return 404."""
         response = client.get("/runs/does-not-exist")
@@ -94,5 +100,11 @@ class TestPersistedRunsEndpoint:
     def test_run_response_not_found(self):
         """Unknown persisted responses should return 404."""
         response = client.get("/runs/does-not-exist/response")
+        assert response.status_code == 404
+        assert "Run response not found" in response.json()["detail"]
+
+    def test_run_strategy_csv_not_found(self):
+        """Unknown strategy exports should return 404."""
+        response = client.get("/runs/does-not-exist/strategies/foo/trades.csv")
         assert response.status_code == 404
         assert "Run response not found" in response.json()["detail"]

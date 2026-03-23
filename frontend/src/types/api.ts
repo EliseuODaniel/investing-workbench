@@ -96,3 +96,14 @@ export interface BacktestResponse {
     final_price: number;
   };
 }
+
+export interface RunSummary {
+  run_id: string;
+  created_at: string;
+  config_path: string;
+  artifact_dir: string;
+  strategy_names: string[];
+  benchmark_names: string[];
+  request_payload: Record<string, unknown>;
+  data_info: Record<string, unknown>;
+}

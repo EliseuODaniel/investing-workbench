@@ -1,5 +1,10 @@
 import axios from 'axios';
-import { ConfigInfo, BacktestRequest, BacktestResponse } from '../types/api';
+import {
+  ConfigInfo,
+  BacktestRequest,
+  BacktestResponse,
+  RunSummary,
+} from '../types/api';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8001';
 
@@ -21,9 +26,19 @@ export const apiClient = {
     return response.data;
   },
 
-  // Download operations
-  downloadCSV: async (strategy: string): Promise<Blob> => {
-    const response = await api.get(`/reports/${strategy}/download`, {
+  // Persisted run operations
+  listRuns: async (): Promise<RunSummary[]> => {
+    const response = await api.get('/runs');
+    return response.data;
+  },
+
+  getRunResponse: async (runId: string): Promise<BacktestResponse> => {
+    const response = await api.get(`/runs/${runId}/response`);
+    return response.data;
+  },
+
+  downloadCSV: async (runId: string, strategy: string): Promise<Blob> => {
+    const response = await api.get(`/runs/${runId}/strategies/${strategy}/trades.csv`, {
       responseType: 'blob',
     });
     return response.data;

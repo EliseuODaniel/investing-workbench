@@ -4,6 +4,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from ..bitcoin_martingale.application.runs import RunBacktestService
 from ..bitcoin_martingale.infrastructure.logging import configure_logging
@@ -82,5 +83,32 @@ async def get_run_response(run_id: str):
     """Return the persisted response payload for a run."""
     try:
         return service.get_run_response(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/runs")
+async def list_runs():
+    """List persisted runs."""
+    try:
+        return service.list_runs()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/runs/{run_id}/strategies/{strategy_name}/trades.csv")
+async def download_run_strategy_csv(run_id: str, strategy_name: str):
+    """Download a persisted strategy trades CSV."""
+    try:
+        csv_content = service.get_trades_csv(run_id, strategy_name)
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="{run_id}_{strategy_name}_trades.csv"'
+                )
+            },
+        )
     except Exception as exc:
         raise to_http_exception(exc) from exc

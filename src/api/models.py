@@ -132,3 +132,16 @@ class ConfigInfo(BaseModel):
         default_factory=list,
         description="Available strategies in this config",
     )
+
+
+class RunSummary(BaseModel):
+    """Summary of a persisted run."""
+
+    run_id: str
+    created_at: str
+    config_path: str
+    artifact_dir: str
+    strategy_names: List[str]
+    benchmark_names: List[str]
+    request_payload: Dict[str, Any]
+    data_info: Dict[str, Any]

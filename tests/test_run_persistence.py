@@ -54,3 +54,16 @@ def test_run_manifest_and_response_can_be_read_via_repository(tmp_path: Path) ->
 
     assert manifest["run_id"] == run_id
     assert response_payload["run_info"]["run_id"] == run_id
+
+
+def test_run_repository_lists_runs_and_builds_csv(tmp_path: Path) -> None:
+    repository = LocalRunsRepository(base_dir=tmp_path)
+    service = RunBacktestService(runs_repository=repository)
+
+    response = service.run(BacktestRequest(config_path="configs/test.yaml"))
+    run_id = response.run_info["run_id"]
+    listed_runs = repository.list_runs()
+    csv_content = repository.build_trades_csv(run_id, next(iter(response.results.keys())))
+
+    assert listed_runs[0]["run_id"] == run_id
+    assert "timestamp,action,price,quantity,layer,pnl" in csv_content
