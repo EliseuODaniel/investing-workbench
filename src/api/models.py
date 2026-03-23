@@ -151,6 +151,8 @@ class DatasetSummaryModel(BaseModel):
     file_size_bytes: int
     last_modified: str
     data_fingerprint: str
+    refresh_due: bool = False
+    next_refresh_due_at: Optional[str] = None
 
 
 class DatasetDetailModel(DatasetSummaryModel):
@@ -178,6 +180,25 @@ class DatasetRefreshRequest(BaseModel):
 
     start_date: str = Field(default="2020-01-01", description="Refresh start date")
     end_date: Optional[str] = Field(None, description="Refresh end date")
+
+
+class DatasetRefreshPolicyRequest(BaseModel):
+    """Request model for a persisted dataset refresh policy."""
+
+    enabled: bool = Field(description="Whether scheduled refresh checks are enabled")
+    interval_days: int = Field(default=7, ge=1, description="Days between refreshes")
+    start_date: str = Field(default="2020-01-01", description="Refresh start date")
+    end_date: Optional[str] = Field(None, description="Optional refresh end date")
+
+
+class DatasetRefreshDueRequest(BaseModel):
+    """Request model for refreshing due datasets in batch."""
+
+    limit: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Optional cap on the number of due datasets to refresh",
+    )
 
 
 class RunSummary(BaseModel):

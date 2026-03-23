@@ -30,6 +30,8 @@ from .models import (
     ConfigInfo,
     DatasetDetailModel,
     DatasetImportRequest,
+    DatasetRefreshDueRequest,
+    DatasetRefreshPolicyRequest,
     DatasetRefreshRequest,
     DatasetSummaryModel,
     MonteCarloRequestModel,
@@ -130,6 +132,24 @@ async def list_datasets():
         raise to_http_exception(exc) from exc
 
 
+@app.get("/datasets/refresh-due", response_model=list[DatasetSummaryModel])
+async def list_due_datasets():
+    """List datasets whose persisted refresh policy is currently due."""
+    try:
+        return dataset_service.list_due_datasets()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/datasets/refresh-due", response_model=list[DatasetDetailModel])
+async def refresh_due_datasets(request: DatasetRefreshDueRequest):
+    """Refresh datasets that are currently due according to their policy."""
+    try:
+        return dataset_service.refresh_due_datasets(limit=request.limit)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
 @app.get("/datasets/{dataset_id}", response_model=DatasetDetailModel)
 async def get_dataset(dataset_id: str):
     """Inspect a discovered local dataset."""
@@ -147,6 +167,21 @@ async def import_dataset(request: DatasetImportRequest):
             source_path=request.source_path,
             dataset_name=request.dataset_name,
             overwrite=request.overwrite,
+        )
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/datasets/{dataset_id}/refresh-policy", response_model=DatasetDetailModel)
+async def set_dataset_refresh_policy(dataset_id: str, request: DatasetRefreshPolicyRequest):
+    """Persist a dataset refresh policy."""
+    try:
+        return dataset_service.set_refresh_policy(
+            dataset_id,
+            enabled=request.enabled,
+            interval_days=request.interval_days,
+            start_date=request.start_date,
+            end_date=request.end_date,
         )
     except Exception as exc:
         raise to_http_exception(exc) from exc

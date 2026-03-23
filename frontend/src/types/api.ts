@@ -266,6 +266,17 @@ export interface DatasetSummary {
   file_size_bytes: number;
   last_modified: string;
   data_fingerprint: string;
+  refresh_due: boolean;
+  next_refresh_due_at?: string | null;
+}
+
+export interface DatasetRefreshPolicy {
+  enabled: boolean;
+  interval_days: number;
+  start_date: string;
+  end_date?: string | null;
+  next_refresh_due_at?: string | null;
+  due_now: boolean;
 }
 
 export interface DatasetDetail extends DatasetSummary {
@@ -287,6 +298,7 @@ export interface DatasetDetail extends DatasetSummary {
     refresh_strategy?: string | null;
     imported_at?: string | null;
     last_refreshed_at?: string | null;
+    refresh_policy?: DatasetRefreshPolicy | null;
     history: Array<{
       event_type: string;
       occurred_at: string;
@@ -304,6 +316,17 @@ export interface DatasetImportRequestPayload {
 export interface DatasetRefreshRequestPayload {
   start_date: string;
   end_date?: string;
+}
+
+export interface DatasetRefreshPolicyRequestPayload {
+  enabled: boolean;
+  interval_days: number;
+  start_date: string;
+  end_date?: string;
+}
+
+export interface DatasetRefreshDueRequestPayload {
+  limit?: number;
 }
 
 export interface WalkForwardRequestPayload {

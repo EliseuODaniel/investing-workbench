@@ -73,6 +73,7 @@ Status at handoff:
 - Dataset cataloging and dataset selection now exist across the API, CLI, and frontend.
 - Dataset import, supported refresh flows, richer validation diagnostics, and research drilldowns are now available.
 - Dataset provenance and event history are now persisted for managed datasets.
+- Supported datasets now expose persisted refresh policies, due-state tracking, and manual batch refresh execution.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
@@ -83,6 +84,6 @@ If the project continues, the highest-value optional items are:
 - Frontend views for walk-forward and Monte Carlo workflows.
 - Monte Carlo robustness storytelling and warnings inside the UI.
 - Dataset import/refresh and stronger quality validation workflows.
-- Scheduled dataset refresh and provenance history.
+- Optional background refresh workers and notifications.
 - A user guide focused on interpreting strategy results.
 - Visual polish and deeper dashboard storytelling.

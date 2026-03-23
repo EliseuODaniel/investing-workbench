@@ -1,5 +1,7 @@
 """Tests for FastAPI backend."""
 
+import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -84,6 +86,57 @@ class TestDatasetsEndpoint:
         assert response.status_code == 200
         assert response.json()["name"] == "import"
         assert response.json()["provenance"]["source_kind"] == "imported"
+
+    def test_refresh_policy_and_due_endpoints(self, tmp_path):
+        data_dir = tmp_path / "data"
+        data_dir.mkdir(parents=True)
+        source_path = data_dir / "btc_brl.parquet"
+        import pandas as pd
+
+        pd.DataFrame(
+            {
+                "Date": ["2024-01-01", "2024-01-02"],
+                "Open": [1.0, 2.0],
+                "High": [2.0, 3.0],
+                "Low": [0.5, 1.5],
+                "Close": [1.5, 2.5],
+            }
+        ).to_parquet(source_path, index=False)
+
+        patched_dataset_service = DatasetCatalogService(data_dir=data_dir)
+        dataset_id = patched_dataset_service.list_datasets()[0]["dataset_id"]
+
+        with patch("src.api.main.dataset_service", patched_dataset_service):
+            policy_response = client.post(
+                f"/datasets/{dataset_id}/refresh-policy",
+                json={
+                    "enabled": True,
+                    "interval_days": 1,
+                    "start_date": "2020-01-01",
+                },
+            )
+
+        metadata_path = data_dir / ".catalog" / f"{dataset_id}.json"
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata["last_refreshed_at"] = (datetime.now(UTC) - timedelta(days=5)).isoformat()
+        metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+        with (
+            patch("src.api.main.dataset_service", patched_dataset_service),
+            patch(
+                "src.bitcoin_martingale.application.datasets.service.get_data",
+                return_value=pd.DataFrame({"Close": [1.0]}),
+            ),
+        ):
+            due_response = client.get("/datasets/refresh-due")
+            execute_due_response = client.post("/datasets/refresh-due", json={"limit": 1})
+
+        assert policy_response.status_code == 200
+        assert policy_response.json()["provenance"]["refresh_policy"]["enabled"] is True
+        assert due_response.status_code == 200
+        assert due_response.json()[0]["dataset_id"] == dataset_id
+        assert execute_due_response.status_code == 200
+        assert execute_due_response.json()[0]["dataset_id"] == dataset_id
 
 
 class TestBacktestEndpoint:

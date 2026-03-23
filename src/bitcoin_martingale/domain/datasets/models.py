@@ -24,6 +24,29 @@ class DatasetProvenanceEntry:
 
 
 @dataclass(slots=True)
+class DatasetRefreshPolicy:
+    """Persisted refresh policy and due state for a dataset."""
+
+    enabled: bool
+    interval_days: int
+    start_date: str = "2020-01-01"
+    end_date: str | None = None
+    next_refresh_due_at: str | None = None
+    due_now: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the refresh policy."""
+        return {
+            "enabled": self.enabled,
+            "interval_days": self.interval_days,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "next_refresh_due_at": self.next_refresh_due_at,
+            "due_now": self.due_now,
+        }
+
+
+@dataclass(slots=True)
 class DatasetProvenance:
     """High-level provenance and event history for a dataset."""
 
@@ -33,6 +56,7 @@ class DatasetProvenance:
     refresh_strategy: str | None = None
     imported_at: str | None = None
     last_refreshed_at: str | None = None
+    refresh_policy: DatasetRefreshPolicy | None = None
     history: list[DatasetProvenanceEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,6 +68,7 @@ class DatasetProvenance:
             "refresh_strategy": self.refresh_strategy,
             "imported_at": self.imported_at,
             "last_refreshed_at": self.last_refreshed_at,
+            "refresh_policy": self.refresh_policy.to_dict() if self.refresh_policy else None,
             "history": [entry.to_dict() for entry in self.history],
         }
 
@@ -89,6 +114,8 @@ class DatasetSummary:
     file_size_bytes: int
     last_modified: str
     data_fingerprint: str
+    refresh_due: bool = False
+    next_refresh_due_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the summary."""
@@ -105,6 +132,8 @@ class DatasetSummary:
             "file_size_bytes": self.file_size_bytes,
             "last_modified": self.last_modified,
             "data_fingerprint": self.data_fingerprint,
+            "refresh_due": self.refresh_due,
+            "next_refresh_due_at": self.next_refresh_due_at,
         }
 
 

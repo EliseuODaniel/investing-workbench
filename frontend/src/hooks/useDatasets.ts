@@ -4,12 +4,15 @@ import { DatasetDetail, DatasetSummary } from '../types/api';
 
 export function useDatasets(onError: (message: string | null) => void) {
   const [datasets, setDatasets] = useState<DatasetSummary[]>([]);
+  const [dueDatasets, setDueDatasets] = useState<DatasetSummary[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<DatasetDetail | null>(null);
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isLoadingSelectedDataset, setIsLoadingSelectedDataset] = useState(false);
   const [isImportingDataset, setIsImportingDataset] = useState(false);
   const [isRefreshingDataset, setIsRefreshingDataset] = useState(false);
+  const [isUpdatingRefreshPolicy, setIsUpdatingRefreshPolicy] = useState(false);
+  const [isRefreshingDueDatasets, setIsRefreshingDueDatasets] = useState(false);
 
   const selectedSummary = useMemo(
     () =>
@@ -22,8 +25,12 @@ export function useDatasets(onError: (message: string | null) => void) {
   const refreshDatasets = useCallback(async () => {
     setIsLoadingDatasets(true);
     try {
-      const response = await apiClient.listDatasets();
+      const [response, dueResponse] = await Promise.all([
+        apiClient.listDatasets(),
+        apiClient.listDueDatasets(),
+      ]);
       setDatasets(response);
+      setDueDatasets(dueResponse);
       if (!selectedDatasetId && response.length > 0) {
         setSelectedDatasetId(response[0].dataset_id);
       }
@@ -104,8 +111,60 @@ export function useDatasets(onError: (message: string | null) => void) {
     [onError, refreshDatasets]
   );
 
+  const updateRefreshPolicy = useCallback(
+    async (
+      datasetId: string,
+      enabled: boolean,
+      intervalDays: number,
+      startDate: string,
+      endDate?: string
+    ) => {
+      setIsUpdatingRefreshPolicy(true);
+      try {
+        const response = await apiClient.setDatasetRefreshPolicy(datasetId, {
+          enabled,
+          interval_days: intervalDays,
+          start_date: startDate,
+          end_date: endDate || undefined,
+        });
+        await refreshDatasets();
+        setSelectedDataset(response);
+        return response;
+      } catch (error: any) {
+        onError(error.response?.data?.detail || 'Failed to update refresh policy');
+        return null;
+      } finally {
+        setIsUpdatingRefreshPolicy(false);
+      }
+    },
+    [onError, refreshDatasets]
+  );
+
+  const refreshDueDatasets = useCallback(
+    async (limit?: number) => {
+      setIsRefreshingDueDatasets(true);
+      try {
+        const response = await apiClient.refreshDueDatasets({
+          limit,
+        });
+        await refreshDatasets();
+        if (response.length > 0) {
+          setSelectedDataset(response[0]);
+        }
+        return response;
+      } catch (error: any) {
+        onError(error.response?.data?.detail || 'Failed to refresh due datasets');
+        return null;
+      } finally {
+        setIsRefreshingDueDatasets(false);
+      }
+    },
+    [onError, refreshDatasets]
+  );
+
   return {
     datasets,
+    dueDatasets,
     selectedDatasetId,
     selectedDataset,
     selectedSummary,
@@ -113,9 +172,13 @@ export function useDatasets(onError: (message: string | null) => void) {
     isLoadingSelectedDataset,
     isImportingDataset,
     isRefreshingDataset,
+    isUpdatingRefreshPolicy,
+    isRefreshingDueDatasets,
     refreshDatasets,
     loadDataset,
     importDataset,
     refreshDataset,
+    updateRefreshPolicy,
+    refreshDueDatasets,
   };
 }

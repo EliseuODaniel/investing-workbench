@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ from src.bitcoin_martingale.domain.datasets import (
     DatasetDetail,
     DatasetProvenance,
     DatasetProvenanceEntry,
+    DatasetRefreshPolicy,
     DatasetSummary,
     DatasetValidationSummary,
 )
@@ -40,6 +41,16 @@ class DatasetCatalogService:
         """Inspect one dataset in detail."""
         dataset_path = self._resolve_dataset_path(dataset_id)
         return self._build_detail(dataset_path).to_dict()
+
+    def list_due_datasets(self) -> list[dict[str, object]]:
+        """List datasets whose refresh policy says they are due now."""
+        due_summaries: list[DatasetSummary] = []
+        for path in self._iter_dataset_paths():
+            summary = self._build_summary(path)
+            if summary.refresh_due:
+                due_summaries.append(summary)
+        due_summaries.sort(key=lambda item: item.name.lower())
+        return [summary.to_dict() for summary in due_summaries]
 
     def import_dataset(
         self,
@@ -87,6 +98,42 @@ class DatasetCatalogService:
             },
         )
         return self._build_detail(target).to_dict()
+
+    def set_refresh_policy(
+        self,
+        dataset_id: str,
+        *,
+        enabled: bool,
+        interval_days: int,
+        start_date: str = "2020-01-01",
+        end_date: str | None = None,
+    ) -> dict[str, object]:
+        """Persist a refresh policy for one dataset."""
+        if interval_days < 1:
+            raise ValueError("Refresh interval_days must be at least 1")
+
+        dataset_path = self._resolve_dataset_path(dataset_id)
+        if self._build_refresh_spec(dataset_path) is None:
+            raise NotImplementedError("Refresh policy is not supported for this dataset")
+
+        metadata = self._load_metadata(dataset_path)
+        metadata["refresh_policy"] = {
+            "enabled": enabled,
+            "interval_days": interval_days,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        history = list(metadata.get("history", []))
+        history.append(
+            {
+                "event_type": "refresh_policy_updated",
+                "occurred_at": self._now_iso(),
+                "details": metadata["refresh_policy"],
+            }
+        )
+        metadata["history"] = history
+        self._write_metadata(dataset_path, metadata)
+        return self._build_detail(dataset_path).to_dict()
 
     def refresh_dataset(
         self,
@@ -144,6 +191,34 @@ class DatasetCatalogService:
 
         return self._build_detail(dataset_path).to_dict()
 
+    def refresh_due_datasets(self, *, limit: int | None = None) -> list[dict[str, object]]:
+        """Refresh all datasets that are due according to their persisted policy."""
+        due_datasets = self.list_due_datasets()
+        if limit is not None:
+            due_datasets = due_datasets[:limit]
+
+        refreshed: list[dict[str, object]] = []
+        for dataset in due_datasets:
+            detail = self.get_dataset(str(dataset["dataset_id"]))
+            provenance = detail.get("provenance")
+            if not isinstance(provenance, dict):
+                continue
+            refresh_policy = provenance.get("refresh_policy")
+            if not isinstance(refresh_policy, dict):
+                continue
+            refreshed.append(
+                self.refresh_dataset(
+                    str(dataset["dataset_id"]),
+                    start_date=str(refresh_policy.get("start_date", "2020-01-01")),
+                    end_date=(
+                        str(refresh_policy["end_date"])
+                        if refresh_policy.get("end_date") is not None
+                        else None
+                    ),
+                )
+            )
+        return refreshed
+
     def _iter_dataset_paths(self) -> list[Path]:
         if not self.data_dir.exists():
             return []
@@ -165,6 +240,8 @@ class DatasetCatalogService:
         start_timestamp, end_timestamp = self._resolve_time_bounds(dataframe)
         columns = [str(column) for column in dataframe.columns]
         stat = dataset_path.stat()
+        metadata = self._load_metadata(dataset_path)
+        refresh_policy = self._build_refresh_policy(dataset_path, metadata, stat.st_mtime)
 
         return DatasetSummary(
             dataset_id=self._build_dataset_id(dataset_path),
@@ -179,6 +256,8 @@ class DatasetCatalogService:
             file_size_bytes=stat.st_size,
             last_modified=self._to_iso_timestamp(stat.st_mtime),
             data_fingerprint=self._build_data_fingerprint(dataframe),
+            refresh_due=refresh_policy.due_now if refresh_policy else False,
+            next_refresh_due_at=refresh_policy.next_refresh_due_at if refresh_policy else None,
         )
 
     def _build_detail(self, dataset_path: Path) -> DatasetDetail:
@@ -384,6 +463,16 @@ class DatasetCatalogService:
             "source_kind": "inferred",
             "source_path": str(dataset_path),
             "refresh_strategy": refresh_spec["kind"] if refresh_spec else None,
+            "refresh_policy": (
+                {
+                    "enabled": False,
+                    "interval_days": 7,
+                    "start_date": "2020-01-01",
+                    "end_date": None,
+                }
+                if refresh_spec
+                else None
+            ),
             "imported_at": None,
             "last_refreshed_at": None,
             "history": [
@@ -399,6 +488,11 @@ class DatasetCatalogService:
 
     def _build_provenance(self, dataset_path: Path) -> DatasetProvenance:
         metadata = self._load_metadata(dataset_path)
+        refresh_policy = self._build_refresh_policy(
+            dataset_path,
+            metadata,
+            dataset_path.stat().st_mtime,
+        )
         history = [
             DatasetProvenanceEntry(
                 event_type=str(entry.get("event_type", "unknown")),
@@ -425,5 +519,42 @@ class DatasetCatalogService:
                 if metadata.get("last_refreshed_at")
                 else None
             ),
+            refresh_policy=refresh_policy,
             history=history,
+        )
+
+    def _build_refresh_policy(
+        self,
+        dataset_path: Path,
+        metadata: dict[str, Any],
+        modified_at_unix: float,
+    ) -> DatasetRefreshPolicy | None:
+        refresh_spec = self._build_refresh_spec(dataset_path)
+        raw_policy = metadata.get("refresh_policy")
+        if refresh_spec is None or not isinstance(raw_policy, dict):
+            return None
+
+        enabled = bool(raw_policy.get("enabled", False))
+        interval_days = max(int(raw_policy.get("interval_days", 7)), 1)
+        start_date = str(raw_policy.get("start_date", "2020-01-01"))
+        end_date = str(raw_policy["end_date"]) if raw_policy.get("end_date") else None
+
+        last_reference = (
+            metadata.get("last_refreshed_at")
+            or metadata.get("imported_at")
+            or self._to_iso_timestamp(modified_at_unix)
+        )
+        last_reference_ts = pd.Timestamp(str(last_reference))
+        if last_reference_ts.tzinfo is None:
+            last_reference_ts = last_reference_ts.tz_localize("UTC")
+        next_due_ts = last_reference_ts + timedelta(days=interval_days)
+        now_ts = pd.Timestamp.now(tz="UTC")
+
+        return DatasetRefreshPolicy(
+            enabled=enabled,
+            interval_days=interval_days,
+            start_date=start_date,
+            end_date=end_date,
+            next_refresh_due_at=next_due_ts.isoformat(),
+            due_now=enabled and now_ts >= next_due_ts,
         )

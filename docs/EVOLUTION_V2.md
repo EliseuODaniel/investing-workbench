@@ -201,4 +201,5 @@ Started in this cycle:
 Remaining backlog:
 - didactic robustness storytelling
 - deeper cross-workflow drilldowns and ranking
-- scheduled dataset refresh automation and provenance expansion
+- scheduled dataset refresh automation and provenance expansion completed for manual batch execution
+- future optional step: background refresh workers and notifications

@@ -4,6 +4,8 @@ import {
   BacktestRequest,
   BacktestResponse,
   DatasetDetail,
+  DatasetRefreshDueRequestPayload,
+  DatasetRefreshPolicyRequestPayload,
   DatasetImportRequestPayload,
   DatasetRefreshRequestPayload,
   DatasetSummary,
@@ -88,6 +90,11 @@ export const apiClient = {
     return response.data;
   },
 
+  listDueDatasets: async (): Promise<DatasetSummary[]> => {
+    const response = await api.get('/datasets/refresh-due');
+    return response.data;
+  },
+
   importDataset: async (request: DatasetImportRequestPayload): Promise<DatasetDetail> => {
     const response = await api.post('/datasets/import', request);
     return response.data;
@@ -98,6 +105,21 @@ export const apiClient = {
     request: DatasetRefreshRequestPayload
   ): Promise<DatasetDetail> => {
     const response = await api.post(`/datasets/${datasetId}/refresh`, request);
+    return response.data;
+  },
+
+  setDatasetRefreshPolicy: async (
+    datasetId: string,
+    request: DatasetRefreshPolicyRequestPayload
+  ): Promise<DatasetDetail> => {
+    const response = await api.post(`/datasets/${datasetId}/refresh-policy`, request);
+    return response.data;
+  },
+
+  refreshDueDatasets: async (
+    request: DatasetRefreshDueRequestPayload = {}
+  ): Promise<DatasetDetail[]> => {
+    const response = await api.post('/datasets/refresh-due', request);
     return response.data;
   },
 

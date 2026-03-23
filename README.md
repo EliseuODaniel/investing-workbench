@@ -154,6 +154,7 @@ make frontend-build
 - The Dataset Manager now supports importing local CSV/Parquet files into `data/`, refreshing supported cached datasets, and exposing richer validation diagnostics.
 - The frontend now includes a Research Drilldown panel that cross-checks optimization winners against walk-forward behavior and Monte Carlo tail risk.
 - Datasets now keep provenance metadata and event history, so imports and refreshes are auditable through the API and Dataset Manager.
+- Supported datasets can now store a persisted refresh policy, show when they are due, and be refreshed in batch through the API, CLI, and Dataset Manager.
 
 ### Option 3: Python API
 

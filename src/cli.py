@@ -430,6 +430,57 @@ def main():
         help="Optional refresh end date in YYYY-MM-DD",
     )
 
+    datasets_policy_parser = subparsers.add_parser(
+        "datasets-set-refresh-policy",
+        help="Persist a refresh policy for a supported dataset",
+    )
+    datasets_policy_parser.add_argument("--dataset-id", required=True, help="Dataset identifier")
+    datasets_policy_parser.add_argument(
+        "--enabled",
+        dest="enabled",
+        action="store_true",
+        help="Enable scheduled refresh checks",
+    )
+    datasets_policy_parser.add_argument(
+        "--disabled",
+        dest="enabled",
+        action="store_false",
+        help="Disable scheduled refresh checks",
+    )
+    datasets_policy_parser.set_defaults(enabled=True)
+    datasets_policy_parser.add_argument(
+        "--interval-days",
+        type=int,
+        default=7,
+        help="Days between refreshes",
+    )
+    datasets_policy_parser.add_argument(
+        "--start-date",
+        default="2020-01-01",
+        help="Refresh start date in YYYY-MM-DD",
+    )
+    datasets_policy_parser.add_argument(
+        "--end-date",
+        default=None,
+        help="Optional refresh end date in YYYY-MM-DD",
+    )
+
+    datasets_due_parser = subparsers.add_parser(
+        "datasets-refresh-due",
+        help="List or execute refreshes for datasets whose policy is due",
+    )
+    datasets_due_parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Refresh due datasets instead of only listing them",
+    )
+    datasets_due_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Optional cap on due datasets to display or refresh",
+    )
+
     runs_list_parser = subparsers.add_parser("runs-list", help="List persisted runs")
     runs_list_parser.add_argument(
         "--limit",
@@ -919,6 +970,34 @@ def main():
             print(json.dumps(dataset, indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to refresh dataset: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-set-refresh-policy":
+        try:
+            dataset = dataset_service.set_refresh_policy(
+                args.dataset_id,
+                enabled=args.enabled,
+                interval_days=args.interval_days,
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
+            print(json.dumps(dataset, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to set dataset refresh policy: {e}")
+            sys.exit(1)
+
+    elif args.command == "datasets-refresh-due":
+        try:
+            if args.execute:
+                refreshed = dataset_service.refresh_due_datasets(limit=args.limit)
+                print(json.dumps(refreshed, indent=2, sort_keys=True))
+            else:
+                due_datasets = dataset_service.list_due_datasets()
+                if args.limit is not None:
+                    due_datasets = due_datasets[: args.limit]
+                print(json.dumps(due_datasets, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to process due datasets: {e}")
             sys.exit(1)
 
     elif args.command == "runs-list":

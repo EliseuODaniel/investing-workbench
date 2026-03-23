@@ -20,9 +20,10 @@
 ## Phase 4
 - Completed: dataset catalog and dataset manager slice across API, CLI, and frontend.
 - Completed: dataset import, supported refresh flows, and richer validation diagnostics.
+- Completed: persisted dataset refresh policies, due-state tracking, and manual batch refresh execution.
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
 
 ## Evolution V2
 - Active planning and initial implementation started in `docs/EVOLUTION_V2.md`.
-- Current delivery focus: dataset management, didactic layers, and richer research UX.
+- Current delivery focus: didactic layers, richer research UX, and optional background automation.

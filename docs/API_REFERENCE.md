@@ -103,6 +103,7 @@ GET /datasets
 ```
 
 Returns discovered local datasets from the `data/` directory, including parquet caches, benchmark files, and CSV rate files.
+Each summary now includes `refresh_due` and `next_refresh_due_at` when a supported dataset has a persisted refresh policy.
 
 ### 1B. Inspect Local Dataset
 
@@ -113,6 +114,7 @@ GET /datasets/{dataset_id}
 
 Returns detailed dataset metadata, preview rows, validation warnings, and the dataset fingerprint.
 The detail payload also includes validation metrics plus provenance and event history when available.
+When supported, provenance also includes the current refresh policy and whether the dataset is due right now.
 
 ### 1C. Import Local Dataset
 
@@ -123,7 +125,38 @@ POST /datasets/import
 
 Imports a local CSV or Parquet file into the managed `data/` directory.
 
-### 1D. Refresh Supported Dataset
+### 1D. List Due Dataset Refreshes
+
+**Endpoint**
+```
+GET /datasets/refresh-due
+```
+
+Returns the subset of datasets whose persisted refresh policy is currently due.
+
+### 1E. Execute Due Dataset Refreshes
+
+**Endpoint**
+```
+POST /datasets/refresh-due
+```
+
+Refreshes due datasets in batch. The request body may include an optional `limit`.
+
+### 1F. Persist Dataset Refresh Policy
+
+**Endpoint**
+```
+POST /datasets/{dataset_id}/refresh-policy
+```
+
+Stores the refresh policy used to determine when a dataset becomes due. The request body includes:
+- `enabled`
+- `interval_days`
+- `start_date`
+- `end_date` (optional)
+
+### 1G. Refresh Supported Dataset
 
 **Endpoint**
 ```
