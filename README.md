@@ -13,6 +13,7 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - The incremental refactor now starts in `src/bitcoin_martingale/`.
 - Repository-level agent guidance lives in `AGENTS.md`.
 - Codex workflows, skills, and review conventions live in `docs/codex_workflows.md`, `docs/code_review.md`, and `.agents/skills/`.
+- Final handoff status and remaining optional backlog live in `docs/FINAL_STATUS.md`.
 
 ## 🌟 Features
 
@@ -137,6 +138,7 @@ make frontend-build
 - Persisted runs can also be shared and reopened directly via `?run=<run_id>` links in the frontend.
 - The frontend now exports the current results workspace as PNG and downloads persisted HTML reports directly.
 - The frontend now lazy-loads heavy analytics panels and vendor bundles, reducing the initial application payload.
+- The frontend dependency stack is hardened, the production build is clean, and `npm audit` is currently at `0 vulnerabilities`.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
 
 ### Option 3: Python API

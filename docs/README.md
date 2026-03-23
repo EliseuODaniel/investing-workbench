@@ -14,6 +14,7 @@ Welcome to the comprehensive documentation for the Bitcoin Martingale Backtestin
 - **[Architecture Documentation](ARCHITECTURE.md)** - Deep dive into system design and components
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Comprehensive development workflow and coding standards
 - **[API Reference](API_REFERENCE.md)** - Complete REST API documentation with examples
+- **[Final Status](FINAL_STATUS.md)** - Handoff summary, validation status, and optional next backlog
 
 ### Trading Strategies
 - **[Strategies Guide](STRATEGIES_GUIDE.md)** - Detailed documentation of all available trading strategies
