@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Play, BarChart3, AlertCircle, TrendingUp, List, DollarSign } from 'lucide-react';
 import { apiClient } from './lib/api';
 import { BacktestResponse } from './types/api';
@@ -18,6 +18,7 @@ import RunComparisonPanel from './components/RunComparisonPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
+import { useRunPermalink } from './hooks/useRunPermalink';
 import RunHistoryPanel from './components/RunHistoryPanel';
 import { RunConfigSnapshot, RunDataProfile } from './types/api';
 
@@ -52,6 +53,41 @@ function App() {
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibleBenchmarks, setVisibleBenchmarks] = useState<string[]>([]);
 
+  const hydrateRunArtifacts = useCallback(
+    async (runId: string) => {
+      setIsLoadingArtifacts(true);
+      try {
+        const artifacts = await loadRunArtifacts(runId);
+        setRunConfigSnapshot(artifacts?.configSnapshot ?? null);
+        setRunDataProfile(artifacts?.dataProfile ?? null);
+      } finally {
+        setIsLoadingArtifacts(false);
+      }
+    },
+    [loadRunArtifacts]
+  );
+
+  const handleLoadRun = useCallback(
+    async (runId: string) => {
+      setRunConfigSnapshot(null);
+      setRunDataProfile(null);
+      const response = await loadRunResponse(runId);
+      if (!response) return;
+
+      setBacktestResponse(response);
+      setAppState('success');
+      setActiveTab('overview');
+      await hydrateRunArtifacts(runId);
+    },
+    [hydrateRunArtifacts, loadRunResponse]
+  );
+
+  const { updatePermalink, copyRunUrl, shareRunUrl } = useRunPermalink({
+    isReady: !isLoadingRuns,
+    onLoadRun: handleLoadRun,
+    onError: setError,
+  });
+
   // Calculate total trades count
   const getTotalTradesCount = () => {
     if (!backtestResponse?.results) return 0;
@@ -79,6 +115,7 @@ function App() {
       setAppState('success');
       refreshRuns();
       if (response.run_info?.run_id) {
+        updatePermalink(response.run_info.run_id);
         await hydrateRunArtifacts(response.run_info.run_id);
       }
     } catch (err: any) {
@@ -165,8 +202,13 @@ function App() {
   };
 
   const shareResults = () => {
-    // TODO: Implement share functionality
-    console.log('Share not implemented yet');
+    const runId = backtestResponse?.run_info?.run_id;
+    if (!runId) return;
+
+    shareRunUrl(runId).catch((err) => {
+      console.error('Share failed:', err);
+      setError('Failed to share run URL');
+    });
   };
 
   const copySummary = () => {
@@ -179,28 +221,21 @@ function App() {
     navigator.clipboard.writeText(summary);
   };
 
-  const hydrateRunArtifacts = async (runId: string) => {
-    setIsLoadingArtifacts(true);
-    try {
-      const artifacts = await loadRunArtifacts(runId);
-      setRunConfigSnapshot(artifacts?.configSnapshot ?? null);
-      setRunDataProfile(artifacts?.dataProfile ?? null);
-    } finally {
-      setIsLoadingArtifacts(false);
+  const copyRunLink = () => {
+    const runId = backtestResponse?.run_info?.run_id;
+    if (!runId) return;
+
+    copyRunUrl(runId).catch((err) => {
+      console.error('Copy URL failed:', err);
+      setError('Failed to copy run URL');
+    });
+  };
+
+  useEffect(() => {
+    if (backtestResponse?.run_info?.run_id) {
+      updatePermalink(backtestResponse.run_info.run_id);
     }
-  };
-
-  const handleLoadRun = async (runId: string) => {
-    setRunConfigSnapshot(null);
-    setRunDataProfile(null);
-    const response = await loadRunResponse(runId);
-    if (!response) return;
-
-    setBacktestResponse(response);
-    setAppState('success');
-    setActiveTab('overview');
-    await hydrateRunArtifacts(runId);
-  };
+  }, [backtestResponse?.run_info?.run_id, updatePermalink]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -460,6 +495,7 @@ function App() {
                   onDownloadHTML={downloadHTML}
                   onShareResults={shareResults}
                   onCopySummary={copySummary}
+                  onCopyLink={copyRunLink}
                 />
 
                 {/* Tabs Navigation */}

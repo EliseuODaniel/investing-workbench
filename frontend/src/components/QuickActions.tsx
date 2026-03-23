@@ -8,6 +8,7 @@ interface QuickActionsProps {
   onDownloadHTML: () => void;
   onShareResults: () => void;
   onCopySummary: () => void;
+  onCopyLink: () => void;
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({
@@ -17,6 +18,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onDownloadHTML,
   onShareResults,
   onCopySummary,
+  onCopyLink,
 }) => {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
@@ -138,6 +140,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         </button>
 
         <button
+          onClick={onCopyLink}
           className="flex items-center justify-center px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium rounded transition-colors"
         >
           <Copy className="h-3 w-3 mr-1" />
