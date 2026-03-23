@@ -144,8 +144,24 @@ function App() {
   };
 
   const downloadHTML = () => {
-    // TODO: Implement HTML report download
-    console.log('Download HTML not implemented yet');
+    if (!backtestResponse?.run_info?.run_id) return;
+
+    apiClient
+      .downloadHTML(backtestResponse.run_info.run_id)
+      .then((blob) => {
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${backtestResponse.run_info?.run_id}_report.html`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      })
+      .catch((err) => {
+        console.error('HTML download failed:', err);
+        setError('Failed to download HTML report for persisted run');
+      });
   };
 
   const shareResults = () => {

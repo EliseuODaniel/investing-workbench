@@ -64,7 +64,12 @@ async def run_backtest(request: BacktestRequest):
 async def download_csv(strategy: str):
     """Download CSV with trades and equity data for a strategy."""
     try:
-        service.download_csv(strategy)
+        csv_content = service.download_csv(strategy)
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{strategy}_latest_trades.csv"'},
+        )
     except Exception as exc:
         raise to_http_exception(exc) from exc
 
@@ -101,6 +106,20 @@ async def get_run_data_profile(run_id: str):
     """Return the dataset profile for a run."""
     try:
         return service.get_run_data_profile(run_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/runs/{run_id}/report.html")
+async def get_run_html_report(run_id: str):
+    """Download the persisted HTML report for a run."""
+    try:
+        html_report = service.get_run_html_report(run_id)
+        return Response(
+            content=html_report,
+            media_type="text/html",
+            headers={"Content-Disposition": f'attachment; filename="{run_id}_report.html"'},
+        )
     except Exception as exc:
         raise to_http_exception(exc) from exc
 

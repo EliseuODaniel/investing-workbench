@@ -314,7 +314,16 @@ GET /runs/{run_id}/data-profile
 
 Returns the dataset profile with columns, row count, timestamps, cache path, and `data_fingerprint`.
 
-### 7. List Persisted Runs
+### 7. Download Persisted Run HTML Report
+
+**Endpoint**
+```
+GET /runs/{run_id}/report.html
+```
+
+Downloads a persisted HTML report generated from the run manifest, metrics, config snapshot, and data profile.
+
+### 8. List Persisted Runs
 
 **Endpoint**
 ```
@@ -334,7 +343,7 @@ curl -X POST "http://localhost:8001/backtest" \
      }'
 ```
 
-### 8. Export Trades From a Persisted Run
+### 9. Export Trades From a Persisted Run
 
 Download trade data for a specific strategy from a persisted run.
 
@@ -360,6 +369,15 @@ CSV file with trade data
 curl -X GET "http://localhost:8001/runs/run_20260323T120000Z_abcd1234/strategies/Risk-Cap%20Martingale/trades.csv" \
      -o trades.csv
 ```
+
+### 10. Export Latest Persisted Trades For a Strategy
+
+**Endpoint**
+```
+GET /reports/{strategy}/download
+```
+
+Downloads a CSV for the newest persisted run that contains the requested strategy.
 
 ## Data Models
 

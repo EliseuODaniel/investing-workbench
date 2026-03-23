@@ -30,6 +30,7 @@ from src.engine import BacktestEngine
 from src.metrics import calculate_metrics
 from src.bitcoin_martingale.domain.runs import RunManifest
 from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
+from src.bitcoin_martingale.infrastructure.reporting import PersistedRunHTMLReportBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class RunBacktestService:
 
     def __init__(self, runs_repository: LocalRunsRepository | None = None) -> None:
         self.runs_repository = runs_repository or LocalRunsRepository()
+        self.report_builder = PersistedRunHTMLReportBuilder()
 
     def list_configs(self) -> list[ConfigInfo]:
         """List available YAML configs for the application."""
@@ -115,6 +117,7 @@ class RunBacktestService:
                 "response_path": str(persisted.response_path),
                 "config_snapshot_path": str(persisted.config_snapshot_path),
                 "data_profile_path": str(persisted.data_profile_path),
+                "report_path": str(persisted.report_path),
             }
         )
         persisted.response_path.write_text(
@@ -123,9 +126,10 @@ class RunBacktestService:
         )
         return response
 
-    def download_csv(self, strategy: str) -> None:
-        """Placeholder download hook until run persistence is implemented."""
-        raise NotImplementedError(f"CSV download is not implemented yet for strategy '{strategy}'.")
+    def download_csv(self, strategy: str) -> str:
+        """Download trades CSV for the latest persisted run containing a strategy."""
+        run_id = self.runs_repository.find_latest_run_id_for_strategy(strategy)
+        return self.runs_repository.build_trades_csv(run_id, strategy)
 
     def get_run_manifest(self, run_id: str) -> dict[str, object]:
         """Fetch a previously persisted run manifest."""
@@ -142,6 +146,10 @@ class RunBacktestService:
     def get_run_data_profile(self, run_id: str) -> dict[str, object]:
         """Fetch the persisted dataset profile for a run."""
         return self.runs_repository.get_data_profile(run_id)
+
+    def get_run_html_report(self, run_id: str) -> str:
+        """Fetch the persisted HTML report for a run."""
+        return self.runs_repository.get_html_report(run_id)
 
     def list_runs(self) -> list[dict[str, object]]:
         """List persisted runs for history views."""
@@ -473,9 +481,16 @@ class RunBacktestService:
             data_profile_path=str(artifact_dir / "data_profile.json"),
             data_fingerprint=str(data_profile["data_fingerprint"]),
         )
+        report_html = self.report_builder.build(
+            manifest=manifest.to_dict(),
+            response_payload=response.model_dump(mode="json"),
+            config_snapshot=config_snapshot,
+            data_profile=data_profile,
+        )
         return self.runs_repository.persist_run(
             manifest=manifest,
             response=response,
             config_snapshot=config_snapshot,
             data_profile=data_profile,
+            report_html=report_html,
         )

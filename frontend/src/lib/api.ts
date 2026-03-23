@@ -56,6 +56,13 @@ export const apiClient = {
     return response.data;
   },
 
+  downloadHTML: async (runId: string): Promise<Blob> => {
+    const response = await api.get(`/runs/${runId}/report.html`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/');

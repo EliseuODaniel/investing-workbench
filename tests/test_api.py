@@ -81,8 +81,8 @@ class TestCSVDowloadEndpoint:
     def test_csv_download_endpoint_exists(self):
         """Test that CSV download endpoint exists."""
         response = client.get("/reports/test_strategy/download")
-        assert response.status_code == 501
-        assert "detail" in response.json()
+        assert response.status_code == 404
+        assert "No persisted run found" in response.json()["detail"]
 
 
 class TestPersistedRunsEndpoint:
@@ -118,6 +118,12 @@ class TestPersistedRunsEndpoint:
         assert response.status_code == 404
         assert "Run data profile not found" in response.json()["detail"]
 
+    def test_run_html_report_not_found(self):
+        """Unknown HTML reports should return 404."""
+        response = client.get("/runs/does-not-exist/report.html")
+        assert response.status_code == 404
+        assert "Run HTML report not found" in response.json()["detail"]
+
     def test_run_strategy_csv_not_found(self):
         """Unknown strategy exports should return 404."""
         response = client.get("/runs/does-not-exist/strategies/foo/trades.csv")
@@ -139,3 +145,21 @@ class TestPersistedRunsEndpoint:
         assert config_response.json()["backtest"]["cache_path"] == "data/btc_brl.parquet"
         assert data_profile_response.status_code == 200
         assert data_profile_response.json()["data_fingerprint"]
+
+    def test_run_html_report_and_legacy_csv_success(self, tmp_path):
+        """Persisted HTML reports and legacy latest-strategy CSV should be downloadable."""
+        repository = LocalRunsRepository(base_dir=tmp_path)
+        patched_service = RunBacktestService(runs_repository=repository)
+        response_model = patched_service.run(BacktestRequest(config_path="configs/test.yaml"))
+        run_id = response_model.run_info["run_id"]
+        strategy_name = next(iter(response_model.results.keys()))
+
+        with patch("src.api.main.service", patched_service):
+            html_response = client.get(f"/runs/{run_id}/report.html")
+            csv_response = client.get(f"/reports/{strategy_name}/download")
+
+        assert html_response.status_code == 200
+        assert "text/html" in html_response.headers["content-type"]
+        assert run_id in html_response.text
+        assert csv_response.status_code == 200
+        assert "timestamp,action,price,quantity,layer,pnl" in csv_response.text

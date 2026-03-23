@@ -30,17 +30,20 @@ def test_run_service_persists_manifest_and_response(tmp_path: Path) -> None:
     response_path = artifact_dir / "response.json"
     config_snapshot_path = artifact_dir / "config_resolved.json"
     data_profile_path = artifact_dir / "data_profile.json"
+    report_path = artifact_dir / "report.html"
 
     assert artifact_dir.exists()
     assert manifest_path.exists()
     assert response_path.exists()
     assert config_snapshot_path.exists()
     assert data_profile_path.exists()
+    assert report_path.exists()
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     response_payload = json.loads(response_path.read_text(encoding="utf-8"))
     config_snapshot = json.loads(config_snapshot_path.read_text(encoding="utf-8"))
     data_profile = json.loads(data_profile_path.read_text(encoding="utf-8"))
+    report_html = report_path.read_text(encoding="utf-8")
 
     assert manifest["run_id"] == run_id
     assert manifest["config_path"] == "configs/test.yaml"
@@ -50,8 +53,10 @@ def test_run_service_persists_manifest_and_response(tmp_path: Path) -> None:
     assert manifest["data_fingerprint"] == data_profile["data_fingerprint"]
     assert response_payload["run_info"]["run_id"] == run_id
     assert response_payload["run_info"]["data_fingerprint"] == data_profile["data_fingerprint"]
+    assert response_payload["run_info"]["report_path"].endswith("report.html")
     assert config_snapshot["backtest"]["start_date"] == "2023-01-01"
     assert data_profile["row_count"] > 0
+    assert run_id in report_html
 
 
 def test_run_manifest_and_response_can_be_read_via_repository(tmp_path: Path) -> None:
@@ -83,3 +88,18 @@ def test_run_repository_lists_runs_and_builds_csv(tmp_path: Path) -> None:
 
     assert listed_runs[0]["run_id"] == run_id
     assert "timestamp,action,price,quantity,layer,pnl" in csv_content
+
+
+def test_run_repository_finds_latest_strategy_and_html_report(tmp_path: Path) -> None:
+    repository = LocalRunsRepository(base_dir=tmp_path)
+    service = RunBacktestService(runs_repository=repository)
+
+    response = service.run(BacktestRequest(config_path="configs/test.yaml"))
+    run_id = response.run_info["run_id"]
+    strategy_name = next(iter(response.results.keys()))
+
+    latest_run_id = repository.find_latest_run_id_for_strategy(strategy_name)
+    html_report = repository.get_html_report(run_id)
+
+    assert latest_run_id == run_id
+    assert "<html" in html_report.lower()
