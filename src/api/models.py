@@ -148,3 +148,26 @@ class RunSummary(BaseModel):
     config_snapshot_path: str
     data_profile_path: str
     data_fingerprint: str
+
+
+class OptimizationPlanRequest(BaseModel):
+    """Request model for optimization planning and execution."""
+
+    config_path: str = Field(description="Path to config file")
+    strategies: Optional[List[str]] = Field(
+        None,
+        description="Strategy names to include in the optimization job",
+    )
+    parameter_space: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Global search-space definition",
+    )
+    strategy_parameter_spaces: Dict[str, Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Per-strategy search-space overrides",
+    )
+    mode: str = Field(default="grid", description="Optimization mode: grid or random")
+    max_trials: Optional[int] = Field(None, description="Optional cap on generated trials")
+    random_seed: int = Field(default=42, description="Random seed for deterministic planning")
+    objective: str = Field(default="sharpe_ratio", description="Metric used for ranking")
+    direction: str = Field(default="maximize", description="maximize or minimize")

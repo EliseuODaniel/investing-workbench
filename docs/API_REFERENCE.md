@@ -379,6 +379,51 @@ GET /reports/{strategy}/download
 
 Downloads a CSV for the newest persisted run that contains the requested strategy.
 
+### 11. Preview Optimization Plan
+
+**Endpoint**
+```
+POST /optimizations/plan
+```
+
+Builds a deterministic optimization trial plan without executing runs.
+
+### 12. Execute Optimization Job
+
+**Endpoint**
+```
+POST /optimizations
+```
+
+Executes and persists an optimization job, including ranked trial results and linked run ids.
+
+### 13. List Persisted Optimizations
+
+**Endpoint**
+```
+GET /optimizations
+```
+
+Returns persisted optimization manifests ordered from newest to oldest.
+
+### 14. Get Persisted Optimization Manifest
+
+**Endpoint**
+```
+GET /optimizations/{optimization_id}
+```
+
+Returns summary metadata for a persisted optimization job.
+
+### 15. Get Persisted Optimization Results
+
+**Endpoint**
+```
+GET /optimizations/{optimization_id}/results
+```
+
+Returns ranked trial results, linked persisted run ids, warnings, and objective values.
+
 ## Data Models
 
 ### BacktestRequest

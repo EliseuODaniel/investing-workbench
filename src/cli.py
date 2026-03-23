@@ -11,9 +11,16 @@ import pandas as pd
 import yaml
 
 from .benchmarks import get_benchmark_data, get_selic_benchmark
-from .bitcoin_martingale.application.optimizations import OptimizationPlanningService
+from .bitcoin_martingale.application.optimizations import (
+    OptimizationExecutionService,
+    OptimizationPlanningService,
+)
 from .bitcoin_martingale.application.runs import RunBacktestService
-from .bitcoin_martingale.domain.optimizations import OptimizationMode, OptimizationRequest
+from .bitcoin_martingale.domain.optimizations import (
+    OptimizationDirection,
+    OptimizationMode,
+    OptimizationRequest,
+)
 from .config import AppConfig, create_default_config, load_strategy
 from .data import get_data
 from .engine import BacktestEngine
@@ -241,6 +248,32 @@ def process_benchmarks(config: AppConfig, data: pd.DataFrame, verbose: bool = Tr
     return benchmarks
 
 
+def build_optimization_request(args: argparse.Namespace) -> OptimizationRequest:
+    """Build an optimization request from CLI arguments."""
+    space_path = Path(args.space_file)
+    if not space_path.exists():
+        raise FileNotFoundError(f"Search-space file not found: {space_path}")
+
+    raw_space = yaml.safe_load(space_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(raw_space, dict):
+        raise ValueError("Search-space file must deserialize to a mapping")
+
+    global_space = raw_space.get("global", raw_space)
+    strategy_spaces = raw_space.get("strategies", {})
+
+    return OptimizationRequest(
+        config_path=args.config,
+        strategy_names=args.strategies,
+        parameter_space=global_space,
+        strategy_parameter_spaces=strategy_spaces,
+        mode=OptimizationMode(args.mode),
+        max_trials=args.max_trials,
+        random_seed=args.seed,
+        objective=args.objective,
+        direction=OptimizationDirection(args.direction),
+    )
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -419,9 +452,106 @@ def main():
         default=42,
         help="Random seed used for random planning mode",
     )
+    optimize_plan_parser.add_argument(
+        "--objective",
+        type=str,
+        default="sharpe_ratio",
+        help="Metric name used later for ranking trials",
+    )
+    optimize_plan_parser.add_argument(
+        "--direction",
+        choices=[direction.value for direction in OptimizationDirection],
+        default=OptimizationDirection.MAXIMIZE.value,
+        help="Whether the objective should be maximized or minimized",
+    )
+
+    optimize_run_parser = subparsers.add_parser(
+        "optimize-run",
+        help="Execute a persisted optimization job from a JSON or YAML search space",
+    )
+    optimize_run_parser.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        default="configs/martingale.yaml",
+        help="Configuration file path",
+    )
+    optimize_run_parser.add_argument(
+        "--strategies",
+        "-s",
+        nargs="+",
+        help="Specific strategies to include in the optimization job",
+    )
+    optimize_run_parser.add_argument(
+        "--space-file",
+        required=True,
+        help="Path to a JSON or YAML file describing the search space",
+    )
+    optimize_run_parser.add_argument(
+        "--mode",
+        choices=[mode.value for mode in OptimizationMode],
+        default=OptimizationMode.GRID.value,
+        help="Whether to generate a grid or random trial plan",
+    )
+    optimize_run_parser.add_argument(
+        "--max-trials",
+        type=int,
+        default=None,
+        help="Optional cap on the number of generated trials",
+    )
+    optimize_run_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed used for random planning mode",
+    )
+    optimize_run_parser.add_argument(
+        "--objective",
+        type=str,
+        default="sharpe_ratio",
+        help="Metric name used to rank completed trials",
+    )
+    optimize_run_parser.add_argument(
+        "--direction",
+        choices=[direction.value for direction in OptimizationDirection],
+        default=OptimizationDirection.MAXIMIZE.value,
+        help="Whether the objective should be maximized or minimized",
+    )
+
+    optimizations_list_parser = subparsers.add_parser(
+        "optimizations-list",
+        help="List persisted optimization jobs",
+    )
+    optimizations_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of optimizations to display",
+    )
+
+    optimizations_show_parser = subparsers.add_parser(
+        "optimizations-show",
+        help="Show a persisted optimization manifest",
+    )
+    optimizations_show_parser.add_argument(
+        "--optimization-id",
+        required=True,
+        help="Optimization identifier",
+    )
+
+    optimizations_results_parser = subparsers.add_parser(
+        "optimizations-results",
+        help="Show persisted optimization results",
+    )
+    optimizations_results_parser.add_argument(
+        "--optimization-id",
+        required=True,
+        help="Optimization identifier",
+    )
 
     args = parser.parse_args()
     service = RunBacktestService()
+    optimization_service = OptimizationExecutionService()
 
     if args.command == "run":
         # Load configuration
@@ -602,33 +732,49 @@ def main():
     elif args.command == "optimize-plan":
         try:
             planner = OptimizationPlanningService()
-            space_path = Path(args.space_file)
-            if not space_path.exists():
-                print(f"Search-space file not found: {space_path}")
-                sys.exit(1)
-
-            raw_space = yaml.safe_load(space_path.read_text(encoding="utf-8")) or {}
-            if not isinstance(raw_space, dict):
-                print("Search-space file must deserialize to a mapping")
-                sys.exit(1)
-
-            global_space = raw_space.get("global", raw_space)
-            strategy_spaces = raw_space.get("strategies", {})
-
-            request = OptimizationRequest(
-                config_path=args.config,
-                strategy_names=args.strategies,
-                parameter_space=global_space,
-                strategy_parameter_spaces=strategy_spaces,
-                mode=OptimizationMode(args.mode),
-                max_trials=args.max_trials,
-                random_seed=args.seed,
-            )
-
+            request = build_optimization_request(args)
             plan = planner.build_plan(request)
             print(json.dumps(plan.to_dict(), indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to build optimization plan: {e}")
+            sys.exit(1)
+
+    elif args.command == "optimize-run":
+        try:
+            request = build_optimization_request(args)
+            result = optimization_service.execute(request)
+            print(json.dumps(result.results_dict(), indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to execute optimization: {e}")
+            sys.exit(1)
+
+    elif args.command == "optimizations-list":
+        try:
+            optimizations = optimization_service.list_optimizations()[: args.limit]
+            for optimization in optimizations:
+                print(
+                    f"{optimization['optimization_id']} | {optimization['created_at']} | "
+                    f"objective={optimization['objective']} | "
+                    f"completed={optimization['completed_trial_count']}/{optimization['trial_count']}"
+                )
+        except Exception as e:
+            print(f"Failed to list optimizations: {e}")
+            sys.exit(1)
+
+    elif args.command == "optimizations-show":
+        try:
+            manifest = optimization_service.get_manifest(args.optimization_id)
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load optimization manifest: {e}")
+            sys.exit(1)
+
+    elif args.command == "optimizations-results":
+        try:
+            results = optimization_service.get_results(args.optimization_id)
+            print(json.dumps(results, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load optimization results: {e}")
             sys.exit(1)
 
     else:

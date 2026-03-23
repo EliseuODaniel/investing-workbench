@@ -192,9 +192,9 @@ Started in this cycle:
 - roadmap documented
 - optimization planning service foundation started
 - CLI preview flow started
+- optimization execution and persistence started
+- optimization API endpoints started
 
 Not started yet:
-- persisted optimization jobs
-- optimization execution against real runs
 - robustness lab
 - frontend optimization workspace

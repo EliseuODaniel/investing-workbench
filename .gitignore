@@ -14,8 +14,9 @@ frontend/dist/
 .idea/
 .vscode/
 
-reports/
-runs/
+/reports/
+/runs/
+/optimizations/
 data/*.parquet
 data/*_benchmark.parquet
 

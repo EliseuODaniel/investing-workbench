@@ -141,7 +141,9 @@ make frontend-build
 - The frontend now lazy-loads heavy analytics panels and vendor bundles, reducing the initial application payload.
 - The frontend dependency stack is hardened, the production build is clean, and `npm audit` is currently at `0 vulnerabilities`.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
-- Optimization planning has now started in the new architecture with `python -m src optimize-plan --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml`.
+- Optimization planning is available with `python -m src optimize-plan --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml`.
+- Optimization execution is now persisted with `python -m src optimize-run --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml --objective total_return`.
+- Persisted optimization jobs can be inspected with `python -m src optimizations-list`, `python -m src optimizations-show --optimization-id <id>`, and `python -m src optimizations-results --optimization-id <id>`.
 
 ### Option 3: Python API
 

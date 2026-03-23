@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from contextlib import redirect_stdout
+from copy import deepcopy
 from dataclasses import asdict
 import hashlib
+import io
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -75,39 +78,45 @@ class RunBacktestService:
     def run(self, request: BacktestRequest) -> BacktestResponse:
         """Run a backtest request and return the serialized response model."""
         config = self._load_config(request)
-        strategies_to_run = self._resolve_strategies(config, request)
-        data = self._load_market_data(config, request)
+        return self.run_with_config(
+            config=config,
+            config_path=request.config_path or "configs/martingale.yaml",
+            strategy_names=request.strategies,
+            request_payload=request.model_dump(exclude_none=True),
+            force_download=bool(request.force_download),
+        )
+
+    def run_with_config(
+        self,
+        *,
+        config: AppConfig,
+        config_path: str,
+        strategy_names: list[str] | None = None,
+        request_payload: dict[str, Any] | None = None,
+        force_download: bool = False,
+    ) -> BacktestResponse:
+        """Run a backtest from a resolved config and persist the artifacts."""
+        strategies_to_run = self._resolve_strategies(config, strategy_names)
+        data = self._load_market_data(config, force_download=force_download)
         run_id = self._build_run_id()
         config_snapshot = self._build_config_snapshot(config)
         data_profile = self._build_data_profile(config, data)
 
-        buy_hold_equity = self._build_buy_hold_curve(data, config.backtest.initial_capital)
-        results = self._run_strategies(config, strategies_to_run, data)
-        benchmarks = self._process_benchmarks(config)
-
-        response = BacktestResponse(
-            results=results,
-            buy_hold_equity=buy_hold_equity,
-            benchmarks=benchmarks if benchmarks else None,
-            data_info={
-                "start_date": data.index[0].isoformat(),
-                "end_date": data.index[-1].isoformat(),
-                "total_days": len(data),
-                "initial_price": float(data.iloc[0]["Close"]),
-                "final_price": float(data.iloc[-1]["Close"]),
-            },
+        response = self._build_response(
+            config=config,
+            strategies_to_run=strategies_to_run,
+            data=data,
         )
-        run_info = {
+        response.run_info = {
             "run_id": run_id,
             "artifact_dir": str(self.runs_repository.base_dir / run_id),
             "data_fingerprint": data_profile["data_fingerprint"],
         }
-        response.run_info = run_info
         persisted = self._persist_run(
             run_id=run_id,
-            request=request,
+            request_payload=request_payload or {},
             response=response,
-            config_path=request.config_path or "configs/martingale.yaml",
+            config_path=config_path,
             config_snapshot=config_snapshot,
             data_profile=data_profile,
         )
@@ -120,11 +129,47 @@ class RunBacktestService:
                 "report_path": str(persisted.report_path),
             }
         )
-        persisted.response_path.write_text(
-            response.model_dump_json(indent=2),
-            encoding="utf-8",
-        )
+        persisted.response_path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
         return response
+
+    def run_trial(
+        self,
+        *,
+        config_path: str,
+        strategy_name: str,
+        parameter_overrides: dict[str, Any],
+        request_payload: dict[str, Any] | None = None,
+    ) -> BacktestResponse:
+        """Run a single-strategy trial with arbitrary parameter overrides."""
+        config = AppConfig.from_file(config_path)
+        matching_strategy = next(
+            (strategy for strategy in config.strategies if strategy.name == strategy_name),
+            None,
+        )
+        if matching_strategy is None:
+            raise ValueError(f"Strategy '{strategy_name}' not found in config: {config_path}")
+
+        matching_strategy.parameters = {
+            **deepcopy(matching_strategy.parameters),
+            **parameter_overrides,
+        }
+        config.strategies = [matching_strategy]
+
+        payload = request_payload or {}
+        payload.update(
+            {
+                "config_path": config_path,
+                "strategies": [strategy_name],
+                "parameter_overrides": parameter_overrides,
+            }
+        )
+
+        return self.run_with_config(
+            config=config,
+            config_path=config_path,
+            strategy_names=[strategy_name],
+            request_payload=payload,
+        )
 
     def download_csv(self, strategy: str) -> str:
         """Download trades CSV for the latest persisted run containing a strategy."""
@@ -217,23 +262,32 @@ class RunBacktestService:
 
         return config
 
-    def _resolve_strategies(self, config: AppConfig, request: BacktestRequest):
+    def _resolve_strategies(
+        self,
+        config: AppConfig,
+        strategy_names: list[str] | None,
+    ):
         strategies_to_run = config.strategies
-        if request.strategies:
-            strategies_to_run = [s for s in config.strategies if s.name in request.strategies]
+        if strategy_names:
+            strategies_to_run = [s for s in config.strategies if s.name in strategy_names]
 
         if not strategies_to_run:
             raise ValueError("No strategies to run")
 
         return strategies_to_run
 
-    def _load_market_data(self, config: AppConfig, request: BacktestRequest) -> pd.DataFrame:
-        cache_path = None if request.force_download else config.backtest.cache_path
-        return get_data(
-            start=config.backtest.start_date,
-            end=config.backtest.end_date,
-            cache_path=cache_path,
-        )
+    def _load_market_data(self, config: AppConfig, force_download: bool = False) -> pd.DataFrame:
+        cache_path = None if force_download else config.backtest.cache_path
+        stdout_buffer = io.StringIO()
+        with redirect_stdout(stdout_buffer):
+            data = get_data(
+                start=config.backtest.start_date,
+                end=config.backtest.end_date,
+                cache_path=cache_path,
+            )
+        for line in stdout_buffer.getvalue().splitlines():
+            logger.info("market-data: %s", line)
+        return data
 
     def _build_run_id(self) -> str:
         """Create a unique, sortable run identifier."""
@@ -282,6 +336,31 @@ class RunBacktestService:
             )
 
         return curve
+
+    def _build_response(
+        self,
+        *,
+        config: AppConfig,
+        strategies_to_run,
+        data: pd.DataFrame,
+    ) -> BacktestResponse:
+        buy_hold_equity = self._build_buy_hold_curve(data, config.backtest.initial_capital)
+        results = self._run_strategies(config, strategies_to_run, data)
+        benchmarks = self._process_benchmarks(config)
+
+        return BacktestResponse(
+            results=results,
+            buy_hold_equity=buy_hold_equity,
+            benchmarks=benchmarks if benchmarks else None,
+            data_info={
+                "start_date": data.index[0].isoformat(),
+                "end_date": data.index[-1].isoformat(),
+                "total_days": len(data),
+                "initial_price": float(data.iloc[0]["Close"]),
+                "final_price": float(data.iloc[-1]["Close"]),
+            },
+            run_info={},
+        )
 
     def _run_strategies(
         self, config: AppConfig, strategies_to_run, data: pd.DataFrame
@@ -460,7 +539,7 @@ class RunBacktestService:
         self,
         *,
         run_id: str,
-        request: BacktestRequest,
+        request_payload: dict[str, Any],
         response: BacktestResponse,
         config_path: str,
         config_snapshot: dict[str, Any],
@@ -475,7 +554,7 @@ class RunBacktestService:
             artifact_dir=str(artifact_dir),
             strategy_names=list(response.results.keys()),
             benchmark_names=benchmark_names,
-            request_payload=request.model_dump(exclude_none=True),
+            request_payload=request_payload,
             data_info=response.data_info,
             config_snapshot_path=str(artifact_dir / "config_resolved.json"),
             data_profile_path=str(artifact_dir / "data_profile.json"),

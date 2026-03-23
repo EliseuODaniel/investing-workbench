@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from itertools import product
@@ -131,6 +132,119 @@ class OptimizationPlan:
         }
 
 
+@dataclass(slots=True)
+class OptimizationTrialResult:
+    """Outcome of executing a single optimization trial."""
+
+    trial_id: str
+    strategy_name: str
+    parameters: dict[str, Any]
+    run_id: str | None
+    objective: str
+    objective_value: float | None
+    metrics: dict[str, Any] = field(default_factory=dict)
+    status: str = "completed"
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the trial result."""
+        return {
+            "trial_id": self.trial_id,
+            "strategy_name": self.strategy_name,
+            "parameters": self.parameters,
+            "run_id": self.run_id,
+            "objective": self.objective,
+            "objective_value": self.objective_value,
+            "metrics": self.metrics,
+            "status": self.status,
+            "error": self.error,
+        }
+
+
+@dataclass(slots=True)
+class OptimizationExecutionResult:
+    """Persistable result set for an executed optimization job."""
+
+    optimization_id: str
+    created_at: datetime
+    config_path: str
+    objective: str
+    direction: OptimizationDirection
+    mode: OptimizationMode
+    random_seed: int
+    strategy_names: list[str]
+    trial_count: int
+    truncated: bool
+    warnings: list[str]
+    results: list[OptimizationTrialResult]
+
+    @property
+    def completed_trial_count(self) -> int:
+        """Return the number of completed trials."""
+        return len([result for result in self.results if result.status == "completed"])
+
+    def best_result(self) -> OptimizationTrialResult | None:
+        """Return the best completed result according to the objective direction."""
+        completed = [
+            result
+            for result in self.results
+            if result.status == "completed" and result.objective_value is not None
+        ]
+        if not completed:
+            return None
+
+        reverse = self.direction == OptimizationDirection.MAXIMIZE
+        return sorted(completed, key=_objective_sort_key, reverse=reverse)[0]
+
+    def ranked_results(self) -> list[OptimizationTrialResult]:
+        """Return completed results sorted by objective direction."""
+        completed = [
+            result
+            for result in self.results
+            if result.status == "completed" and result.objective_value is not None
+        ]
+        reverse = self.direction == OptimizationDirection.MAXIMIZE
+        return sorted(completed, key=_objective_sort_key, reverse=reverse)
+
+    def manifest_dict(self) -> dict[str, Any]:
+        """Serialize lightweight job metadata."""
+        best_result = self.best_result()
+        return {
+            "optimization_id": self.optimization_id,
+            "created_at": self.created_at.isoformat(),
+            "config_path": self.config_path,
+            "objective": self.objective,
+            "direction": self.direction.value,
+            "mode": self.mode.value,
+            "random_seed": self.random_seed,
+            "strategy_names": self.strategy_names,
+            "trial_count": self.trial_count,
+            "completed_trial_count": self.completed_trial_count,
+            "truncated": self.truncated,
+            "warnings": self.warnings,
+            "best_trial_id": best_result.trial_id if best_result else None,
+            "best_run_id": best_result.run_id if best_result else None,
+            "best_objective_value": best_result.objective_value if best_result else None,
+        }
+
+    def results_dict(self) -> dict[str, Any]:
+        """Serialize the full result set."""
+        return {
+            "optimization_id": self.optimization_id,
+            "objective": self.objective,
+            "direction": self.direction.value,
+            "mode": self.mode.value,
+            "random_seed": self.random_seed,
+            "strategy_names": self.strategy_names,
+            "trial_count": self.trial_count,
+            "completed_trial_count": self.completed_trial_count,
+            "truncated": self.truncated,
+            "warnings": self.warnings,
+            "ranked_results": [result.to_dict() for result in self.ranked_results()],
+            "results": [result.to_dict() for result in self.results],
+        }
+
+
 def build_parameter_combinations(
     spaces: list[OptimizationSearchSpace],
 ) -> list[dict[str, Any]]:
@@ -171,3 +285,10 @@ def _expand_numeric_range(start: Any, stop: Any, step: Any) -> list[int | float]
         current += step_decimal
 
     return values
+
+
+def _objective_sort_key(result: OptimizationTrialResult) -> float:
+    """Return a sortable objective value for completed results."""
+    if result.objective_value is None:
+        raise ValueError("Objective value is required to rank optimization results")
+    return float(result.objective_value)

@@ -1,25 +1,57 @@
 """FastAPI main application."""
 
 import logging
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from ..bitcoin_martingale.application.optimizations import (
+    OptimizationExecutionService,
+    OptimizationPlanningService,
+)
 from ..bitcoin_martingale.application.runs import RunBacktestService
+from ..bitcoin_martingale.domain.optimizations import (
+    OptimizationDirection,
+    OptimizationMode,
+    OptimizationRequest,
+)
 from ..bitcoin_martingale.infrastructure.logging import configure_logging
 from ..bitcoin_martingale.interfaces.api.errors import to_http_exception
-from .models import BacktestRequest, BacktestResponse, ConfigInfo
+from .models import (
+    BacktestRequest,
+    BacktestResponse,
+    ConfigInfo,
+    OptimizationPlanRequest,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
 service = RunBacktestService()
+optimization_planner = OptimizationPlanningService()
+optimization_service = OptimizationExecutionService(run_service=service)
 
 app = FastAPI(
     title="Bitcoin Martingale Backtest API",
     description="Interactive backtesting API for Bitcoin Martingale strategies",
     version="1.0.0",
 )
+
+
+def _to_optimization_request(request: OptimizationPlanRequest) -> OptimizationRequest:
+    """Convert API payloads into optimization domain requests."""
+    return OptimizationRequest(
+        config_path=request.config_path,
+        strategy_names=request.strategies,
+        parameter_space=request.parameter_space,
+        strategy_parameter_spaces=request.strategy_parameter_spaces,
+        mode=OptimizationMode(request.mode),
+        max_trials=request.max_trials,
+        random_seed=request.random_seed,
+        objective=request.objective,
+        direction=OptimizationDirection(request.direction),
+    )
 
 # Add CORS middleware
 app.add_middleware(
@@ -147,5 +179,52 @@ async def download_run_strategy_csv(run_id: str, strategy_name: str):
                 )
             },
         )
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/optimizations/plan")
+async def plan_optimization(request: OptimizationPlanRequest) -> dict[str, Any]:
+    """Preview a reproducible optimization trial plan."""
+    try:
+        optimization_request = _to_optimization_request(request)
+        return optimization_planner.build_plan(optimization_request).to_dict()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/optimizations")
+async def execute_optimization(request: OptimizationPlanRequest) -> dict[str, Any]:
+    """Execute and persist an optimization job."""
+    try:
+        optimization_request = _to_optimization_request(request)
+        return optimization_service.execute(optimization_request).results_dict()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/optimizations")
+async def list_optimizations() -> list[dict[str, Any]]:
+    """List persisted optimization jobs."""
+    try:
+        return optimization_service.list_optimizations()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/optimizations/{optimization_id}")
+async def get_optimization_manifest(optimization_id: str) -> dict[str, Any]:
+    """Return the persisted manifest for an optimization job."""
+    try:
+        return optimization_service.get_manifest(optimization_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/optimizations/{optimization_id}/results")
+async def get_optimization_results(optimization_id: str) -> dict[str, Any]:
+    """Return the persisted ranked results for an optimization job."""
+    try:
+        return optimization_service.get_results(optimization_id)
     except Exception as exc:
         raise to_http_exception(exc) from exc

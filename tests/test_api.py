@@ -6,8 +6,15 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.models import BacktestRequest
+from src.bitcoin_martingale.application.optimizations import (
+    OptimizationExecutionService,
+    OptimizationPlanningService,
+)
 from src.bitcoin_martingale.application.runs import RunBacktestService
-from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
+from src.bitcoin_martingale.infrastructure.persistence import (
+    LocalOptimizationsRepository,
+    LocalRunsRepository,
+)
 
 client = TestClient(app)
 
@@ -163,3 +170,60 @@ class TestPersistedRunsEndpoint:
         assert run_id in html_response.text
         assert csv_response.status_code == 200
         assert "timestamp,action,price,quantity,layer,pnl" in csv_response.text
+
+
+class TestOptimizationsEndpoint:
+    """Test optimization planning and execution endpoints."""
+
+    def test_plan_optimization_endpoint(self):
+        request_data = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "parameter_space": {
+                "base_bet": {"values": [250.0, 500.0]},
+            },
+        }
+
+        response = client.post("/optimizations/plan", json=request_data)
+
+        assert response.status_code == 200
+        assert response.json()["trial_count"] == 2
+
+    def test_execute_optimization_and_fetch_results(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        optimizations_repository = LocalOptimizationsRepository(base_dir=tmp_path / "optimizations")
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_planner = OptimizationPlanningService()
+        patched_optimization_service = OptimizationExecutionService(
+            run_service=patched_run_service,
+            repository=optimizations_repository,
+        )
+        request_data = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "parameter_space": {
+                "base_bet": {"values": [250.0, 500.0]},
+            },
+            "objective": "total_return",
+        }
+
+        with (
+            patch("src.api.main.service", patched_run_service),
+            patch("src.api.main.optimization_planner", patched_planner),
+            patch("src.api.main.optimization_service", patched_optimization_service),
+        ):
+            execute_response = client.post("/optimizations", json=request_data)
+
+            optimization_id = execute_response.json()["optimization_id"]
+            list_response = client.get("/optimizations")
+            manifest_response = client.get(f"/optimizations/{optimization_id}")
+            results_response = client.get(f"/optimizations/{optimization_id}/results")
+
+        assert execute_response.status_code == 200
+        assert execute_response.json()["completed_trial_count"] == 2
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["optimization_id"] == optimization_id
+        assert manifest_response.status_code == 200
+        assert manifest_response.json()["optimization_id"] == optimization_id
+        assert results_response.status_code == 200
+        assert len(results_response.json()["ranked_results"]) == 2
