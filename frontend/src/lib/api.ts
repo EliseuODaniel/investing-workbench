@@ -3,6 +3,9 @@ import {
   ConfigInfo,
   BacktestRequest,
   BacktestResponse,
+  MonteCarloManifest,
+  MonteCarloRequestPayload,
+  MonteCarloResultsPayload,
   OptimizationManifest,
   OptimizationPlan,
   OptimizationRequestPayload,
@@ -10,6 +13,9 @@ import {
   RunConfigSnapshot,
   RunDataProfile,
   RunSummary,
+  WalkForwardManifest,
+  WalkForwardRequestPayload,
+  WalkForwardResultsPayload,
 } from '../types/api';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8001';
@@ -94,6 +100,56 @@ export const apiClient = {
     optimizationId: string
   ): Promise<OptimizationResultsPayload> => {
     const response = await api.get(`/optimizations/${optimizationId}/results`);
+    return response.data;
+  },
+
+  // Walk-forward operations
+  runWalkForward: async (
+    request: WalkForwardRequestPayload
+  ): Promise<WalkForwardResultsPayload> => {
+    const response = await api.post('/walkforward', request);
+    return response.data;
+  },
+
+  listWalkForwardExecutions: async (): Promise<WalkForwardManifest[]> => {
+    const response = await api.get('/walkforward');
+    return response.data;
+  },
+
+  getWalkForwardManifest: async (walkforwardId: string): Promise<WalkForwardManifest> => {
+    const response = await api.get(`/walkforward/${walkforwardId}`);
+    return response.data;
+  },
+
+  getWalkForwardResults: async (
+    walkforwardId: string
+  ): Promise<WalkForwardResultsPayload> => {
+    const response = await api.get(`/walkforward/${walkforwardId}/results`);
+    return response.data;
+  },
+
+  // Monte Carlo operations
+  runMonteCarlo: async (
+    request: MonteCarloRequestPayload
+  ): Promise<MonteCarloResultsPayload> => {
+    const response = await api.post('/montecarlo', request);
+    return response.data;
+  },
+
+  listMonteCarloExecutions: async (): Promise<MonteCarloManifest[]> => {
+    const response = await api.get('/montecarlo');
+    return response.data;
+  },
+
+  getMonteCarloManifest: async (monteCarloId: string): Promise<MonteCarloManifest> => {
+    const response = await api.get(`/montecarlo/${monteCarloId}`);
+    return response.data;
+  },
+
+  getMonteCarloResults: async (
+    monteCarloId: string
+  ): Promise<MonteCarloResultsPayload> => {
+    const response = await api.get(`/montecarlo/${monteCarloId}/results`);
     return response.data;
   },
 

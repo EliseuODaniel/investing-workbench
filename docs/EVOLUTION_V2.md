@@ -199,6 +199,6 @@ Started in this cycle:
 - frontend optimization workspace started
 
 Remaining backlog:
-- Monte Carlo frontend workspace
 - dataset manager
 - didactic robustness storytelling
+- richer cross-workflow research dashboarding

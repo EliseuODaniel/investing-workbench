@@ -148,6 +148,7 @@ make frontend-build
 - Walk-forward validation is now available with `python -m src walkforward-run --config configs/test.yaml --strategies "Simple Martingale" --train-days 45 --test-days 20 --step-days 20`.
 - Monte Carlo robustness analysis is now available with `python -m src montecarlo-run --config configs/test.yaml --strategies "Simple Martingale" --simulations 250 --method bootstrap`.
 - Persisted Monte Carlo jobs can be inspected with `python -m src montecarlo-list`, `python -m src montecarlo-show --montecarlo-id <id>`, and `python -m src montecarlo-results --montecarlo-id <id>`.
+- The frontend now includes Walk-Forward Lab and Monte Carlo Lab workspaces for executing and reviewing robustness jobs directly from the UI.
 
 ### Option 3: Python API
 

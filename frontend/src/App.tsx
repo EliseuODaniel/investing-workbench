@@ -12,6 +12,8 @@ import VisibilityControls from './components/VisibilityControls';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
 import RunArtifactsPanel from './components/RunArtifactsPanel';
+import WalkForwardWorkspace from './components/WalkForwardWorkspace';
+import MonteCarloWorkspace from './components/MonteCarloWorkspace';
 import OptimizationWorkspace from './components/OptimizationWorkspace';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
@@ -324,6 +326,19 @@ function App() {
 
             <OptimizationWorkspace
               selectedConfigPath={selectedConfig?.path}
+              defaultStrategies={backtestRequest.strategies ?? selectedConfig?.strategies ?? []}
+              onError={setError}
+            />
+
+            <WalkForwardWorkspace
+              selectedConfigPath={selectedConfig?.path}
+              defaultStrategies={backtestRequest.strategies ?? selectedConfig?.strategies ?? []}
+              onError={setError}
+            />
+
+            <MonteCarloWorkspace
+              selectedConfigPath={selectedConfig?.path}
+              currentRunId={backtestResponse?.run_info?.run_id}
               defaultStrategies={backtestRequest.strategies ?? selectedConfig?.strategies ?? []}
               onError={setError}
             />

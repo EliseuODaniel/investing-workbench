@@ -250,3 +250,131 @@ export interface OptimizationResultsPayload {
   ranked_results: OptimizationTrialResult[];
   results: OptimizationTrialResult[];
 }
+
+export interface WalkForwardRequestPayload {
+  config_path: string;
+  strategies?: string[];
+  train_window_days: number;
+  test_window_days: number;
+  step_days: number;
+}
+
+export interface WalkForwardStrategySummary {
+  strategy_name: string;
+  window_count: number;
+  avg_train_total_return: number;
+  avg_test_total_return: number;
+  avg_test_sharpe_ratio: number;
+  worst_test_drawdown: number;
+}
+
+export interface WalkForwardWindowResult {
+  window_id: string;
+  strategy_name: string;
+  train_start: string;
+  train_end: string;
+  test_start: string;
+  test_end: string;
+  train_metrics: Record<string, number>;
+  test_metrics: Record<string, number>;
+}
+
+export interface WalkForwardManifest {
+  walkforward_id: string;
+  created_at: string;
+  config_path: string;
+  strategy_names: string[];
+  train_window_days: number;
+  test_window_days: number;
+  step_days: number;
+  window_count: number;
+  strategy_summaries: WalkForwardStrategySummary[];
+}
+
+export interface WalkForwardResultsPayload {
+  walkforward_id: string;
+  config_path: string;
+  strategy_names: string[];
+  train_window_days: number;
+  test_window_days: number;
+  step_days: number;
+  window_count: number;
+  strategy_summaries: WalkForwardStrategySummary[];
+  results: WalkForwardWindowResult[];
+}
+
+export type MonteCarloMethod = 'bootstrap' | 'shuffle';
+
+export interface MonteCarloRequestPayload {
+  config_path?: string;
+  run_id?: string;
+  strategies?: string[];
+  simulation_count: number;
+  random_seed: number;
+  method: MonteCarloMethod;
+  ruin_threshold_pct: number;
+}
+
+export interface MonteCarloStrategySummary {
+  strategy_name: string;
+  trade_count: number;
+  simulation_count: number;
+  method: MonteCarloMethod;
+  actual_final_equity: number;
+  actual_total_return: number;
+  actual_max_drawdown: number;
+  loss_probability: number;
+  ruin_probability: number;
+  percentile_05_final_equity: number;
+  median_final_equity: number;
+  percentile_95_final_equity: number;
+  percentile_05_total_return: number;
+  median_total_return: number;
+  percentile_95_total_return: number;
+  percentile_05_max_drawdown: number;
+  median_max_drawdown: number;
+  percentile_95_max_drawdown: number;
+  worst_final_equity: number;
+  best_final_equity: number;
+  warnings: string[];
+}
+
+export interface MonteCarloSimulationSummary {
+  simulation_number: number;
+  final_equity: number;
+  total_return: number;
+  max_drawdown: number;
+  min_equity: number;
+}
+
+export interface MonteCarloStrategyResult extends MonteCarloStrategySummary {
+  simulations: MonteCarloSimulationSummary[];
+}
+
+export interface MonteCarloManifest {
+  montecarlo_id: string;
+  created_at: string;
+  config_path?: string | null;
+  source_run_id: string;
+  strategy_names: string[];
+  simulation_count: number;
+  random_seed: number;
+  method: MonteCarloMethod;
+  ruin_threshold_pct: number;
+  warnings: string[];
+  strategy_summaries: MonteCarloStrategySummary[];
+}
+
+export interface MonteCarloResultsPayload {
+  montecarlo_id: string;
+  config_path?: string | null;
+  source_run_id: string;
+  strategy_names: string[];
+  simulation_count: number;
+  random_seed: number;
+  method: MonteCarloMethod;
+  ruin_threshold_pct: number;
+  warnings: string[];
+  strategy_summaries: MonteCarloStrategySummary[];
+  results: MonteCarloStrategyResult[];
+}
