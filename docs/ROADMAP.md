@@ -17,3 +17,7 @@
 ## Phase 4
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
+
+## Evolution V2
+- Active planning and initial implementation started in `docs/EVOLUTION_V2.md`.
+- First delivery target: optimization planning and reproducible trial generation.

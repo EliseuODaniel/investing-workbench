@@ -8,9 +8,12 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+import yaml
 
 from .benchmarks import get_benchmark_data, get_selic_benchmark
+from .bitcoin_martingale.application.optimizations import OptimizationPlanningService
 from .bitcoin_martingale.application.runs import RunBacktestService
+from .bitcoin_martingale.domain.optimizations import OptimizationMode, OptimizationRequest
 from .config import AppConfig, create_default_config, load_strategy
 from .data import get_data
 from .engine import BacktestEngine
@@ -376,6 +379,47 @@ def main():
         help="Optional output file path; defaults to stdout",
     )
 
+    optimize_plan_parser = subparsers.add_parser(
+        "optimize-plan",
+        help="Preview a reproducible optimization trial plan from a JSON or YAML search space",
+    )
+    optimize_plan_parser.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        default="configs/martingale.yaml",
+        help="Configuration file path",
+    )
+    optimize_plan_parser.add_argument(
+        "--strategies",
+        "-s",
+        nargs="+",
+        help="Specific strategies to include in the trial plan",
+    )
+    optimize_plan_parser.add_argument(
+        "--space-file",
+        required=True,
+        help="Path to a JSON or YAML file describing the search space",
+    )
+    optimize_plan_parser.add_argument(
+        "--mode",
+        choices=[mode.value for mode in OptimizationMode],
+        default=OptimizationMode.GRID.value,
+        help="Whether to generate a grid or random trial plan",
+    )
+    optimize_plan_parser.add_argument(
+        "--max-trials",
+        type=int,
+        default=None,
+        help="Optional cap on the number of generated trials",
+    )
+    optimize_plan_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed used for random planning mode",
+    )
+
     args = parser.parse_args()
     service = RunBacktestService()
 
@@ -553,6 +597,38 @@ def main():
                 print(csv_content, end="")
         except Exception as e:
             print(f"Failed to export trades CSV: {e}")
+            sys.exit(1)
+
+    elif args.command == "optimize-plan":
+        try:
+            planner = OptimizationPlanningService()
+            space_path = Path(args.space_file)
+            if not space_path.exists():
+                print(f"Search-space file not found: {space_path}")
+                sys.exit(1)
+
+            raw_space = yaml.safe_load(space_path.read_text(encoding="utf-8")) or {}
+            if not isinstance(raw_space, dict):
+                print("Search-space file must deserialize to a mapping")
+                sys.exit(1)
+
+            global_space = raw_space.get("global", raw_space)
+            strategy_spaces = raw_space.get("strategies", {})
+
+            request = OptimizationRequest(
+                config_path=args.config,
+                strategy_names=args.strategies,
+                parameter_space=global_space,
+                strategy_parameter_spaces=strategy_spaces,
+                mode=OptimizationMode(args.mode),
+                max_trials=args.max_trials,
+                random_seed=args.seed,
+            )
+
+            plan = planner.build_plan(request)
+            print(json.dumps(plan.to_dict(), indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to build optimization plan: {e}")
             sys.exit(1)
 
     else:

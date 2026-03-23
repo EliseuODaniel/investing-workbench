@@ -1,0 +1,14 @@
+global:
+  take_profit:
+    values: [0.10, 0.15, 0.20]
+
+strategies:
+  Simple Martingale:
+    base_bet:
+      values: [250.0, 500.0, 750.0]
+    multiplier:
+      values: [1.5, 2.0, 2.5]
+    max_layers:
+      start: 3
+      stop: 5
+      step: 1

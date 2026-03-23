@@ -14,6 +14,7 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - Repository-level agent guidance lives in `AGENTS.md`.
 - Codex workflows, skills, and review conventions live in `docs/codex_workflows.md`, `docs/code_review.md`, and `.agents/skills/`.
 - Final handoff status and remaining optional backlog live in `docs/FINAL_STATUS.md`.
+- Evolution planning for the next product cycle lives in `docs/EVOLUTION_V2.md`.
 
 ## 🌟 Features
 
@@ -140,6 +141,7 @@ make frontend-build
 - The frontend now lazy-loads heavy analytics panels and vendor bundles, reducing the initial application payload.
 - The frontend dependency stack is hardened, the production build is clean, and `npm audit` is currently at `0 vulnerabilities`.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
+- Optimization planning has now started in the new architecture with `python -m src optimize-plan --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml`.
 
 ### Option 3: Python API
 
