@@ -12,7 +12,10 @@
 
 ## Phase 3
 - Completed: frontend workspace for persisted runs, comparisons, reports, sharing, and exports.
-- Backlog: optimization, walk-forward testing, and richer dataset management.
+- Completed: optimization workspace and persisted optimization jobs.
+- Completed: walk-forward validation and persisted out-of-sample windows.
+- Completed: Monte Carlo robustness analysis with persisted artifacts.
+- Backlog: richer dataset management.
 
 ## Phase 4
 - Backlog: advanced educational and research features.
@@ -20,4 +23,4 @@
 
 ## Evolution V2
 - Active planning and initial implementation started in `docs/EVOLUTION_V2.md`.
-- First delivery target: optimization planning and reproducible trial generation.
+- Current delivery focus: dataset management, didactic layers, and richer research UX.

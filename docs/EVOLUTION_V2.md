@@ -195,7 +195,10 @@ Started in this cycle:
 - optimization execution and persistence started
 - optimization API endpoints started
 - walk-forward validation and persisted out-of-sample windows started
+- Monte Carlo robustness analysis and persisted artifacts started
+- frontend optimization workspace started
 
-Not started yet:
-- robustness lab
-- frontend optimization workspace
+Remaining backlog:
+- Monte Carlo frontend workspace
+- dataset manager
+- didactic robustness storytelling

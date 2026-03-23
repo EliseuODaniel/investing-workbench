@@ -184,3 +184,24 @@ class WalkForwardRequestModel(BaseModel):
     train_window_days: int = Field(default=90, description="Rows per training window")
     test_window_days: int = Field(default=30, description="Rows per test window")
     step_days: int = Field(default=30, description="Rows to advance between windows")
+
+
+class MonteCarloRequestModel(BaseModel):
+    """Request model for Monte Carlo robustness analysis."""
+
+    config_path: Optional[str] = Field(None, description="Path to config file")
+    run_id: Optional[str] = Field(None, description="Existing persisted run to analyze")
+    strategies: Optional[List[str]] = Field(
+        None,
+        description="Strategy names to include in the analysis",
+    )
+    simulation_count: int = Field(default=500, description="Number of Monte Carlo simulations")
+    random_seed: int = Field(default=42, description="Random seed for deterministic sampling")
+    method: str = Field(
+        default="bootstrap",
+        description="Monte Carlo sampling method: bootstrap or shuffle",
+    )
+    ruin_threshold_pct: float = Field(
+        default=0.30,
+        description="Drawdown threshold used to flag ruin probability",
+    )

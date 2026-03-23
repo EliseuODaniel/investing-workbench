@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.models import BacktestRequest
+from src.bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from src.bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
     OptimizationPlanningService,
@@ -13,6 +14,7 @@ from src.bitcoin_martingale.application.optimizations import (
 from src.bitcoin_martingale.application.runs import RunBacktestService
 from src.bitcoin_martingale.application.walkforward import WalkForwardValidationService
 from src.bitcoin_martingale.infrastructure.persistence import (
+    LocalMonteCarloRepository,
     LocalOptimizationsRepository,
     LocalRunsRepository,
     LocalWalkForwardRepository,
@@ -260,3 +262,43 @@ class TestWalkForwardEndpoint:
         assert manifest_response.json()["walkforward_id"] == walkforward_id
         assert results_response.status_code == 200
         assert len(results_response.json()["results"]) > 0
+
+
+class TestMonteCarloEndpoint:
+    """Test Monte Carlo robustness endpoints."""
+
+    def test_execute_montecarlo_and_fetch_results(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        montecarlo_repository = LocalMonteCarloRepository(base_dir=tmp_path / "montecarlo")
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_service = MonteCarloSimulationService(
+            run_service=patched_run_service,
+            repository=montecarlo_repository,
+            runs_repository=runs_repository,
+        )
+        request_data = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "simulation_count": 20,
+            "random_seed": 7,
+        }
+
+        with (
+            patch("src.api.main.service", patched_run_service),
+            patch("src.api.main.montecarlo_service", patched_service),
+        ):
+            execute_response = client.post("/montecarlo", json=request_data)
+            montecarlo_id = execute_response.json()["montecarlo_id"]
+            list_response = client.get("/montecarlo")
+            manifest_response = client.get(f"/montecarlo/{montecarlo_id}")
+            results_response = client.get(f"/montecarlo/{montecarlo_id}/results")
+
+        assert execute_response.status_code == 200
+        assert execute_response.json()["simulation_count"] == 20
+        assert execute_response.json()["source_run_id"].startswith("run_")
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["montecarlo_id"] == montecarlo_id
+        assert manifest_response.status_code == 200
+        assert manifest_response.json()["montecarlo_id"] == montecarlo_id
+        assert results_response.status_code == 200
+        assert len(results_response.json()["results"][0]["simulations"]) == 20

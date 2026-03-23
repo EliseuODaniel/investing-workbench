@@ -5,18 +5,20 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import pandas as pd
 import yaml
 
 from .benchmarks import get_benchmark_data, get_selic_benchmark
+from .bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from .bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
     OptimizationPlanningService,
 )
 from .bitcoin_martingale.application.runs import RunBacktestService
 from .bitcoin_martingale.application.walkforward import WalkForwardValidationService
+from .bitcoin_martingale.domain.montecarlo import MonteCarloMethod, MonteCarloRequest
 from .bitcoin_martingale.domain.optimizations import (
     OptimizationDirection,
     OptimizationMode,
@@ -614,10 +616,89 @@ def main():
         help="Walk-forward id",
     )
 
+    montecarlo_run_parser = subparsers.add_parser(
+        "montecarlo-run",
+        help="Execute persisted Monte Carlo robustness analysis over trade outcomes",
+    )
+    montecarlo_source = montecarlo_run_parser.add_mutually_exclusive_group(required=True)
+    montecarlo_source.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        help="Configuration file path used to generate a fresh persisted run",
+    )
+    montecarlo_source.add_argument(
+        "--run-id",
+        type=str,
+        help="Existing persisted run to analyze",
+    )
+    montecarlo_run_parser.add_argument(
+        "--strategies",
+        "-s",
+        nargs="+",
+        help="Specific strategies to include in the analysis",
+    )
+    montecarlo_run_parser.add_argument(
+        "--simulations",
+        type=int,
+        default=500,
+        help="Number of Monte Carlo simulations to run",
+    )
+    montecarlo_run_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for deterministic sampling",
+    )
+    montecarlo_run_parser.add_argument(
+        "--method",
+        choices=[method.value for method in MonteCarloMethod],
+        default=MonteCarloMethod.BOOTSTRAP.value,
+        help="Sampling method: bootstrap or shuffle",
+    )
+    montecarlo_run_parser.add_argument(
+        "--ruin-threshold-pct",
+        type=float,
+        default=0.30,
+        help="Drawdown threshold used to flag ruin probability",
+    )
+
+    montecarlo_list_parser = subparsers.add_parser(
+        "montecarlo-list",
+        help="List persisted Monte Carlo analyses",
+    )
+    montecarlo_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of analyses to display",
+    )
+
+    montecarlo_show_parser = subparsers.add_parser(
+        "montecarlo-show",
+        help="Show a persisted Monte Carlo manifest",
+    )
+    montecarlo_show_parser.add_argument(
+        "--montecarlo-id",
+        required=True,
+        help="Monte Carlo identifier",
+    )
+
+    montecarlo_results_parser = subparsers.add_parser(
+        "montecarlo-results",
+        help="Show persisted Monte Carlo results",
+    )
+    montecarlo_results_parser.add_argument(
+        "--montecarlo-id",
+        required=True,
+        help="Monte Carlo identifier",
+    )
+
     args = parser.parse_args()
     service = RunBacktestService()
     optimization_service = OptimizationExecutionService()
     walkforward_service = WalkForwardValidationService()
+    montecarlo_service = MonteCarloSimulationService(run_service=service)
 
     if args.command == "run":
         # Load configuration
@@ -749,9 +830,10 @@ def main():
         try:
             runs = service.list_runs()[: args.limit]
             for run in runs:
+                strategy_names = cast(list[object], run.get("strategy_names", []))
                 print(
                     f"{run['run_id']} | {run['created_at']} | "
-                    f"{run['config_path']} | strategies={len(run['strategy_names'])}"
+                    f"{run['config_path']} | strategies={len(strategy_names)}"
                 )
         except Exception as e:
             print(f"Failed to list runs: {e}")
@@ -818,10 +900,13 @@ def main():
         try:
             optimizations = optimization_service.list_optimizations()[: args.limit]
             for optimization in optimizations:
+                strategy_names = cast(list[object], optimization.get("strategy_names", []))
                 print(
                     f"{optimization['optimization_id']} | {optimization['created_at']} | "
                     f"objective={optimization['objective']} | "
-                    f"completed={optimization['completed_trial_count']}/{optimization['trial_count']}"
+                    "completed="
+                    f"{optimization['completed_trial_count']}/{optimization['trial_count']} | "
+                    f"strategies={len(strategy_names)}"
                 )
         except Exception as e:
             print(f"Failed to list optimizations: {e}")
@@ -845,15 +930,15 @@ def main():
 
     elif args.command == "walkforward-run":
         try:
-            request = WalkForwardRequest(
+            walkforward_request = WalkForwardRequest(
                 config_path=args.config,
                 strategy_names=args.strategies,
                 train_window_days=args.train_days,
                 test_window_days=args.test_days,
                 step_days=args.step_days,
             )
-            results = walkforward_service.execute(request)
-            print(json.dumps(results.results_dict(), indent=2, sort_keys=True))
+            walkforward_results = walkforward_service.execute(walkforward_request)
+            print(json.dumps(walkforward_results.results_dict(), indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to execute walk-forward validation: {e}")
             sys.exit(1)
@@ -862,10 +947,11 @@ def main():
         try:
             executions = walkforward_service.list_executions()[: args.limit]
             for execution in executions:
+                strategy_names = cast(list[object], execution.get("strategy_names", []))
                 print(
                     f"{execution['walkforward_id']} | {execution['created_at']} | "
                     f"windows={execution['window_count']} | "
-                    f"strategies={len(execution['strategy_names'])}"
+                    f"strategies={len(strategy_names)}"
                 )
         except Exception as e:
             print(f"Failed to list walk-forward validations: {e}")
@@ -885,6 +971,53 @@ def main():
             print(json.dumps(results, indent=2, sort_keys=True))
         except Exception as e:
             print(f"Failed to load walk-forward results: {e}")
+            sys.exit(1)
+
+    elif args.command == "montecarlo-run":
+        try:
+            montecarlo_request = MonteCarloRequest(
+                config_path=args.config,
+                run_id=args.run_id,
+                strategy_names=args.strategies,
+                simulation_count=args.simulations,
+                random_seed=args.seed,
+                method=MonteCarloMethod(args.method),
+                ruin_threshold_pct=args.ruin_threshold_pct,
+            )
+            montecarlo_results = montecarlo_service.execute(montecarlo_request)
+            print(json.dumps(montecarlo_results.results_dict(), indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to execute Monte Carlo analysis: {e}")
+            sys.exit(1)
+
+    elif args.command == "montecarlo-list":
+        try:
+            executions = montecarlo_service.list_executions()[: args.limit]
+            for execution in executions:
+                strategy_names = cast(list[object], execution.get("strategy_names", []))
+                print(
+                    f"{execution['montecarlo_id']} | {execution['created_at']} | "
+                    f"simulations={execution['simulation_count']} | "
+                    f"strategies={len(strategy_names)}"
+                )
+        except Exception as e:
+            print(f"Failed to list Monte Carlo analyses: {e}")
+            sys.exit(1)
+
+    elif args.command == "montecarlo-show":
+        try:
+            manifest = montecarlo_service.get_manifest(args.montecarlo_id)
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load Monte Carlo manifest: {e}")
+            sys.exit(1)
+
+    elif args.command == "montecarlo-results":
+        try:
+            results = montecarlo_service.get_results(args.montecarlo_id)
+            print(json.dumps(results, indent=2, sort_keys=True))
+        except Exception as e:
+            print(f"Failed to load Monte Carlo results: {e}")
             sys.exit(1)
 
     else:

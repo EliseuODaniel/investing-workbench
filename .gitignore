@@ -18,6 +18,7 @@ frontend/dist/
 /runs/
 /optimizations/
 /walkforward/
+/montecarlo/
 data/*.parquet
 data/*_benchmark.parquet
 

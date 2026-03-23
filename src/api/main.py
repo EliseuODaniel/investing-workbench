@@ -7,12 +7,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from ..bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from ..bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
     OptimizationPlanningService,
 )
 from ..bitcoin_martingale.application.runs import RunBacktestService
 from ..bitcoin_martingale.application.walkforward import WalkForwardValidationService
+from ..bitcoin_martingale.domain.montecarlo import MonteCarloMethod, MonteCarloRequest
 from ..bitcoin_martingale.domain.optimizations import (
     OptimizationDirection,
     OptimizationMode,
@@ -25,6 +27,7 @@ from .models import (
     BacktestRequest,
     BacktestResponse,
     ConfigInfo,
+    MonteCarloRequestModel,
     OptimizationPlanRequest,
     WalkForwardRequestModel,
 )
@@ -35,6 +38,7 @@ service = RunBacktestService()
 optimization_planner = OptimizationPlanningService()
 optimization_service = OptimizationExecutionService(run_service=service)
 walkforward_service = WalkForwardValidationService()
+montecarlo_service = MonteCarloSimulationService(run_service=service)
 
 app = FastAPI(
     title="Bitcoin Martingale Backtest API",
@@ -66,6 +70,19 @@ def _to_walkforward_request(request: WalkForwardRequestModel) -> WalkForwardRequ
         train_window_days=request.train_window_days,
         test_window_days=request.test_window_days,
         step_days=request.step_days,
+    )
+
+
+def _to_montecarlo_request(request: MonteCarloRequestModel) -> MonteCarloRequest:
+    """Convert API payloads into Monte Carlo domain requests."""
+    return MonteCarloRequest(
+        config_path=request.config_path,
+        run_id=request.run_id,
+        strategy_names=request.strategies,
+        simulation_count=request.simulation_count,
+        random_seed=request.random_seed,
+        method=MonteCarloMethod(request.method),
+        ruin_threshold_pct=request.ruin_threshold_pct,
     )
 
 # Add CORS middleware
@@ -278,5 +295,42 @@ async def get_walkforward_results(walkforward_id: str) -> dict[str, Any]:
     """Return the persisted results for a walk-forward validation."""
     try:
         return walkforward_service.get_results(walkforward_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.post("/montecarlo")
+async def execute_montecarlo(request: MonteCarloRequestModel) -> dict[str, Any]:
+    """Execute and persist Monte Carlo robustness analysis."""
+    try:
+        montecarlo_request = _to_montecarlo_request(request)
+        return montecarlo_service.execute(montecarlo_request).results_dict()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/montecarlo")
+async def list_montecarlo_executions() -> list[dict[str, Any]]:
+    """List persisted Monte Carlo analyses."""
+    try:
+        return montecarlo_service.list_executions()
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/montecarlo/{montecarlo_id}")
+async def get_montecarlo_manifest(montecarlo_id: str) -> dict[str, Any]:
+    """Return the persisted manifest for a Monte Carlo analysis."""
+    try:
+        return montecarlo_service.get_manifest(montecarlo_id)
+    except Exception as exc:
+        raise to_http_exception(exc) from exc
+
+
+@app.get("/montecarlo/{montecarlo_id}/results")
+async def get_montecarlo_results(montecarlo_id: str) -> dict[str, Any]:
+    """Return the persisted results for a Monte Carlo analysis."""
+    try:
+        return montecarlo_service.get_results(montecarlo_id)
     except Exception as exc:
         raise to_http_exception(exc) from exc

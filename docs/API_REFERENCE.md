@@ -460,6 +460,42 @@ GET /walkforward/{walkforward_id}/results
 
 Returns all window-level train and test metrics for a persisted walk-forward execution.
 
+### 20. Execute Monte Carlo Robustness Analysis
+
+**Endpoint**
+```
+POST /montecarlo
+```
+
+Executes and persists Monte Carlo robustness analysis using either a fresh config-driven run or an existing `run_id`.
+
+### 21. List Persisted Monte Carlo Analyses
+
+**Endpoint**
+```
+GET /montecarlo
+```
+
+Returns persisted Monte Carlo manifests ordered from newest to oldest.
+
+### 22. Get Persisted Monte Carlo Manifest
+
+**Endpoint**
+```
+GET /montecarlo/{montecarlo_id}
+```
+
+Returns summary metadata, linked source run id, and per-strategy robustness summaries.
+
+### 23. Get Persisted Monte Carlo Results
+
+**Endpoint**
+```
+GET /montecarlo/{montecarlo_id}/results
+```
+
+Returns simulation-level robustness results, percentile summaries, and warning flags.
+
 ## Data Models
 
 ### BacktestRequest
@@ -517,6 +553,20 @@ interface StrategyMetrics {
   avg_trade_pnl: number;      // Average P&L per trade
   volatility: number;         // Annualized volatility
   mar_ratio: number;          // CAGR / Max Drawdown
+}
+```
+
+### MonteCarloRequest
+
+```typescript
+interface MonteCarloRequest {
+  config_path?: string;          // Mutually exclusive with run_id
+  run_id?: string;               // Mutually exclusive with config_path
+  strategies?: string[];
+  simulation_count?: number;     // Default: 500
+  random_seed?: number;          // Default: 42
+  method?: "bootstrap" | "shuffle";
+  ruin_threshold_pct?: number;   // Default: 0.30
 }
 ```
 

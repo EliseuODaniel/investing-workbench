@@ -146,6 +146,8 @@ make frontend-build
 - Persisted optimization jobs can be inspected with `python -m src optimizations-list`, `python -m src optimizations-show --optimization-id <id>`, and `python -m src optimizations-results --optimization-id <id>`.
 - The frontend now includes an Optimization Lab for planning, executing, and reviewing optimization jobs directly from the UI.
 - Walk-forward validation is now available with `python -m src walkforward-run --config configs/test.yaml --strategies "Simple Martingale" --train-days 45 --test-days 20 --step-days 20`.
+- Monte Carlo robustness analysis is now available with `python -m src montecarlo-run --config configs/test.yaml --strategies "Simple Martingale" --simulations 250 --method bootstrap`.
+- Persisted Monte Carlo jobs can be inspected with `python -m src montecarlo-list`, `python -m src montecarlo-show --montecarlo-id <id>`, and `python -m src montecarlo-results --montecarlo-id <id>`.
 
 ### Option 3: Python API
 

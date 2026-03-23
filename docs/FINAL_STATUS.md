@@ -69,8 +69,7 @@ Status at handoff:
 
 ## Known Intentional Limits
 
-- The product does not yet include parameter optimization workflows.
-- Walk-forward, out-of-sample, and Monte Carlo analysis remain future enhancements.
+- Parameter optimization, walk-forward validation, and Monte Carlo robustness now exist as persisted backend workflows.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
@@ -78,7 +77,7 @@ Status at handoff:
 
 If the project continues, the highest-value optional items are:
 - Parameter optimization with Optuna.
-- Walk-forward and out-of-sample testing flows.
-- Monte Carlo robustness analysis.
+- Frontend views for walk-forward and Monte Carlo workflows.
+- Monte Carlo robustness storytelling and warnings inside the UI.
 - A user guide focused on interpreting strategy results.
 - Visual polish and deeper dashboard storytelling.
