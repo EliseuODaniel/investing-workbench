@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const hasPackagePath = (id: string, packageName: string) =>
+  id.includes(`/node_modules/${packageName}/`) ||
+  id.includes(`\\node_modules\\${packageName}\\`)
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -9,26 +13,30 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) {
-            return undefined;
-          }
-
-          if (id.includes('react') || id.includes('scheduler')) {
-            return 'react-vendor';
+            return undefined
           }
 
           if (
-            id.includes('recharts') ||
-            id.includes('plotly') ||
-            id.includes('react-plotly')
+            hasPackagePath(id, 'react') ||
+            hasPackagePath(id, 'react-dom') ||
+            hasPackagePath(id, 'scheduler')
           ) {
-            return 'charts-vendor';
+            return 'react-vendor'
           }
 
-          if (id.includes('html-to-image')) {
-            return 'export-vendor';
+          if (
+            hasPackagePath(id, 'recharts') ||
+            hasPackagePath(id, 'plotly.js') ||
+            hasPackagePath(id, 'react-plotly.js')
+          ) {
+            return 'charts-vendor'
           }
 
-          return 'vendor';
+          if (hasPackagePath(id, 'html-to-image')) {
+            return 'export-vendor'
+          }
+
+          return 'vendor'
         },
       },
     },
