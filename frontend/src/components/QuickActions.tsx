@@ -9,6 +9,7 @@ interface QuickActionsProps {
   onShareResults: () => void;
   onCopySummary: () => void;
   onCopyLink: () => void;
+  onCaptureScreenshot: () => void;
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({
@@ -19,6 +20,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onShareResults,
   onCopySummary,
   onCopyLink,
+  onCaptureScreenshot,
 }) => {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
@@ -133,6 +135,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         </button>
 
         <button
+          onClick={onCaptureScreenshot}
           className="flex items-center justify-center px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium rounded transition-colors"
         >
           <Image className="h-3 w-3 mr-1" />

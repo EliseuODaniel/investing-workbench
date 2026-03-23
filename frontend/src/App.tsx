@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Play, BarChart3, AlertCircle, TrendingUp, List, DollarSign } from 'lucide-react';
 import { apiClient } from './lib/api';
+import { downloadNodeAsPng } from './lib/exportImage';
 import { BacktestResponse } from './types/api';
 import { formatCurrency, formatPercent } from './lib/utils';
 import BacktestForm from './components/BacktestForm';
@@ -48,6 +49,7 @@ function App() {
   const [runConfigSnapshot, setRunConfigSnapshot] = useState<RunConfigSnapshot | null>(null);
   const [runDataProfile, setRunDataProfile] = useState<RunDataProfile | null>(null);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState(false);
+  const exportContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Visibility controls state
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
@@ -176,8 +178,16 @@ function App() {
   };
 
   const downloadPNG = () => {
-    // TODO: Implement chart download functionality
-    console.log('Download PNG not implemented yet');
+    if (!exportContainerRef.current) return;
+
+    const filename = backtestResponse?.run_info?.run_id
+      ? `${backtestResponse.run_info.run_id}_dashboard.png`
+      : 'backtest_dashboard.png';
+
+    downloadNodeAsPng(exportContainerRef.current, filename).catch((err) => {
+      console.error('PNG download failed:', err);
+      setError('Failed to download PNG snapshot');
+    });
   };
 
   const downloadHTML = () => {
@@ -304,7 +314,7 @@ function App() {
 
             {/* Results */}
             {appState === 'success' && backtestResponse && (
-              <div className="space-y-6">
+              <div ref={exportContainerRef} className="space-y-6">
                 {/* Execution Summary Card */}
                 <div className="card bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
                   <div className="flex items-center mb-4">
@@ -496,6 +506,7 @@ function App() {
                   onShareResults={shareResults}
                   onCopySummary={copySummary}
                   onCopyLink={copyRunLink}
+                  onCaptureScreenshot={downloadPNG}
                 />
 
                 {/* Tabs Navigation */}
