@@ -171,3 +171,82 @@ export interface ComparisonRunOverview {
   bestDrawdown: number;
   dataFingerprint: string;
 }
+
+export type OptimizationMode = 'grid' | 'random';
+export type OptimizationDirection = 'maximize' | 'minimize';
+
+export interface OptimizationRequestPayload {
+  config_path: string;
+  strategies?: string[];
+  parameter_space: Record<string, unknown>;
+  strategy_parameter_spaces: Record<string, Record<string, unknown>>;
+  mode: OptimizationMode;
+  max_trials?: number;
+  random_seed: number;
+  objective: string;
+  direction: OptimizationDirection;
+}
+
+export interface OptimizationTrialCandidate {
+  trial_id: string;
+  strategy_name: string;
+  parameters: Record<string, unknown>;
+}
+
+export interface OptimizationPlan {
+  config_path: string;
+  objective: string;
+  direction: OptimizationDirection;
+  mode: OptimizationMode;
+  random_seed: number;
+  strategy_names: string[];
+  trial_count: number;
+  truncated: boolean;
+  warnings: string[];
+  trials: OptimizationTrialCandidate[];
+}
+
+export interface OptimizationManifest {
+  optimization_id: string;
+  created_at: string;
+  config_path: string;
+  objective: string;
+  direction: OptimizationDirection;
+  mode: OptimizationMode;
+  random_seed: number;
+  strategy_names: string[];
+  trial_count: number;
+  completed_trial_count: number;
+  truncated: boolean;
+  warnings: string[];
+  best_trial_id?: string | null;
+  best_run_id?: string | null;
+  best_objective_value?: number | null;
+}
+
+export interface OptimizationTrialResult {
+  trial_id: string;
+  strategy_name: string;
+  parameters: Record<string, unknown>;
+  run_id?: string | null;
+  objective: string;
+  objective_value?: number | null;
+  metrics: Record<string, number | string | null | undefined>;
+  status: 'completed' | 'failed';
+  error?: string | null;
+}
+
+export interface OptimizationResultsPayload {
+  optimization_id: string;
+  objective: string;
+  direction: OptimizationDirection;
+  mode: OptimizationMode;
+  random_seed: number;
+  strategy_names: string[];
+  trial_count: number;
+  completed_trial_count: number;
+  truncated: boolean;
+  warnings: string[];
+  ranked_results: OptimizationTrialResult[];
+  results: OptimizationTrialResult[];
+}

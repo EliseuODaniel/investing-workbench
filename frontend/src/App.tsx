@@ -12,6 +12,7 @@ import VisibilityControls from './components/VisibilityControls';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
 import RunArtifactsPanel from './components/RunArtifactsPanel';
+import OptimizationWorkspace from './components/OptimizationWorkspace';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
@@ -320,6 +321,12 @@ function App() {
                 onClear={clearComparison}
               />
             </Suspense>
+
+            <OptimizationWorkspace
+              selectedConfigPath={selectedConfig?.path}
+              defaultStrategies={backtestRequest.strategies ?? selectedConfig?.strategies ?? []}
+              onError={setError}
+            />
 
             {/* Results */}
             {appState === 'success' && backtestResponse && (

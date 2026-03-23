@@ -3,6 +3,10 @@ import {
   ConfigInfo,
   BacktestRequest,
   BacktestResponse,
+  OptimizationManifest,
+  OptimizationPlan,
+  OptimizationRequestPayload,
+  OptimizationResultsPayload,
   RunConfigSnapshot,
   RunDataProfile,
   RunSummary,
@@ -60,6 +64,36 @@ export const apiClient = {
     const response = await api.get(`/runs/${runId}/report.html`, {
       responseType: 'blob',
     });
+    return response.data;
+  },
+
+  // Optimization operations
+  planOptimization: async (request: OptimizationRequestPayload): Promise<OptimizationPlan> => {
+    const response = await api.post('/optimizations/plan', request);
+    return response.data;
+  },
+
+  runOptimization: async (
+    request: OptimizationRequestPayload
+  ): Promise<OptimizationResultsPayload> => {
+    const response = await api.post('/optimizations', request);
+    return response.data;
+  },
+
+  listOptimizations: async (): Promise<OptimizationManifest[]> => {
+    const response = await api.get('/optimizations');
+    return response.data;
+  },
+
+  getOptimizationManifest: async (optimizationId: string): Promise<OptimizationManifest> => {
+    const response = await api.get(`/optimizations/${optimizationId}`);
+    return response.data;
+  },
+
+  getOptimizationResults: async (
+    optimizationId: string
+  ): Promise<OptimizationResultsPayload> => {
+    const response = await api.get(`/optimizations/${optimizationId}/results`);
     return response.data;
   },
 

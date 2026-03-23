@@ -144,6 +144,7 @@ make frontend-build
 - Optimization planning is available with `python -m src optimize-plan --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml`.
 - Optimization execution is now persisted with `python -m src optimize-run --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml --objective total_return`.
 - Persisted optimization jobs can be inspected with `python -m src optimizations-list`, `python -m src optimizations-show --optimization-id <id>`, and `python -m src optimizations-results --optimization-id <id>`.
+- The frontend now includes an Optimization Lab for planning, executing, and reviewing optimization jobs directly from the UI.
 
 ### Option 3: Python API
 
