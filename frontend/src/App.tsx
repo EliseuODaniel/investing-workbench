@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Play, BarChart3, AlertCircle, TrendingUp, List, DollarSign } from 'lucide-react';
 import { apiClient } from './lib/api';
 import { downloadNodeAsPng } from './lib/exportImage';
@@ -6,22 +6,23 @@ import { BacktestResponse } from './types/api';
 import { formatCurrency, formatPercent } from './lib/utils';
 import BacktestForm from './components/BacktestForm';
 import MetricsCards from './components/MetricsCards';
-import ChartsTabbed from './components/ChartsTabbed';
-import TradesTable from './components/TradesTable';
 import LoadingSpinner from './components/LoadingSpinner';
 import DarkModeToggle from './components/DarkModeToggle';
 import VisibilityControls from './components/VisibilityControls';
-import SelicInfoPanel from './components/SelicInfoPanel';
 import WarningsPanel, { generateWarnings } from './components/WarningsPanel';
 import QuickActions from './components/QuickActions';
 import RunArtifactsPanel from './components/RunArtifactsPanel';
-import RunComparisonPanel from './components/RunComparisonPanel';
 import { useConfigs } from './hooks/useConfigs';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunComparison } from './hooks/useRunComparison';
 import { useRunPermalink } from './hooks/useRunPermalink';
 import RunHistoryPanel from './components/RunHistoryPanel';
 import { RunConfigSnapshot, RunDataProfile } from './types/api';
+
+const ChartsTabbed = lazy(() => import('./components/ChartsTabbed'));
+const TradesTable = lazy(() => import('./components/TradesTable'));
+const SelicInfoPanel = lazy(() => import('./components/SelicInfoPanel'));
+const RunComparisonPanel = lazy(() => import('./components/RunComparisonPanel'));
 
 type AppState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -54,6 +55,12 @@ function App() {
   // Visibility controls state
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibleBenchmarks, setVisibleBenchmarks] = useState<string[]>([]);
+
+  const lazyPanelFallback = (message: string) => (
+    <div className="card">
+      <LoadingSpinner message={message} />
+    </div>
+  );
 
   const hydrateRunArtifacts = useCallback(
     async (runId: string) => {
@@ -306,11 +313,13 @@ function App() {
               <LoadingSpinner message="Running backtest analysis..." />
             )}
 
-            <RunComparisonPanel
-              comparisonRuns={comparisonRuns}
-              isLoading={isLoadingComparison}
-              onClear={clearComparison}
-            />
+            <Suspense fallback={lazyPanelFallback('Loading comparison workspace...')}>
+              <RunComparisonPanel
+                comparisonRuns={comparisonRuns}
+                isLoading={isLoadingComparison}
+                onClear={clearComparison}
+              />
+            </Suspense>
 
             {/* Results */}
             {appState === 'success' && backtestResponse && (
@@ -460,13 +469,17 @@ function App() {
 
                 {/* SELIC Info Panel */}
                 {backtestRequest.apply_cash_yield && (
-                  <SelicInfoPanel
-                    useRealSelic={backtestRequest.use_real_selic}
-                    selicFallbackRate={backtestRequest.selic_fallback_rate}
-                    selicRatesUsed={Object.values(backtestResponse.results)[0]?.metrics?.selic_rates_used}
-                    selicRateAnnual={backtestRequest.selic_fallback_rate}
-                    capital={backtestRequest.initial_capital}
-                  />
+                  <Suspense fallback={lazyPanelFallback('Loading SELIC panel...')}>
+                    <SelicInfoPanel
+                      useRealSelic={backtestRequest.use_real_selic}
+                      selicFallbackRate={backtestRequest.selic_fallback_rate}
+                      selicRatesUsed={
+                        Object.values(backtestResponse.results)[0]?.metrics?.selic_rates_used
+                      }
+                      selicRateAnnual={backtestRequest.selic_fallback_rate}
+                      capital={backtestRequest.initial_capital}
+                    />
+                  </Suspense>
                 )}
 
                 {/* Visibility Controls */}
@@ -545,18 +558,20 @@ function App() {
                       <div className="space-y-6">
                         {/* Metrics Cards */}
                         <MetricsCards
-  results={backtestResponse.results}
-  benchmarks={backtestResponse.benchmarks}
-/>
-
-                        {/* Charts */}
-                        <ChartsTabbed
                           results={backtestResponse.results}
-                          buyHoldEquity={backtestResponse.buy_hold_equity}
-                          visibleStrategies={visibleStrategies}
-                          visibleBenchmarks={visibleBenchmarks}
                           benchmarks={backtestResponse.benchmarks}
                         />
+
+                        {/* Charts */}
+                        <Suspense fallback={lazyPanelFallback('Loading charts...')}>
+                          <ChartsTabbed
+                            results={backtestResponse.results}
+                            buyHoldEquity={backtestResponse.buy_hold_equity}
+                            visibleStrategies={visibleStrategies}
+                            visibleBenchmarks={visibleBenchmarks}
+                            benchmarks={backtestResponse.benchmarks}
+                          />
+                        </Suspense>
                       </div>
                     )}
 
@@ -577,7 +592,9 @@ function App() {
                             </div>
                           </div>
                         </div>
-                        <TradesTable results={backtestResponse.results} />
+                        <Suspense fallback={lazyPanelFallback('Loading trades...')}>
+                          <TradesTable results={backtestResponse.results} />
+                        </Suspense>
                       </div>
                     )}
                   </div>

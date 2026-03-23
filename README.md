@@ -136,6 +136,7 @@ make frontend-build
 - The frontend can now select up to 3 persisted runs and compare their best-performing strategies side by side.
 - Persisted runs can also be shared and reopened directly via `?run=<run_id>` links in the frontend.
 - The frontend now exports the current results workspace as PNG and downloads persisted HTML reports directly.
+- The frontend now lazy-loads heavy analytics panels and vendor bundles, reducing the initial application payload.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
 
 ### Option 3: Python API
