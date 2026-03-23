@@ -1,0 +1,35 @@
+# Test Configuration - Minimum and Fast
+# Perfil mínimo para testes rápidos e CI/CD
+# Período curto, poucas estratégias, sem benchmarks, sem SELIC
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2023-01-01"
+  end_date: "2023-06-30"
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  include_buy_hold_benchmark: false
+  include_selic_benchmark: false
+
+# Apenas 2 estratégias básicas para testes rápidos
+strategies:
+  - name: "Buy & Hold"
+    class_path: "strategies.buy_and_hold.BuyAndHoldStrategy"
+    parameters:
+      initial_capital: 30000.0
+
+  - name: "Simple Martingale"
+    class_path: "strategies.martingale_fixed.MartingaleFixedStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.15
+      max_layers: 5
+
+plotting:
+  save_plots: false
+  show_plots: false
+  plot_format: "png"
+  dpi: 150

@@ -1,0 +1,82 @@
+"""Tests for FastAPI backend."""
+
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+from src.api.main import app
+
+client = TestClient(app)
+
+
+class TestConfigsEndpoint:
+    """Test /configs endpoint."""
+
+    def test_get_configs_success(self):
+        """Test successful config listing."""
+        response = client.get("/configs")
+        assert response.status_code == 200
+
+        configs = response.json()
+        assert isinstance(configs, list)
+
+        if configs:  # If configs exist
+            config = configs[0]
+            assert "name" in config
+            assert "path" in config
+            assert "display_name" in config
+
+    def test_get_configs_no_configs_dir(self):
+        """Test when configs directory doesn't exist."""
+        with patch("pathlib.Path.exists", return_value=False):
+            response = client.get("/configs")
+            assert response.status_code == 404
+            assert "Configs directory not found" in response.json()["detail"]
+
+
+class TestBacktestEndpoint:
+    """Test /backtest endpoint."""
+
+    def test_backtest_invalid_config(self):
+        """Test backtest with invalid config file."""
+        request_data = {"config_path": "nonexistent.yaml"}
+
+        response = client.post("/backtest", json=request_data)
+        assert response.status_code == 404
+        assert "Config file not found" in response.json()["detail"]
+
+    def test_backtest_endpoint_exists(self):
+        """Test that backtest endpoint exists and accepts POST."""
+        # Just test that the endpoint exists and returns expected error format
+        request_data = {"strategies": ["Nonexistent Strategy"]}
+
+        response = client.post("/backtest", json=request_data)
+        # Should return 404 for config not found, or 400 for no strategies, etc.
+        # We just test it doesn't return a routing error
+        assert response.status_code in [400, 404, 500]
+        assert "detail" in response.json()
+
+
+class TestRootEndpoint:
+    """Test root endpoint."""
+
+    def test_root_endpoint(self):
+        """Test root endpoint returns basic info."""
+        response = client.get("/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "message" in data
+        assert "version" in data
+        assert "Bitcoin Martingale Backtest API" in data["message"]
+        assert data["version"] == "1.0.0"
+
+
+class TestCSVDowloadEndpoint:
+    """Test CSV download endpoint."""
+
+    def test_csv_download_endpoint_exists(self):
+        """Test that CSV download endpoint exists."""
+        response = client.get("/reports/test_strategy/download")
+        assert response.status_code == 501
+        assert "detail" in response.json()

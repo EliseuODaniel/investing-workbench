@@ -1,0 +1,86 @@
+# Martingale Strategies Configuration
+# Foco em estratégias Martingale com BTC B&H benchmark e IBOV opcional
+# SELIC benchmark desligado para foco em cripto
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2020-01-01"
+  end_date: null
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  include_buy_hold_benchmark: true
+  include_selic_benchmark: false
+
+  benchmarks:
+    - ticker: "^BVSP"
+      name: "IBOVESPA"
+      enabled: true
+
+# Estratégias Martingale - Buy & Handle removido para evitar duplicação com benchmark
+strategies:
+  - name: "Fixed Martingale"
+    class_path: "strategies.martingale_fixed.MartingaleFixedStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.15
+      max_layers: 10
+
+  - name: "Volatility-Adjusted Martingale"
+    class_path: "strategies.martingale_vol_adj.MartingaleVolatilityStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.08
+      take_profit: 0.18
+      max_layers: 8
+      volatility_period: 20
+      vol_multiplier: 1.0
+      atr_period: 14
+
+  - name: "Trailing TP Martingale"
+    class_path: "strategies.martingale_trailing_tp.MartingaleTrailingTPStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.20
+      max_layers: 8
+      trailing_percent: 0.05
+
+  - name: "ATR-Based Martingale"
+    class_path: "strategies.martingale_atr.MartingaleATRStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.18
+      max_layers: 8
+      atr_period: 14
+      atr_multiplier: 2.0
+      min_drop_step: 0.05
+      max_drop_step: 0.20
+
+  - name: "DCA Hybrid"
+    class_path: "strategies.dca_hybrid.DCAHybridStrategy"
+    parameters:
+      # DCA settings
+      dca_amount: 500.0
+      dca_frequency: "weekly"
+      dca_trigger_threshold: 0.05
+      moving_average_period: 50
+
+      # Martingale settings (mais conservador para hybrid)
+      base_bet: 500.0
+      multiplier: 1.5
+      drop_step: 0.15
+      take_profit: 0.20
+      max_martingale_layers: 3
+
+plotting:
+  save_plots: true
+  show_plots: false
+  plot_format: "png"
+  dpi: 300

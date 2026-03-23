@@ -1,0 +1,113 @@
+# Crypto vs Equities Configuration
+# Comparativo BTC estratégias vs SPY/QQQ/EWZ/IBOV benchmarks
+# Para análise de performance relativa entre cripto e ações
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2020-01-01"
+  end_date: null
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  apply_cash_yield: false
+  use_real_selic: false
+  selic_rate_annual: 0.13
+  selic_fallback_rate: 0.13
+  selic_path: "data/selic.csv"
+  yield_frequency: "monthly"
+  include_buy_hold_benchmark: true
+  include_selic_benchmark: false
+
+  benchmarks:
+    - ticker: "SPY"
+      name: "S&P 500"
+      enabled: true
+    - ticker: "QQQ"
+      name: "NASDAQ 100"
+      enabled: true
+    - ticker: "EWZ"
+      name: "Brazil Small-Cap"
+      enabled: true
+    - ticker: "^BVSP"
+      name: "IBOVESPA"
+      enabled: true
+    - ticker: "ETH-USD"
+      name: "Ethereum"
+      enabled: false
+
+# Estratégias BTC para comparar com mercados de ações - Buy & Hold removido para evitar duplicação
+strategies:
+  - name: "BTC Monthly DCA"
+    class_path: "strategies.dca_simple.SimpleDCAStrategy"
+    parameters:
+      initial_capital: 30000.0
+      dca_amount: 1000.0
+      dca_frequency: "monthly"
+      start_immediately: true
+
+  - name: "BTC Trend Following"
+    class_path: "strategies.trend_ma_cross.TrendMACrossStrategy"
+    parameters:
+      initial_capital: 30000.0
+      short_ma_period: 20
+      long_ma_period: 50
+      position_size_pct: 0.8
+      min_cash_reserve: 2000.0
+
+  - name: "BTC Volatility Martingale"
+    class_path: "strategies.martingale_vol_adj.MartingaleVolatilityStrategy"
+    parameters:
+      base_bet: 600.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.20
+      max_layers: 8
+      volatility_period: 20
+      vol_multiplier: 1.0
+      atr_period: 14
+
+  - name: "BTC Breakout Strategy"
+    class_path: "strategies.breakout.BreakoutStrategy"
+    parameters:
+      initial_capital: 30000.0
+      lookback_period: 20
+      breakout_threshold: 0.02
+      trailing_stop_pct: 0.05
+      position_size_pct: 0.6
+      min_cash_reserve: 3000.0
+      max_positions: 1
+
+  - name: "BTC Mean Reversion"
+    class_path: "strategies.mean_reversion.MeanReversionStrategy"
+    parameters:
+      initial_capital: 30000.0
+      ma_period: 20
+      use_bollinger: true
+      bb_std_dev: 2.0
+      entry_threshold: 0.05
+      profit_target: 0.03
+      position_size_pct: 0.4
+      min_cash_reserve: 3000.0
+      max_positions: 3
+
+  - name: "BTC Hybrid Strategy"
+    class_path: "strategies.dca_hybrid.DCAHybridStrategy"
+    parameters:
+      # DCA settings
+      dca_amount: 800.0
+      dca_frequency: "weekly"
+      dca_trigger_threshold: 0.05
+      moving_average_period: 40
+
+      # Martingale settings
+      base_bet: 500.0
+      multiplier: 1.8
+      drop_step: 0.12
+      take_profit: 0.20
+      max_martingale_layers: 4
+
+plotting:
+  save_plots: true
+  show_plots: false
+  plot_format: "png"
+  dpi: 300

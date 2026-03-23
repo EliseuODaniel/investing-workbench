@@ -1,0 +1,113 @@
+# Balanced Configuration
+# Perfil equilibrado: martingale moderado + MA cross + DCA médio
+# Para usuários que querem meio-termo entre risco e segurança
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2020-01-01"
+  end_date: null
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  apply_cash_yield: false
+  use_real_selic: false
+  selic_rate_annual: 0.13
+  selic_fallback_rate: 0.13
+  selic_path: "data/selic.csv"
+  yield_frequency: "monthly"
+  include_buy_hold_benchmark: true
+  include_selic_benchmark: false
+
+  benchmarks:
+    - ticker: "^BVSP"
+      name: "IBOVESPA"
+      enabled: true
+    - ticker: "SPY"
+      name: "S&P 500"
+      enabled: false
+
+# Estratégias equilibradas para médio prazo
+strategies:
+  - name: "Balanced DCA"
+    class_path: "strategies.dca_simple.SimpleDCAStrategy"
+    parameters:
+      initial_capital: 30000.0
+      dca_amount: 800.0
+      dca_frequency: "weekly"
+      start_immediately: true
+
+  - name: "Medium MA Cross"
+    class_path: "strategies.trend_ma_cross.TrendMACrossStrategy"
+    parameters:
+      initial_capital: 30000.0
+      short_ma_period: 15
+      long_ma_period: 60
+      position_size_pct: 0.7
+      min_cash_reserve: 3000.0
+
+  - name: "Moderate Martingale"
+    class_path: "strategies.martingale_fixed.MartingaleFixedStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 1.8
+      drop_step: 0.12
+      take_profit: 0.18
+      max_layers: 8
+
+  - name: "Balanced Hybrid"
+    class_path: "strategies.dca_hybrid.DCAHybridStrategy"
+    parameters:
+      # DCA settings - médio
+      dca_amount: 600.0
+      dca_frequency: "weekly"
+      dca_trigger_threshold: 0.06
+      moving_average_period: 40
+
+      # Martingale settings - moderado
+      base_bet: 400.0
+      multiplier: 1.6
+      drop_step: 0.12
+      take_profit: 0.20
+      max_martingale_layers: 4
+
+  - name: "Volatility Adjusted"
+    class_path: "strategies.martingale_vol_adj.MartingaleVolatilityStrategy"
+    parameters:
+      base_bet: 500.0
+      multiplier: 2.0
+      drop_step: 0.10
+      take_profit: 0.18
+      max_layers: 8
+      volatility_period: 15
+      vol_multiplier: 1.2
+      atr_period: 12
+
+  - name: "Balanced Breakout"
+    class_path: "strategies.breakout.BreakoutStrategy"
+    parameters:
+      initial_capital: 30000.0
+      lookback_period: 15
+      breakout_threshold: 0.02
+      trailing_stop_pct: 0.06
+      position_size_pct: 0.5
+      min_cash_reserve: 2500.0
+      max_positions: 1
+
+  - name: "Mean Reversion"
+    class_path: "strategies.mean_reversion.MeanReversionStrategy"
+    parameters:
+      initial_capital: 30000.0
+      ma_period: 25
+      use_bollinger: true
+      bb_std_dev: 2.2
+      entry_threshold: 0.06
+      profit_target: 0.03
+      position_size_pct: 0.35
+      min_cash_reserve: 3500.0
+      max_positions: 2
+
+plotting:
+  save_plots: true
+  show_plots: false
+  plot_format: "png"
+  dpi: 300

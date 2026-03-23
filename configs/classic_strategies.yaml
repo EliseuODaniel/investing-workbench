@@ -1,0 +1,110 @@
+# Classic Strategies Configuration
+# Estratégias clássicas: B&H, DCA, MA cross, breakout, mean reversion
+# Benchmarks relevantes: IBOV on, SPY opcional, SELIC opcional (desligado por padrão)
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2020-01-01"
+  end_date: null
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  include_buy_hold_benchmark: true
+  include_selic_benchmark: false
+
+  benchmarks:
+    - ticker: "^BVSP"
+      name: "IBOVESPA"
+      enabled: true
+    - ticker: "SPY"
+      name: "S&P 500"
+      enabled: false
+
+# Estratégias clássicas testadas e comprovadas
+strategies:
+  - name: "Simple DCA"
+    class_path: "strategies.dca_simple.SimpleDCAStrategy"
+    parameters:
+      initial_capital: 30000.0
+      dca_amount: 1000.0
+      dca_frequency: "monthly"
+      start_immediately: true
+
+  - name: "Weekly DCA"
+    class_path: "strategies.dca_simple.SimpleDCAStrategy"
+    parameters:
+      initial_capital: 30000.0
+      dca_amount: 500.0
+      dca_frequency: "weekly"
+      start_immediately: true
+
+  - name: "MA Cross 10/50"
+    class_path: "strategies.trend_ma_cross.TrendMACrossStrategy"
+    parameters:
+      initial_capital: 30000.0
+      short_ma_period: 10
+      long_ma_period: 50
+      position_size_pct: 0.8
+      min_cash_reserve: 2000.0
+
+  - name: "MA Cross 20/100"
+    class_path: "strategies.trend_ma_cross.TrendMACrossStrategy"
+    parameters:
+      initial_capital: 30000.0
+      short_ma_period: 20
+      long_ma_period: 100
+      position_size_pct: 0.7
+      min_cash_reserve: 3000.0
+
+  - name: "Breakout 20d"
+    class_path: "strategies.breakout.BreakoutStrategy"
+    parameters:
+      initial_capital: 30000.0
+      lookback_period: 20
+      breakout_threshold: 0.02
+      trailing_stop_pct: 0.05
+      position_size_pct: 0.6
+      min_cash_reserve: 3000.0
+      max_positions: 1
+
+  - name: "Breakout 50d"
+    class_path: "strategies.breakout.BreakoutStrategy"
+    parameters:
+      initial_capital: 30000.0
+      lookback_period: 50
+      breakout_threshold: 0.03
+      trailing_stop_pct: 0.08
+      position_size_pct: 0.4
+      min_cash_reserve: 4000.0
+      max_positions: 1
+
+  - name: "Mean Reversion BB"
+    class_path: "strategies.mean_reversion.MeanReversionStrategy"
+    parameters:
+      initial_capital: 30000.0
+      ma_period: 20
+      use_bollinger: true
+      bb_std_dev: 2.0
+      entry_threshold: 0.05
+      profit_target: 0.03
+      position_size_pct: 0.4
+      min_cash_reserve: 3000.0
+      max_positions: 3
+
+  - name: "Mean Reversion MA"
+    class_path: "strategies.mean_reversion.MeanReversionStrategy"
+    parameters:
+      initial_capital: 30000.0
+      ma_period: 25
+      use_bollinger: false
+      entry_threshold: 0.06
+      profit_target: 0.04
+      position_size_pct: 0.3
+      min_cash_reserve: 3500.0
+      max_positions: 2
+
+plotting:
+  save_plots: true
+  show_plots: false
+  plot_format: "png"
+  dpi: 300

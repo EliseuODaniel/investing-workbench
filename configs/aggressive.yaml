@@ -1,0 +1,110 @@
+# Aggressive Configuration
+# Mix agressivo: martingale "quente", breakout curto, MA rápido, DCA agressivo
+# Benchmarks agressivos: SPY/QQQ/ETH, SELIC desligado
+
+backtest:
+  initial_capital: 30000.0
+  start_date: "2020-01-01"
+  end_date: null
+  data_source: "BTC-BRL"
+  cache_path: "data/btc_brl.parquet"
+  output_dir: "reports"
+  include_buy_hold_benchmark: true
+  include_selic_benchmark: false
+
+  benchmarks:
+    - ticker: "SPY"
+      name: "S&P 500"
+      enabled: true
+    - ticker: "QQQ"
+      name: "NASDAQ 100"
+      enabled: true
+    - ticker: "ETH-USD"
+      name: "Ethereum"
+      enabled: true
+    - ticker: "^BVSP"
+      name: "IBOVESPA"
+      enabled: false
+
+# Estratégias agressivas com maior risco/retorno
+strategies:
+  - name: "Aggressive Martingale"
+    class_path: "strategies.martingale_fixed.MartingaleFixedStrategy"
+    parameters:
+      base_bet: 800.0
+      multiplier: 2.5
+      drop_step: 0.08
+      take_profit: 0.12
+      max_layers: 12
+
+  - name: "Vol Martingale Hot"
+    class_path: "strategies.martingale_vol_adj.MartingaleVolatilityStrategy"
+    parameters:
+      base_bet: 800.0
+      multiplier: 3.0
+      drop_step: 0.06
+      take_profit: 0.15
+      max_layers: 10
+      volatility_period: 10
+      vol_multiplier: 1.5
+      atr_period: 10
+
+  - name: "Fast Breakout"
+    class_path: "strategies.breakout.BreakoutStrategy"
+    parameters:
+      initial_capital: 30000.0
+      lookback_period: 10
+      breakout_threshold: 0.015
+      trailing_stop_pct: 0.03
+      position_size_pct: 0.9
+      min_cash_reserve: 1000.0
+      max_positions: 2
+
+  - name: "Aggressive DCA"
+    class_path: "strategies.dca_simple.SimpleDCAStrategy"
+    parameters:
+      initial_capital: 30000.0
+      dca_amount: 1500.0
+      dca_frequency: "weekly"
+      start_immediately: true
+
+  - name: "Fast MA Cross"
+    class_path: "strategies.trend_ma_cross.TrendMACrossStrategy"
+    parameters:
+      initial_capital: 30000.0
+      short_ma_period: 5
+      long_ma_period: 20
+      position_size_pct: 1.0
+      min_cash_reserve: 500.0
+
+  - name: "Aggressive Hybrid"
+    class_path: "strategies.dca_hybrid.DCAHybridStrategy"
+    parameters:
+      # DCA settings - agressivo
+      dca_amount: 1000.0
+      dca_frequency: "weekly"
+      dca_trigger_threshold: 0.03
+      moving_average_period: 20
+
+      # Martingale settings - agressivo
+      base_bet: 800.0
+      multiplier: 2.2
+      drop_step: 0.08
+      take_profit: 0.15
+      max_martingale_layers: 5
+
+  - name: "Trailing TP Aggressive"
+    class_path: "strategies.martingale_trailing_tp.MartingaleTrailingTPStrategy"
+    parameters:
+      base_bet: 600.0
+      multiplier: 2.8
+      drop_step: 0.07
+      take_profit: 0.15
+      max_layers: 8
+      trailing_percent: 0.03
+
+plotting:
+  save_plots: true
+  show_plots: false
+  plot_format: "png"
+  dpi: 300
