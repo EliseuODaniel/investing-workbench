@@ -118,6 +118,7 @@ class WalkForwardValidationService:
                 start=config.backtest.start_date,
                 end=config.backtest.end_date,
                 cache_path=config.backtest.cache_path,
+                data_source=config.backtest.data_source,
             )
         for line in stdout_buffer.getvalue().splitlines():
             logger.info("walkforward-market-data: %s", line)

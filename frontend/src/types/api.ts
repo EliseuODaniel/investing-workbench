@@ -5,19 +5,641 @@ export interface ConfigInfo {
   strategies: string[];
 }
 
+export interface SystemArtifactCountsPayload {
+  runs: number;
+  optimizations: number;
+  walkforward: number;
+  montecarlo: number;
+  pairs_backtests: number;
+  research_workspaces: number;
+  allocation_workspaces: number;
+}
+
+export interface BacktestJobCountsPayload {
+  queued: number;
+  running: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface BacktestJobRuntimePayload {
+  execution_mode: 'inline' | 'detached' | string;
+  max_workers: number;
+  active_futures: number;
+}
+
+export interface SystemStatusPayload {
+  status: 'ok' | 'degraded';
+  api_version: string;
+  checked_at: string;
+  config_count: number;
+  dataset_count: number;
+  due_dataset_count: number;
+  artifact_counts: SystemArtifactCountsPayload;
+  job_counts: BacktestJobCountsPayload;
+  job_runtime: BacktestJobRuntimePayload;
+  pairs_job_counts: BacktestJobCountsPayload;
+  pairs_job_runtime: BacktestJobRuntimePayload;
+  latest_run_id?: string | null;
+  latest_backtest_job_id?: string | null;
+  latest_pairs_backtest_job_id?: string | null;
+  latest_pairs_backtest_id?: string | null;
+  latest_research_workspace_id?: string | null;
+  warnings: string[];
+}
+
+export interface PairsUniversePresetPayload {
+  preset_id: string;
+  label: string;
+  description: string;
+  universe_kind: string;
+  history_mode: string;
+  benchmark_tickers: string[];
+  tickers: string[];
+  ticker_count: number;
+}
+
+export interface PairsUniverseResolveRequestPayload {
+  preset_id?: string;
+  tickers?: string[];
+  sector_overrides?: Record<string, string>;
+  as_of_date?: string | null;
+  start_date?: string;
+  end_date?: string | null;
+  force_download?: boolean;
+  min_price?: number;
+  min_median_notional_brl?: number;
+  use_proxy_short_borrow?: boolean;
+  proxy_borrow_base_rate_annual?: number;
+  proxy_borrow_max_rate_annual?: number;
+  proxy_min_short_score?: number;
+  proxy_borrow_vol_floor?: number;
+  proxy_borrow_vol_cap?: number;
+  borrow_snapshot_path?: string | null;
+}
+
+export interface PairsScreenRequestPayload extends PairsUniverseResolveRequestPayload {
+  formation_window?: number;
+  test_window?: number;
+  max_pairs?: number;
+  top_n?: number;
+  min_return_corr?: number;
+  min_level_corr?: number;
+  max_coint_pvalue?: number;
+  min_half_life?: number;
+  max_half_life?: number;
+  min_stability_score?: number;
+  max_structural_break_risk?: number;
+  min_beta_abs?: number;
+  max_beta_abs?: number;
+  require_cointegration?: boolean;
+}
+
+export interface PairsScenarioVariantPayload {
+  scenario_id: string;
+  label: string;
+  require_cointegration?: boolean;
+  overrides?: Record<string, unknown>;
+}
+
+export interface PairsBacktestRequestPayload extends PairsScreenRequestPayload {
+  step_window?: number;
+  entry_zscore?: number;
+  exit_zscore?: number;
+  stop_zscore?: number;
+  max_holding_days?: number;
+  pair_allocation_pct?: number;
+  initial_capital?: number;
+  zscore_window?: number;
+  fee_rate?: number;
+  slippage?: number;
+  short_borrow_rate_annual?: number;
+  apply_cash_yield?: boolean;
+  use_real_selic?: boolean;
+  selic_path?: string;
+  selic_fallback_rate?: number;
+  cash_collateral_ratio?: number;
+  explicit_margin_model?: boolean;
+  short_margin_haircut?: number;
+  dynamic_beta?: boolean;
+  rolling_beta_window?: number;
+  regime_filter?: string;
+  regime_ma_window?: number;
+  regime_max_deviation?: number;
+  regime_vol_window?: number;
+  regime_vol_lookback?: number;
+  regime_vol_quantile?: number;
+  portfolio_construction?: string;
+  target_pair_volatility_annual?: number;
+  max_gross_exposure_pct?: number;
+  max_net_exposure_pct?: number;
+  max_sector_pairs?: number;
+  benchmark_ids?: string[];
+  scenario_label?: string;
+  scenario_id?: string;
+}
+
+export interface PairsBatchRequestPayload extends PairsBacktestRequestPayload {
+  scenario_variants?: PairsScenarioVariantPayload[];
+}
+
+export interface PairsUniverseResolvedPresetPayload {
+  preset_id?: string;
+  label?: string;
+  description?: string;
+  source_kind?: string;
+  source_url?: string;
+  validity_label?: string;
+  cache_status?: string;
+  requested_as_of_date?: string;
+  resolved_as_of_date?: string;
+  ticker_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsQualityReportPayload {
+  requested_ticker_count?: number;
+  loaded_ticker_count?: number;
+  eligible_ticker_count?: number;
+  unavailable_ticker_count?: number;
+  common_index_days?: number;
+  borrow_override_count?: number;
+  borrow_snapshot_path?: string | null;
+  borrow_snapshot_managed_path?: string | null;
+  borrow_snapshot_dataset_id?: string | null;
+  issue_counts?: Record<string, number>;
+  unavailable_tickers?: Record<string, string>;
+  coverage_quality_score?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsUniverseAssetPayload {
+  ticker: string;
+  sector_group?: string;
+  eligibility_status?: string;
+  eligibility_reasons?: string[];
+  median_notional_brl?: number;
+  borrow_source?: string | null;
+  borrow_proxy_rate_annual?: number | null;
+  margin_haircut?: number | null;
+  short_eligible?: boolean | null;
+  [key: string]: unknown;
+}
+
+export interface PairsScreeningWindowPayload {
+  formation_start?: string;
+  formation_end?: string;
+  trade_start?: string;
+  trade_end?: string;
+  formation_days?: number;
+  test_days?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsScreenCriteriaPayload {
+  require_cointegration?: boolean;
+  top_n?: number;
+  max_pairs?: number;
+  max_coint_pvalue?: number;
+  min_return_corr?: number;
+  min_half_life?: number;
+  max_half_life?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsScreenSummaryPayload {
+  requested_ticker_count?: number;
+  loaded_ticker_count?: number;
+  eligible_ticker_count?: number;
+  candidate_pair_count?: number;
+  selected_pair_count?: number;
+  rejected_pair_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsCandidatePairStabilityPayload {
+  window_count?: number;
+  pass_count?: number;
+  pass_rate?: number;
+  mean_coint_pvalue?: number | null;
+  beta_dispersion?: number | null;
+  half_life_dispersion?: number | null;
+  return_corr_dispersion?: number | null;
+  structural_break_risk?: number;
+  stability_score?: number;
+  stability_band?: string;
+  [key: string]: unknown;
+}
+
+export interface PairsCandidateRankingComponentsPayload {
+  coint_score?: number;
+  return_corr_score?: number;
+  level_corr_score?: number;
+  stability_score?: number;
+  beta_quality?: number;
+  structural_break_penalty?: number;
+  ranking_score?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsCandidatePairPayload {
+  pair_label: string;
+  y_ticker?: string;
+  x_ticker?: string;
+  sector_group?: string;
+  coint_pvalue?: number;
+  adf_pvalue?: number;
+  half_life?: number;
+  return_corr?: number;
+  level_corr?: number;
+  beta?: number;
+  ranking_score?: number;
+  segment_id?: string;
+  segment_start_date?: string;
+  segment_end_date?: string;
+  resolved_as_of_date?: string;
+  stability?: PairsCandidatePairStabilityPayload;
+  ranking_components?: PairsCandidateRankingComponentsPayload;
+  rejection_reasons?: string[];
+  [key: string]: unknown;
+}
+
+export interface PairsBenchmarkCurvePointPayload {
+  date: string;
+  equity: number;
+  [key: string]: unknown;
+}
+
+export interface PairsBenchmarkPayload {
+  benchmark_id: string;
+  label: string;
+  equity_curve: PairsBenchmarkCurvePointPayload[];
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioMetricsPayload {
+  return_total?: number;
+  cagr?: number;
+  volatility?: number;
+  sharpe?: number;
+  sortino?: number;
+  max_drawdown?: number;
+  final_equity?: number;
+  trade_count?: number;
+  win_rate?: number;
+  profit_factor?: number;
+  avg_trade_pnl?: number;
+  avg_gross_exposure_pct?: number;
+  turnover?: number;
+  short_borrow_cost_total?: number;
+  fees_total?: number;
+  slippage_total?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioQualitySummaryPayload {
+  regime_blocked_entries?: number;
+  portfolio_cap_blocked_entries?: number;
+  sector_cap_blocked_entries?: number;
+  cash_yield_total?: number;
+  first_trade_date?: string;
+  selected_pair_count?: number;
+  trade_count?: number;
+  reconstitution_segment_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsBorrowSourceMixPayload {
+  short_borrow_source?: string;
+  trade_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsSectorMixPayload {
+  sector_group?: string;
+  selection_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioPortfolioSummaryPayload {
+  construction?: string;
+  target_pair_volatility_annual?: number;
+  max_sector_pairs?: number;
+  max_gross_exposure_pct?: number;
+  max_net_exposure_pct?: number;
+  gross_exposure_peak?: number;
+  gross_exposure_average?: number;
+  net_exposure_abs_average?: number;
+  open_positions_peak?: number;
+  unique_pairs_traded?: number;
+  unique_assets_used?: number;
+  allocation_pct_average?: number;
+  allocation_pct_max?: number;
+  top_pair_concentration_pct?: number;
+  sector_mix?: PairsSectorMixPayload[];
+  borrow_source_mix?: PairsBorrowSourceMixPayload[];
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioTradeAuditPayload {
+  pair_label?: string;
+  long_ticker?: string;
+  short_ticker?: string;
+  entry_date?: string;
+  exit_date?: string;
+  exit_reason?: string;
+  beta?: number;
+  z_entry?: number;
+  z_exit?: number;
+  long_notional?: number;
+  short_notional?: number;
+  gross_pnl?: number;
+  net_pnl?: number;
+  short_borrow_cost?: number;
+  fees_paid?: number;
+  slippage_cost?: number;
+  holding_days?: number;
+  short_borrow_source?: string;
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioSelectionPayload {
+  pair_label?: string;
+  y_ticker?: string;
+  x_ticker?: string;
+  sector_group?: string;
+  trade_start?: string;
+  trade_end?: string;
+  return_corr?: number;
+  level_corr?: number;
+  coint_pvalue?: number;
+  adf_pvalue?: number;
+  beta?: number;
+  half_life?: number;
+  stability_score?: number;
+  structural_break_risk?: number;
+  ranking_score?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsPairPnlPayload {
+  pair_label?: string;
+  net_pnl?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsPairSummaryPayload {
+  pair_label?: string;
+  selection_count?: number;
+  avg_return_corr?: number;
+  avg_coint_pvalue?: number;
+  avg_beta?: number;
+  avg_half_life?: number;
+  rationale?: string;
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioAlphaBenchmarkPayload {
+  benchmark_id: string;
+  label: string;
+  final_equity: number;
+  equity_gap: number;
+  return_total: number;
+  excess_return_total: number;
+}
+
+export interface PairsScenarioAlphaDecompositionPayload {
+  initial_capital?: number;
+  final_equity?: number;
+  total_pnl?: number;
+  trade_gross_pnl_total?: number;
+  trade_net_pnl_total?: number;
+  dividend_pnl_total?: number;
+  cash_yield_total?: number;
+  short_borrow_cost_total?: number;
+  fees_total?: number;
+  slippage_total?: number;
+  explained_pnl_total?: number;
+  residual_pnl_total?: number;
+  trade_return_total?: number;
+  cash_return_total?: number;
+  trade_share_of_total_pnl?: number;
+  cash_share_of_total_pnl?: number;
+  primary_benchmark_id?: string | null;
+  primary_benchmark_equity_gap?: number | null;
+  primary_benchmark_excess_return?: number | null;
+  benchmark_comparison?: PairsScenarioAlphaBenchmarkPayload[];
+  [key: string]: unknown;
+}
+
+export interface PairsScenarioPayload {
+  scenario_id: string;
+  label: string;
+  require_cointegration?: boolean;
+  metrics: PairsScenarioMetricsPayload;
+  alpha_decomposition?: PairsScenarioAlphaDecompositionPayload;
+  portfolio_summary: PairsScenarioPortfolioSummaryPayload;
+  quality_summary: PairsScenarioQualitySummaryPayload;
+  equity_curve?: Record<string, unknown>[];
+  trades?: PairsScenarioTradeAuditPayload[];
+  selected_pairs?: PairsScenarioSelectionPayload[];
+  pair_summary?: PairsPairSummaryPayload[];
+  pair_pnl?: PairsPairPnlPayload[];
+  top_candidate_pairs?: PairsCandidatePairPayload[];
+  segments?: Record<string, unknown>[];
+  reconstitution_enabled?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PairsRobustnessRankingPayload {
+  scenario_id?: string;
+  label?: string;
+  return_total?: number;
+  sharpe?: number;
+  max_drawdown?: number;
+  trade_count?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsRobustnessDispersionPayload {
+  return_total_range?: number;
+  sharpe_range?: number;
+  max_drawdown_range?: number;
+  [key: string]: unknown;
+}
+
+export interface PairsRobustnessReportPayload {
+  rankings: PairsRobustnessRankingPayload[];
+  dispersion: PairsRobustnessDispersionPayload;
+  [key: string]: unknown;
+}
+
+export interface PairsReconstitutionSegmentPayload {
+  segment_id: string;
+  start_date: string;
+  end_date: string;
+  requested_as_of_date?: string;
+  resolved_as_of_date?: string;
+  requested_tickers?: string[];
+  eligible_tickers?: string[];
+  quality_report?: PairsQualityReportPayload;
+  [key: string]: unknown;
+}
+
+export interface PairsResultUniversePayload {
+  reconstitution_plan?: PairsReconstitutionSegmentPayload[];
+  quality_report?: PairsQualityReportPayload;
+  [key: string]: unknown;
+}
+
+export interface PairsUniversePayload {
+  preset?: PairsUniverseResolvedPresetPayload | null;
+  requested_tickers: string[];
+  as_of_date?: string | null;
+  resolved_as_of_date?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  common_index_start?: string | null;
+  common_index_end?: string | null;
+  common_index_days: number;
+  quality_report: PairsQualityReportPayload;
+  assets: PairsUniverseAssetPayload[];
+  eligible_assets: PairsUniverseAssetPayload[];
+  unavailable_tickers: Record<string, string>;
+  warnings: string[];
+}
+
+export interface PairsScreenPayload {
+  preset?: PairsUniverseResolvedPresetPayload | null;
+  requested_tickers: string[];
+  resolved_as_of_date?: string | null;
+  screening_window: PairsScreeningWindowPayload;
+  criteria: PairsScreenCriteriaPayload;
+  summary: PairsScreenSummaryPayload;
+  quality_report: PairsQualityReportPayload;
+  selected_pairs: PairsCandidatePairPayload[];
+  candidate_pairs: PairsCandidatePairPayload[];
+  rejected_pairs: PairsCandidatePairPayload[];
+  rejection_summary: Record<string, number>;
+  warnings: string[];
+}
+
+export interface PairsBacktestManifestPayload {
+  pairs_backtest_id: string;
+  created_at: string;
+  preset_id: string;
+  preset_label: string;
+  universe_as_of_date?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  requested_tickers: string[];
+  available_tickers: string[];
+  eligible_tickers: string[];
+  scenario_count: number;
+  batch_mode: boolean;
+  benchmark_ids: string[];
+  candidate_pair_count: number;
+  reconstitution_segment_count: number;
+  warnings: string[];
+}
+
+export interface PairsBacktestResultsPayload {
+  pairs_backtest_id: string;
+  created_at: string;
+  manifest: PairsBacktestManifestPayload | Record<string, unknown>;
+  preset?: PairsUniverseResolvedPresetPayload | null;
+  universe: PairsResultUniversePayload;
+  candidate_pairs: PairsCandidatePairPayload[];
+  benchmarks: PairsBenchmarkPayload[];
+  scenarios: PairsScenarioPayload[];
+  robustness_report: PairsRobustnessReportPayload;
+  warnings: string[];
+}
+
+export interface PairsBacktestJobPayload {
+  job_id: string;
+  job_type: 'pairs_backtest';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | string;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  attempt_count: number;
+  cancel_requested: boolean;
+  request_payload: Record<string, unknown>;
+  batch_mode: boolean;
+  preset_id?: string | null;
+  requested_tickers: string[];
+  progress: BacktestJobProgressPayload;
+  worker_id?: string | null;
+  pairs_backtest_id?: string | null;
+  result_available: boolean;
+  error?: string | null;
+  events: BacktestJobEventPayload[];
+}
+
+export interface BacktestJobProgressPayload {
+  phase: string;
+  message: string;
+  percent: number;
+  updated_at: string;
+  current_step?: number | null;
+  total_steps?: number | null;
+}
+
+export interface BacktestJobEventPayload {
+  timestamp: string;
+  level: string;
+  phase: string;
+  message: string;
+  percent?: number | null;
+}
+
+export interface BacktestJobPayload {
+  job_id: string;
+  job_type: 'backtest';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  attempt_count: number;
+  cancel_requested: boolean;
+  request_payload: Record<string, unknown>;
+  config_path?: string | null;
+  strategy_names: string[];
+  progress: BacktestJobProgressPayload;
+  worker_id?: string | null;
+  run_id?: string | null;
+  result_available: boolean;
+  error?: string | null;
+  events: BacktestJobEventPayload[];
+}
+
 export interface Trade {
   timestamp: string;
   action: 'BUY' | 'SELL';
   price: number;
   quantity: number;
+  cost?: number | null;
   pnl?: number | null;
-  layer: number;
+  layer?: number | null;
+  requested_quantity?: number | null;
+  fill_ratio?: number | null;
 }
 
 export interface EquityPoint {
   timestamp: string;
   equity: number;
   cash: number;
+}
+
+export interface SelicRateUsage {
+  period?: string;
+  year?: number;
+  month?: number;
+  rate: number;
 }
 
 export interface StrategyMetrics {
@@ -32,11 +654,34 @@ export interface StrategyMetrics {
   avg_trade_pnl: number;
   volatility: number;
   total_interest_earned: number;
-  selic_rates_used?: Array<{
-    year: number;
-    month: number;
-    rate: number;
-  }>;
+  total_fees_paid?: number;
+  total_dividends_received?: number;
+  selic_rates_used?: SelicRateUsage[];
+}
+
+export interface ExecutionEvent {
+  timestamp: string;
+  event_type: string;
+  side: string;
+  requested_quantity: number;
+  filled_quantity: number;
+  fill_ratio: number;
+  requested_price: number;
+  fill_price?: number | null;
+  fees: number;
+  slippage: number;
+  message: string;
+}
+
+export interface ExecutionSummary {
+  fill_count: number;
+  partial_fill_count: number;
+  rejected_buy_count: number;
+  rejected_sell_count: number;
+  rejected_order_count: number;
+  liquidity_constrained: boolean;
+  requested_quantity_total: number;
+  filled_quantity_total: number;
 }
 
 export interface StrategyResult {
@@ -46,6 +691,9 @@ export interface StrategyResult {
   metrics: StrategyMetrics;
   start_price: number;
   end_price: number;
+  execution_log?: ExecutionEvent[];
+  execution_summary?: ExecutionSummary;
+  warnings?: string[];
 }
 
 export interface BenchmarkResult {
@@ -74,10 +722,63 @@ export interface BacktestRequest {
   use_real_selic?: boolean;
   selic_path?: string;
   selic_fallback_rate?: number;
+  fee_rate?: number;
+  fixed_fee?: number;
+  buy_slippage?: number;
+  sell_slippage?: number;
+  max_volume_participation?: number;
+  allow_partial_fills?: boolean;
+  min_fill_quantity?: number;
   // Benchmark fields
   benchmarks?: string[];
   include_selic_benchmark?: boolean;
   include_buy_hold_benchmark?: boolean;
+}
+
+export interface Wege3RegraARunRequestPayload {
+  start_date?: string;
+  end_date?: string | null;
+  force_download?: boolean;
+}
+
+export interface Wege3RegraATradePayload {
+  timestamp: string;
+  action: string;
+  price: number;
+  notional: number;
+  quantity: number;
+  cash_after: number;
+  position_after: number;
+  reference_after: number;
+}
+
+export interface Wege3RegraAArtifactsPayload {
+  summary_output_path: string;
+  trades_output_path: string;
+  comparison_output_path?: string | null;
+  comparison_trades_output_path?: string | null;
+  search_output_path?: string | null;
+}
+
+export interface Wege3RegraAScenarioPayload {
+  scenario_id: string;
+  scenario_label: string;
+  generated_at: string;
+  request: Record<string, unknown>;
+  assumptions: Record<string, unknown>;
+  dataset: Record<string, unknown>;
+  result: Record<string, unknown>;
+  statistics: Record<string, unknown>;
+  benchmarks: Record<string, Record<string, unknown>>;
+  audit: Record<string, unknown>;
+  comparison_variants: Array<Record<string, unknown>>;
+  best_strategy: Record<string, unknown>;
+  parameter_search: Record<string, unknown>;
+  strategy_context: Record<string, unknown>;
+  comparison_chart: Record<string, unknown>;
+  trades: Wege3RegraATradePayload[];
+  artifacts: Wege3RegraAArtifactsPayload;
+  reproduction_command: string;
 }
 
 export interface BacktestResponse {
@@ -100,6 +801,7 @@ export interface BacktestResponse {
     initial_price: number;
     final_price: number;
   };
+  warnings?: string[];
 }
 
 export interface BenchmarkConfigSnapshot {
@@ -154,6 +856,200 @@ export interface RunSummary {
   config_snapshot_path: string;
   data_profile_path: string;
   data_fingerprint: string;
+}
+
+export interface ExperimentLineagePayload {
+  source_run_id?: string;
+  best_run_id?: string;
+  parent_optimization_id?: string;
+}
+
+export interface ExperimentRegistryRecord {
+  experiment_id: string;
+  experiment_type: 'run' | 'optimization' | 'walkforward' | 'montecarlo' | 'pairs_backtest';
+  created_at: string;
+  config_path?: string | null;
+  strategy_names: string[];
+  artifact_dir: string;
+  status: string;
+  lineage: ExperimentLineagePayload;
+  summary: Record<string, unknown>;
+}
+
+export interface ExperimentDetailPayload {
+  record: ExperimentRegistryRecord;
+  manifest: Record<string, unknown>;
+  related_experiments: ExperimentRelationPayload[];
+}
+
+export interface ExperimentRelationPayload {
+  relationship:
+    | 'best_run'
+    | 'source_run'
+    | 'parent_optimization'
+    | 'best_run_for_optimization'
+    | 'source_run_for_montecarlo'
+    | 'child_of_optimization';
+  record: ExperimentRegistryRecord;
+}
+
+export interface ResearchWorkspaceSelectionPayload {
+  optimization_id?: string | null;
+  walkforward_id?: string | null;
+  montecarlo_id?: string | null;
+  anchor_run_id?: string | null;
+}
+
+export interface ResearchWorkspacePayload {
+  workspace_id: string;
+  created_at: string;
+  name: string;
+  notes?: string | null;
+  selected_experiment: {
+    experiment_type: ExperimentRegistryRecord['experiment_type'];
+    experiment_id: string;
+  };
+  selection: ResearchWorkspaceSelectionPayload;
+  records: {
+    selected: ExperimentRegistryRecord;
+    optimization?: ExperimentRegistryRecord | null;
+    walkforward?: ExperimentRegistryRecord | null;
+    montecarlo?: ExperimentRegistryRecord | null;
+    anchor_run?: ExperimentRegistryRecord | null;
+  };
+}
+
+export interface ResearchWorkspaceReportPayload {
+  title: string;
+  executive_summary: string;
+  highlights: string[];
+  risks: string[];
+  key_metrics: Array<{
+    label: string;
+    value: string;
+  }>;
+  markdown: string;
+  html: string;
+}
+
+export interface ResearchWorkspaceReportEnvelope {
+  workspace: ResearchWorkspacePayload;
+  report: ResearchWorkspaceReportPayload;
+}
+
+export interface ResearchWorkspaceCreatePayload {
+  name?: string;
+  notes?: string;
+  selected_experiment_type: ExperimentRegistryRecord['experiment_type'];
+  selected_experiment_id: string;
+  optimization_id?: string | null;
+  walkforward_id?: string | null;
+  montecarlo_id?: string | null;
+  anchor_run_id?: string | null;
+}
+
+export interface ResearchWorkspaceUpdatePayload {
+  name?: string;
+  notes?: string;
+}
+
+export interface ResearchWorkspaceImportPayload {
+  payload: ResearchWorkspacePayload;
+}
+
+export interface AllocationHoldingPayload {
+  asset: string;
+  quantity: number;
+}
+
+export interface AllocationTargetPayload {
+  asset: string;
+  target_weight: number;
+}
+
+export interface AllocationPlanRequestPayload {
+  cash: number;
+  holdings: AllocationHoldingPayload[];
+  prices: Record<string, number>;
+  targets: AllocationTargetPayload[];
+  weight_tolerance?: number;
+  min_trade_notional?: number;
+  reserve_cash?: number;
+}
+
+export interface AllocationActionPayload {
+  asset: string;
+  action: "buy" | "sell" | "hold";
+  price: number;
+  current_quantity: number;
+  current_value: number;
+  current_weight: number;
+  target_quantity: number;
+  target_value: number;
+  target_weight: number;
+  quantity_delta: number;
+  notional_delta: number;
+  drift_weight: number;
+  projected_quantity: number;
+  reason: string;
+}
+
+export interface AllocationPlanResponsePayload {
+  total_equity: number;
+  current_cash: number;
+  target_cash: number;
+  projected_cash: number;
+  current_cash_weight: number;
+  target_cash_weight: number;
+  turnover_notional: number;
+  turnover_ratio: number;
+  cash_gap_to_target: number;
+  max_abs_drift_weight: number;
+  needs_rebalance: boolean;
+  actions: AllocationActionPayload[];
+  warnings: string[];
+}
+
+export interface AllocationWorkspaceSummaryPayload {
+  asset_count: number;
+  assets: string[];
+  buy_count: number;
+  sell_count: number;
+  hold_count: number;
+  needs_rebalance: boolean;
+  turnover_ratio: number;
+  turnover_notional: number;
+  total_equity: number;
+  current_cash_weight: number;
+  target_cash_weight: number;
+  projected_cash: number;
+  reserve_cash: number;
+  max_abs_drift_weight: number;
+}
+
+export interface AllocationWorkspacePayload {
+  workspace_id: string;
+  created_at: string;
+  name: string;
+  notes?: string | null;
+  request: AllocationPlanRequestPayload;
+  plan: AllocationPlanResponsePayload;
+  summary: AllocationWorkspaceSummaryPayload;
+}
+
+export interface AllocationWorkspaceCreatePayload {
+  name?: string;
+  notes?: string;
+  request: AllocationPlanRequestPayload;
+}
+
+export interface AllocationWorkspaceUpdatePayload {
+  name?: string;
+  notes?: string;
+}
+
+export interface AllocationWorkspaceImportPayload {
+  payload: AllocationWorkspacePayload;
 }
 
 export interface ComparisonRun {

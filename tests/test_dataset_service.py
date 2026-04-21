@@ -84,6 +84,27 @@ def test_imported_dataset_persists_metadata_between_reads(tmp_path: Path) -> Non
     assert fetched["provenance"]["source_path"] == str(source_path.resolve())
 
 
+def test_pairs_borrow_snapshot_registration_is_cataloged(tmp_path: Path) -> None:
+    source_path = tmp_path / "borrow_snapshot.csv"
+    pd.DataFrame(
+        {
+            "ticker": ["PETR4", "VALE3"],
+            "borrow_rate_annual": [0.07, 0.05],
+            "short_eligible": [True, True],
+            "margin_haircut": [0.45, 0.40],
+        }
+    ).to_csv(source_path, index=False)
+
+    service = DatasetCatalogService(data_dir=tmp_path / "data")
+    detail = service.register_pairs_borrow_snapshot(source_path=str(source_path))
+    datasets = service.list_datasets()
+
+    assert detail["category"] == "borrow"
+    assert detail["provenance"]["source_kind"] == "pairs_borrow_snapshot"
+    assert detail["provenance"]["source_path"] == str(source_path.resolve())
+    assert any(item["dataset_id"] == detail["dataset_id"] for item in datasets)
+
+
 def test_supported_dataset_can_store_refresh_policy(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
     data_dir.mkdir(parents=True)

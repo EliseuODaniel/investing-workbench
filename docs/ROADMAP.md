@@ -15,7 +15,7 @@
 - Completed: optimization workspace and persisted optimization jobs.
 - Completed: walk-forward validation and persisted out-of-sample windows.
 - Completed: Monte Carlo robustness analysis with persisted artifacts.
-- Backlog: richer dataset management.
+- Completed: richer dataset management foundation.
 
 ## Phase 4
 - Completed: dataset catalog and dataset manager slice across API, CLI, and frontend.
@@ -25,6 +25,7 @@
 - Backlog: advanced educational and research features.
 - Backlog: deeper explainability, benchmarking, and operational robustness.
 
-## Evolution V2
-- Active planning and initial implementation started in `docs/EVOLUTION_V2.md`.
-- Current delivery focus: didactic layers, richer research UX, and optional background automation.
+## Next Cycle
+- The active execution reference is `docs/MASTER_PLAN.md`.
+- `docs/EVOLUTION_V2.md` remains useful as historical planning context for the V2 delivery wave.
+- Current delivery focus: architecture consolidation, experiment lineage, richer research UX, and optional background automation.

@@ -95,7 +95,116 @@ curl -X GET "http://localhost:8001/configs" \
      -H "Content-Type: application/json"
 ```
 
-### 1A. List Local Datasets
+### 1A. Get System Status
+
+**Endpoint**
+```
+GET /system/status
+```
+
+Returns a lightweight operational snapshot for the local platform, including discovered configs,
+managed datasets, persisted artifact counts, and any top-level warnings that should be reviewed
+before using the workspace.
+
+**Response Highlights**
+
+- `status`: `ok` when the basic local assets exist, `degraded` when core inputs are missing
+- `config_count`: number of discovered YAML configs
+- `dataset_count`: number of discovered local datasets
+- `due_dataset_count`: number of datasets currently due for refresh according to their stored policy
+- `artifact_counts`: persisted counts for runs, optimizations, walk-forward jobs, Monte Carlo jobs, saved workspaces, and persisted B3 pairs backtests
+- `job_counts`: persisted counts for async backtest jobs grouped by queue/running/completed/failed/cancelled
+- `job_runtime`: execution mode plus current worker-pool capacity and active futures for the async backtest executor
+- `latest_run_id`: most recent persisted run id discovered through the experiment registry
+- `latest_backtest_job_id`: most recent async backtest job id
+- `latest_pairs_backtest_id`: most recent persisted B3 pairs backtest id
+- `latest_research_workspace_id`: most recent saved research workspace id
+- `warnings`: top-level issues such as missing configs, datasets, persisted runs, or failed async jobs
+
+### 1K. B3 Pairs Trading Lab
+
+The platform now exposes a dedicated B3 pairs-trading surface for long-short research driven by
+cointegration, liquidity filters, and robustness batches.
+
+**Endpoints**
+```
+GET  /pairs/universes
+GET  /pairs/ibov-snapshots
+GET  /pairs/ibov-snapshots/{as_of_date}
+POST /pairs/ibov-snapshots/backfill
+POST /pairs/universe/resolve
+POST /pairs/screener
+POST /pairs/backtests
+POST /pairs/backtests/jobs
+POST /pairs/backtests/jobs/batch
+GET  /pairs/backtests/jobs
+GET  /pairs/backtests/jobs/{job_id}
+POST /pairs/backtests/jobs/{job_id}/cancel
+POST /pairs/backtests/jobs/{job_id}/resume
+GET  /pairs/backtests/jobs/{job_id}/response
+POST /pairs/backtests/batch
+GET  /pairs/backtests
+GET  /pairs/backtests/{pairs_backtest_id}
+GET  /pairs/backtests/{pairs_backtest_id}/results
+```
+
+**Highlights**
+
+- `GET /pairs/universes`: returns curated B3 universe presets such as `ibov_proxy` plus the official `ibov_historical` preset backed by B3 BDI snapshots
+- `GET /pairs/ibov-snapshots`: lists cached official IBOV snapshots already imported from B3
+- `GET /pairs/ibov-snapshots/{as_of_date}`: returns one cached official IBOV snapshot by resolved date, including the parsed constituents
+- `POST /pairs/ibov-snapshots/backfill`: imports and caches official IBOV snapshots around the B3 rebalance cadence for a requested date range
+- `POST /pairs/universe/resolve`: resolves a preset or custom ticker list and returns coverage, liquidity, short-score, and eligibility diagnostics. The request also accepts `borrow_snapshot_path` for local borrow overrides. When `preset_id=ibov_historical`, the response also includes `resolved_as_of_date` and enriched preset metadata with `source_url`, `validity_label`, and `cache_status`
+- `POST /pairs/screener`: ranks candidate pairs by p-value, return/level correlation, beta quality, half-life, a rolling stability score, and structural-break risk diagnostics. The request now also accepts `min_level_corr`, `min_stability_score`, `max_structural_break_risk`, `min_beta_abs`, and `max_beta_abs`, and the response includes `rejected_pairs` plus `rejection_summary` so clients can explain why candidates were filtered out
+- `POST /pairs/backtests`: runs and persists one pairs-trading scenario. The request accepts portfolio controls such as `portfolio_construction`, `target_pair_volatility_annual`, `max_gross_exposure_pct`, `max_net_exposure_pct`, `max_sector_pairs`, and `borrow_snapshot_path`. When `preset_id=ibov_historical` and the date range spans later B3 review windows, the run reconstitutes the universe dynamically and persists the executed segment plan. Each scenario result now exposes `alpha_decomposition`, splitting trade PnL, cash carry, frictions, and benchmark gaps
+- `POST /pairs/backtests/jobs`: queues the same pairs backtest request for asynchronous execution and returns a `PairsBacktestJobModel` manifest with queue status, progress, worker identity, and persisted event history
+- `POST /pairs/backtests/jobs/batch`: queues a multi-scenario pairs batch for asynchronous execution
+- `GET /pairs/backtests/jobs/{job_id}/response`: returns the completed persisted `PairsBacktestResults` payload linked to one async job after it reaches `completed`
+- `POST /pairs/backtests/batch`: runs and persists a multi-scenario sensitivity batch, including realistic, low-friction, and no-cointegration-filter variants when no custom variants are supplied
+- `GET /pairs/backtests`: lists persisted pairs-trading manifests
+- `GET /pairs/backtests/{pairs_backtest_id}/results`: returns the full persisted result payload, including universe diagnostics, candidate pairs, benchmark curves, scenarios, and a robustness report
+
+Operational notes:
+- Official IBOV snapshots are fetched from B3 BDI PDFs and cached under `data/index_universes/ibov/`
+- Curated universe presets now include smaller economic sleeves such as `banks_core`, `oil_gas_core`, `metals_core`, and `consumer_domestic_core` for tighter pair discovery workflows
+- Borrow snapshot overrides expect a local CSV with a `ticker` column and optional `borrow_rate_annual`, `short_eligible`, and `margin_haircut` columns
+- When `borrow_snapshot_path` is supplied, the file is copied into the managed dataset catalog as `data/pairs_borrow__*.csv`, gains provenance history, and the universe diagnostics keep both the original `borrow_snapshot_path` plus the governed `borrow_snapshot_managed_path` and `borrow_snapshot_dataset_id`
+- If the requested `as_of_date` is a weekend or another date without a published BDI PDF, the resolver falls back to the nearest prior date within the built-in lookback window
+- Official IBOV backtests can reconstitute the universe across later B3 review dates; the resolved segment plan is returned in `universe.reconstitution_plan`, and persisted manifests expose `reconstitution_segment_count`
+- Async pairs jobs reuse the same detached execution mode flag as core backtests: when `BITCOIN_MARTINGALE_BACKTEST_JOB_EXECUTION_MODE=detached`, start `python -m src pairs-backtest-jobs-worker --poll-interval 1.0` to execute the queued jobs outside the API process
+
+### 1L. WEGE3 Regra A Scenario
+
+The API now exposes the dedicated WEGE3 price-grid scenario that is already wired to the
+existing backtest engine and available in the frontend Labs area.
+
+**Endpoint**
+```
+POST /scenarios/wege3-regra-a
+```
+
+**Request**
+```json
+{
+  "start_date": "2021-01-01",
+  "end_date": null,
+  "force_download": false
+}
+```
+
+**Response Highlights**
+
+- `scenario_id`: always `wege3_regra_a`
+- `dataset`: resolved session window, first open, last close, cache path, and Selic path
+- `result`: final total, final cash, final position value, final shares, and final return
+- `statistics`: counts of buys/sells, average price, realized/unrealized P&L, cash yield, and dividends
+- `benchmarks`: benchmark A/B/C totals returned in the same payload
+- `audit`: corporate actions summary and data sources
+- `trades`: full audit trail of grid executions with `cash_after`, `position_after`, and `reference_after`
+- `artifacts`: persisted `summary_output_path` and `trades_output_path`
+- `reproduction_command`: exact CLI command used to reproduce the same scenario outside the UI
+
+### 1B. List Local Datasets
 
 **Endpoint**
 ```
@@ -105,7 +214,7 @@ GET /datasets
 Returns discovered local datasets from the `data/` directory, including parquet caches, benchmark files, and CSV rate files.
 Each summary now includes `refresh_due` and `next_refresh_due_at` when a supported dataset has a persisted refresh policy.
 
-### 1B. Inspect Local Dataset
+### 1C. Inspect Local Dataset
 
 **Endpoint**
 ```
@@ -116,7 +225,7 @@ Returns detailed dataset metadata, preview rows, validation warnings, and the da
 The detail payload also includes validation metrics plus provenance and event history when available.
 When supported, provenance also includes the current refresh policy and whether the dataset is due right now.
 
-### 1C. Import Local Dataset
+### 1D. Import Local Dataset
 
 **Endpoint**
 ```
@@ -125,7 +234,7 @@ POST /datasets/import
 
 Imports a local CSV or Parquet file into the managed `data/` directory.
 
-### 1D. List Due Dataset Refreshes
+### 1E. List Due Dataset Refreshes
 
 **Endpoint**
 ```
@@ -134,7 +243,7 @@ GET /datasets/refresh-due
 
 Returns the subset of datasets whose persisted refresh policy is currently due.
 
-### 1E. Execute Due Dataset Refreshes
+### 1F. Execute Due Dataset Refreshes
 
 **Endpoint**
 ```
@@ -143,7 +252,7 @@ POST /datasets/refresh-due
 
 Refreshes due datasets in batch. The request body may include an optional `limit`.
 
-### 1F. Persist Dataset Refresh Policy
+### 1G. Persist Dataset Refresh Policy
 
 **Endpoint**
 ```
@@ -156,14 +265,72 @@ Stores the refresh policy used to determine when a dataset becomes due. The requ
 - `start_date`
 - `end_date` (optional)
 
-### 1G. Refresh Supported Dataset
+### 1H. Refresh Supported Dataset
 
 **Endpoint**
 ```
 POST /datasets/{dataset_id}/refresh
 ```
 
+
 Refreshes a supported cached market or benchmark dataset in place. Static imports remain inspectable but may not support refresh.
+
+### 1I. Build Rebalance Plan
+
+**Endpoint**
+```
+POST /allocations/rebalance-plan
+```
+
+Builds a rebalance plan from current cash, holdings, market prices, and target portfolio weights.
+
+**Request Body**
+
+```json
+{
+  "cash": 2000,
+  "holdings": [
+    {"asset": "BTC-BRL", "quantity": 0.05},
+    {"asset": "ETH-USD", "quantity": 2.0}
+  ],
+  "prices": {
+    "BTC-BRL": 60000,
+    "ETH-USD": 2000,
+    "SPY": 900
+  },
+  "targets": [
+    {"asset": "BTC-BRL", "target_weight": 0.5},
+    {"asset": "ETH-USD", "target_weight": 0.2},
+    {"asset": "SPY", "target_weight": 0.1}
+  ],
+  "weight_tolerance": 0.01,
+  "min_trade_notional": 100,
+  "reserve_cash": 1000
+}
+```
+
+**Response Highlights**
+
+- `actions`: per-asset `buy`, `sell`, or `hold` recommendations
+- `target_cash`: implied post-rebalance cash based on the target weights
+- `projected_cash`: cash expected after applying the executable trades
+- `cash_gap_to_target`: difference between projected and ideal cash after thresholds
+- `warnings`: allocation or cash-reserve warnings that should be reviewed before execution
+
+### 1J. Persist Allocation Workspaces
+
+**Endpoints**
+```
+GET /allocations/workspaces
+POST /allocations/workspaces
+GET /allocations/workspaces/{workspace_id}
+PATCH /allocations/workspaces/{workspace_id}
+POST /allocations/workspaces/import
+DELETE /allocations/workspaces/{workspace_id}
+```
+
+Persists a normalized rebalance request together with its computed plan, summary metrics, and optional notes.
+The saved payload is designed for reopening the same portfolio draft in the frontend `Alocacao` workspace or exporting/importing it as JSON.
 
 ### 2. Run Backtest
 
@@ -173,6 +340,8 @@ Execute backtest with specified parameters and strategies.
 ```
 POST /backtest
 ```
+
+Runs the backtest synchronously and immediately returns the persisted response payload.
 
 **Request Body**
 
@@ -209,6 +378,13 @@ POST /backtest
 | `take_profit` | number | No | null | Take profit percentage |
 | `max_layers` | integer | No | null | Maximum number of layers |
 | `force_download` | boolean | No | false | Force data re-download |
+| `fee_rate` | number | No | null | Percentage fee applied per trade |
+| `fixed_fee` | number | No | null | Fixed fee applied per order |
+| `buy_slippage` | number | No | null | Positive slippage applied to buys |
+| `sell_slippage` | number | No | null | Negative slippage applied to sells |
+| `max_volume_participation` | number | No | null | Share of bar volume that may be consumed |
+| `allow_partial_fills` | boolean | No | null | Allow partial fills under liquidity constraints |
+| `min_fill_quantity` | number | No | null | Minimum quantity required for a valid partial fill |
 
 **Response**
 
@@ -284,6 +460,36 @@ POST /backtest
   }
 }
 ```
+
+### 2A. Queue Async Backtest Job
+
+**Endpoints**
+```
+POST /backtest/jobs
+GET /backtest/jobs
+GET /backtest/jobs/{job_id}
+POST /backtest/jobs/{job_id}/cancel
+POST /backtest/jobs/{job_id}/resume
+GET /backtest/jobs/{job_id}/response
+```
+
+Queues the same backtest payload for background execution. The job manifest exposes:
+
+- `status`: `queued`, `running`, `completed`, `failed`, or `cancelled`
+- `progress`: current phase, message, percent complete, and optional step counters
+- `attempt_count`: incremented each time a cancelled or failed job is resumed
+- `worker_id`: last worker identity that claimed the job for execution
+- `run_id`: populated when the job completes and its persisted run is available
+- `events`: compact execution timeline for operational inspection
+
+Queued or running jobs left behind by a process restart are recovered automatically on startup and
+re-queued with an incremented `attempt_count`.
+
+When `BITCOIN_MARTINGALE_BACKTEST_JOB_EXECUTION_MODE=detached`, the API only persists queued jobs.
+Run `python -m src backtest-jobs-worker --poll-interval 1.0` in a separate process to execute them.
+
+`GET /backtest/jobs/{job_id}/response` returns the same `BacktestResponse` contract as `POST /backtest`
+after the job reaches `completed`.
 
 #### Run Information
 
@@ -584,7 +790,61 @@ interface BacktestRequest {
   drop_step?: number;         // Range: 0.05 - 0.20 (5% - 20%)
   take_profit?: number;       // Range: 0.10 - 0.30 (10% - 30%)
   max_layers?: number;        // Range: 3 - 20
+  data_source?: string;
+  cache_path?: string;
   force_download?: boolean;
+  apply_cash_yield?: boolean;
+  selic_rate_annual?: number;
+  use_real_selic?: boolean;
+  selic_path?: string;
+  selic_fallback_rate?: number;
+  fee_rate?: number;                  // Percentage fee per trade
+  fixed_fee?: number;                 // Fixed fee per order
+  buy_slippage?: number;              // Buy-side slippage
+  sell_slippage?: number;             // Sell-side slippage
+  max_volume_participation?: number;  // Share of bar volume available to the strategy
+  allow_partial_fills?: boolean;
+  min_fill_quantity?: number;
+  benchmarks?: string[];
+  include_selic_benchmark?: boolean;
+  include_buy_hold_benchmark?: boolean;
+}
+```
+
+### BacktestJob
+
+```typescript
+interface BacktestJob {
+  job_id: string;
+  job_type: "backtest";
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  attempt_count: number;
+  cancel_requested: boolean;
+  request_payload: Record<string, unknown>;
+  config_path?: string | null;
+  strategy_names: string[];
+  progress: {
+    phase: string;
+    message: string;
+    percent: number;
+    updated_at: string;
+    current_step?: number | null;
+    total_steps?: number | null;
+  };
+  run_id?: string | null;
+  result_available: boolean;
+  error?: string | null;
+  events: Array<{
+    timestamp: string;
+    level: string;
+    phase: string;
+    message: string;
+    percent?: number | null;
+  }>;
 }
 ```
 
@@ -607,6 +867,9 @@ interface StrategyResult {
   metrics: StrategyMetrics;
   equity: EquityPoint[];
   trades: Trade[];
+  execution_log: ExecutionEvent[];
+  execution_summary: ExecutionSummary;
+  warnings: string[];
 }
 ```
 
@@ -624,7 +887,10 @@ interface StrategyMetrics {
   total_trades: number;       // Number of trades
   avg_trade_pnl: number;      // Average P&L per trade
   volatility: number;         // Annualized volatility
-  mar_ratio: number;          // CAGR / Max Drawdown
+  total_interest_earned: number;
+  total_fees_paid: number;
+  total_dividends_received: number;
+  selic_rates_used?: Array<{ period?: string; year?: number; month?: number; rate: number }>;
 }
 ```
 
@@ -660,8 +926,44 @@ interface Trade {
   action: "BUY" | "SELL";     // Trade action
   price: number;              // Execution price
   quantity: number;           // BTC quantity
+  cost?: number;              // Trade cost basis
   pnl?: number;               // Profit/loss (null for BUY)
   layer?: number;             // Martingale layer (null if not applicable)
+  requested_quantity?: number;
+  fill_ratio?: number;
+}
+```
+
+### ExecutionEvent
+
+```typescript
+interface ExecutionEvent {
+  timestamp: string;
+  event_type: string;         // fill | partial_fill | buy_rejected | sell_rejected
+  side: string;               // buy | sell
+  requested_quantity: number;
+  filled_quantity: number;
+  fill_ratio: number;
+  requested_price: number;
+  fill_price?: number | null;
+  fees: number;
+  slippage: number;
+  message: string;
+}
+```
+
+### ExecutionSummary
+
+```typescript
+interface ExecutionSummary {
+  fill_count: number;
+  partial_fill_count: number;
+  rejected_buy_count: number;
+  rejected_sell_count: number;
+  rejected_order_count: number;
+  liquidity_constrained: boolean;
+  requested_quantity_total: number;
+  filled_quantity_total: number;
 }
 ```
 
@@ -711,7 +1013,12 @@ const request: BacktestRequest = {
   strategies: ['Risk-Cap Martingale'],
   initial_capital: 30000,
   start_date: '2020-01-01',
-  end_date: '2023-12-31'
+  end_date: '2023-12-31',
+  fee_rate: 0.0003,
+  buy_slippage: 0.0005,
+  sell_slippage: 0.0005,
+  max_volume_participation: 0.10,
+  allow_partial_fills: true,
 };
 
 const results = await api.runBacktest(request);
@@ -781,7 +1088,12 @@ request = {
     "strategies": ["Risk-Cap Martingale"],
     "initial_capital": 30000,
     "start_date": "2020-01-01",
-    "end_date": "2023-12-31"
+    "end_date": "2023-12-31",
+    "fee_rate": 0.0003,
+    "buy_slippage": 0.0005,
+    "sell_slippage": 0.0005,
+    "max_volume_participation": 0.10,
+    "allow_partial_fills": True,
 }
 
 results = api.run_backtest(request)
@@ -845,8 +1157,8 @@ Currently, there are no explicit rate limits. However, users should:
 The API automatically handles Bitcoin price data from:
 
 1. **Primary Source**: Yahoo Finance (BTC-BRL)
-2. **Fallback Source**: Yahoo Finance (BTC-USD)
-3. **Cache**: Local Parquet files for performance
+2. **Fallback Source**: Synthetic BTC-BRL built from Yahoo Finance `BTC-USD` and `USD/BRL`
+3. **Cache**: Local Parquet files for performance, including a dedicated synthetic BTC-BRL cache when needed
 
 Data includes daily OHLCV (Open, High, Low, Close, Volume) from 2020-01-01 to present.
 

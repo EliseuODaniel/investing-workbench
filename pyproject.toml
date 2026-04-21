@@ -16,10 +16,12 @@ dependencies = [
   "numpy>=1.24.0",
   "pandas>=2.0.0",
   "plotly>=5.15.0",
+  "pypdf>=6.0.0",
   "pyarrow>=12.0.0",
   "pydantic>=2.0.0",
   "pyyaml>=6.0",
   "scipy>=1.10.0",
+  "statsmodels>=0.14.0",
   "uvicorn[standard]>=0.24.0",
   "yfinance>=0.2.18",
 ]
@@ -54,10 +56,14 @@ select = ["E", "F", "I", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["E501"]
+"src/bitcoin_martingale/application/scenarios/b3_cointegration_pairs.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -s"
+filterwarnings = [
+  "ignore:'DataFrame.swapaxes' is deprecated and will be removed in a future version\\.:FutureWarning:numpy\\._core\\.fromnumeric",
+]
 
 [tool.mypy]
 python_version = "3.12"

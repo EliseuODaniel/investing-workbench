@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -19,6 +19,13 @@ class Trade:
     cost: float
     pnl: Optional[float] = None
     layer: Optional[int] = None
+    notional: Optional[float] = None
+    cash_after: Optional[float] = None
+    position_after: Optional[float] = None
+    reference_after: Optional[float] = None
+    requested_quantity: Optional[float] = None
+    fill_ratio: Optional[float] = None
+    event_notes: Optional[dict[str, Any]] = None
 
 
 @dataclass
@@ -45,3 +52,7 @@ class State:
     max_equity: float = field(default_factory=lambda: 0.0)
     total_interest_earned: float = field(default_factory=lambda: 0.0)
     selic_rates_used: dict[str, float] = field(default_factory=dict)
+    total_dividends_received: float = field(default_factory=lambda: 0.0)
+    total_fees_paid: float = field(default_factory=lambda: 0.0)
+    corporate_actions_log: list[dict[str, Any]] = field(default_factory=list)
+    execution_log: list[dict[str, Any]] = field(default_factory=list)

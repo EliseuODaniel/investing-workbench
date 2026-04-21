@@ -31,7 +31,11 @@ const TradesTable: React.FC<TradesTableProps> = ({ results }) => {
 
   // Get available layers for filtering
   const availableLayers = useMemo(() => {
-    const layers = new Set(allTrades.map(trade => trade.layer));
+    const layers = new Set(
+      allTrades
+        .map((trade) => trade.layer)
+        .filter((layer): layer is number => typeof layer === 'number')
+    );
     return Array.from(layers).sort((a, b) => a - b);
   }, [allTrades]);
 
@@ -283,7 +287,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ results }) => {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {trade.layer}
+                  {trade.layer ?? '—'}
                 </td>
               </tr>
             ))}

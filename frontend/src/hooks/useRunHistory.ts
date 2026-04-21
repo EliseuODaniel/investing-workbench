@@ -7,7 +7,7 @@ import {
   RunSummary,
 } from '../types/api';
 
-export function useRunHistory(onError?: (message: string) => void) {
+export function useRunHistory(onError?: (message: string | null) => void) {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [isLoadingRuns, setIsLoadingRuns] = useState(false);
 
@@ -16,6 +16,7 @@ export function useRunHistory(onError?: (message: string) => void) {
     try {
       const data = await apiClient.listRuns();
       setRuns(data);
+      onError?.(null);
     } catch (error) {
       console.error('Failed to load run history:', error);
       onError?.('Failed to load persisted runs');

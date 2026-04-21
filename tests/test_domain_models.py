@@ -42,11 +42,13 @@ def test_order_fill_cash_flow_and_serialization() -> None:
         fill_price=100.0,
         filled_at=datetime(2024, 1, 1, 12, 0, 0),
         fees=1.5,
+        requested_quantity=3.0,
     )
 
     assert fill.gross_value == 200.0
     assert fill.net_cash_flow == -201.5
     assert fill.to_dict()["side"] == "buy"
+    assert fill.to_dict()["requested_quantity"] == 3.0
 
 
 def test_portfolio_snapshot_invested_value() -> None:
@@ -83,3 +85,11 @@ def test_order_request_to_dict() -> None:
     assert payload["side"] == "sell"
     assert payload["order_type"] == "limit"
     assert payload["requested_price"] == 120.0
+
+
+def test_domain_package_exports_resolve_without_circular_imports() -> None:
+    from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine
+    from src.bitcoin_martingale.domain.portfolio import PortfolioLedger
+
+    assert BacktestCoreEngine.__name__ == "BacktestCoreEngine"
+    assert PortfolioLedger.__name__ == "PortfolioLedger"

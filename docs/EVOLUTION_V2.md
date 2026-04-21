@@ -1,5 +1,9 @@
 # Evolution V2
 
+This document records the V2 planning wave that introduced optimization, robustness workflows, and dataset management.
+
+For current execution sequencing, use `docs/MASTER_PLAN.md` as the authoritative plan.
+
 ## Goal
 
 The next product cycle turns the project from a strong backtesting application into a broader research and learning platform.
@@ -108,27 +112,38 @@ src/bitcoin_martingale/
       service.py
   infrastructure/
     persistence/
-      optimization_repo.py        # future
+      optimization_repo.py
 ```
 
-### Planned API Surface
+### API Surface Shipped In This Cycle
 
-Initial future endpoints:
+The following endpoints are now implemented:
 - `POST /optimizations/plan`
 - `POST /optimizations`
 - `GET /optimizations`
 - `GET /optimizations/{optimization_id}`
 - `GET /optimizations/{optimization_id}/results`
+- `POST /walkforward`
+- `GET /walkforward`
+- `GET /walkforward/{walkforward_id}`
+- `GET /walkforward/{walkforward_id}/results`
+- `POST /montecarlo`
+- `GET /montecarlo`
+- `GET /montecarlo/{montecarlo_id}`
+- `GET /montecarlo/{montecarlo_id}/results`
 
-### Planned Frontend Areas
+### Frontend Direction
 
 ```text
-frontend/src/features/
-  optimization/
-    components/
-    hooks/
-    lib/
+frontend/src/
+  components/
+  hooks/
+  lib/
 ```
+
+Optimization, walk-forward, Monte Carlo, dataset, and interpretation workflows are now present in the frontend.
+
+The remaining frontend architecture goal is deeper modularization beyond the current application shell.
 
 ## Search-Space Format
 
@@ -188,18 +203,18 @@ strategies:
 
 ## Current Status
 
-Started in this cycle:
+Delivered in this cycle:
 - roadmap documented
-- optimization planning service foundation started
-- CLI preview flow started
-- optimization execution and persistence started
-- optimization API endpoints started
-- walk-forward validation and persisted out-of-sample windows started
-- Monte Carlo robustness analysis and persisted artifacts started
-- frontend optimization workspace started
+- optimization planning service
+- CLI preview and execution flows
+- persisted optimization execution
+- optimization API endpoints
+- walk-forward validation and persisted out-of-sample windows
+- Monte Carlo robustness analysis and persisted artifacts
+- frontend optimization, walk-forward, Monte Carlo, dataset, and interpretation workspaces
 
 Remaining backlog:
 - didactic robustness storytelling started in the frontend run interpretation layer
 - deeper cross-workflow drilldowns and ranking
-- scheduled dataset refresh automation and provenance expansion completed for manual batch execution
+- optional automation beyond the current manual due-refresh execution flow
 - future optional step: background refresh workers and notifications

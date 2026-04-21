@@ -56,6 +56,7 @@ class OrderFill:
     filled_at: datetime
     fees: float = 0.0
     slippage: float = 0.0
+    requested_quantity: float | None = None
 
     @property
     def gross_value(self) -> float:

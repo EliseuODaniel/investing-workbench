@@ -1,8 +1,8 @@
-// @ts-nocheck
 import React from 'react';
 import { AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { BacktestRequest, BacktestResponse, StrategyResult } from '../types/api';
 
-interface WarningItem {
+export interface WarningItem {
   type: 'warning' | 'info' | 'error';
   title: string;
   message: string;
@@ -98,15 +98,94 @@ const WarningsPanel: React.FC<WarningsPanelProps> = ({ warnings, onDismiss }) =>
   );
 };
 
-// Helper function to generate warnings from backtest response
-export const generateWarnings = (backtestResponse: any, backtestRequest: any): WarningItem[] => {
-  const warnings: WarningItem[] = [];
+function warningKey(warning: WarningItem) {
+  return [warning.type, warning.title, warning.strategy ?? '', warning.message].join('::');
+}
+
+function pushUniqueWarning(target: WarningItem[], warning: WarningItem) {
+  if (target.some((item) => warningKey(item) === warningKey(warning))) {
+    return;
+  }
+  target.push(warning);
+}
+
+function buildExecutionWarningItem(message: string, strategy?: string): WarningItem {
+  if (message.includes('rejected')) {
+    return {
+      type: 'error',
+      title: 'Ordem rejeitada',
+      message,
+      strategy,
+    };
+  }
+  if (message.includes('partial')) {
+    return {
+      type: 'warning',
+      title: 'Execucao parcial',
+      message,
+      strategy,
+    };
+  }
+  return {
+    type: 'info',
+    title: 'Observacao de execucao',
+    message,
+    strategy,
+  };
+}
+
+function addBackendWarnings(target: WarningItem[], backtestResponse: BacktestResponse) {
+  for (const warning of backtestResponse.warnings ?? []) {
+    const [strategyLabel, ...messageParts] = warning.split(': ');
+    if (messageParts.length > 0) {
+      pushUniqueWarning(target, buildExecutionWarningItem(messageParts.join(': '), strategyLabel));
+      continue;
+    }
+    pushUniqueWarning(target, buildExecutionWarningItem(warning));
+  }
+
+  for (const [strategyName, strategyData] of Object.entries(backtestResponse.results ?? {})) {
+    for (const warning of strategyData.warnings ?? []) {
+      pushUniqueWarning(target, buildExecutionWarningItem(warning, strategyName));
+    }
+
+    const executionSummary = strategyData.execution_summary;
+    if (!executionSummary?.liquidity_constrained) {
+      continue;
+    }
+
+    if ((executionSummary.partial_fill_count ?? 0) > 0) {
+      pushUniqueWarning(target, {
+        type: 'warning',
+        title: 'Liquidez limitou execucao',
+        message: `${executionSummary.partial_fill_count} ordem(ns) da estrategia foram preenchidas parcialmente.`,
+        strategy: strategyName,
+      });
+    }
+
+    if ((executionSummary.rejected_order_count ?? 0) > 0) {
+      pushUniqueWarning(target, {
+        type: 'error',
+        title: 'Execucao bloqueada',
+        message: `${executionSummary.rejected_order_count} ordem(ns) da estrategia foram rejeitadas por caixa ou liquidez.`,
+        strategy: strategyName,
+      });
+    }
+  }
+}
+
+function addHeuristicWarnings(
+  target: WarningItem[],
+  backtestResponse: BacktestResponse,
+  backtestRequest: BacktestRequest
+) {
+  const results = backtestResponse.results ?? {};
 
   // Check for strategies with no trades
-  if (backtestResponse.results) {
-    Object.entries(backtestResponse.results).forEach(([strategyName, strategyData]: [string, any]) => {
+  if (results) {
+    Object.entries(results).forEach(([strategyName, strategyData]: [string, StrategyResult]) => {
       if (!strategyData.trades || strategyData.trades.length === 0) {
-        warnings.push({
+        pushUniqueWarning(target, {
           type: 'warning',
           title: 'Estratégia sem trades',
           message: 'Nenhuma operação foi executada durante o período. Verifique os parâmetros da estratégia ou o período selecionado.',
@@ -116,7 +195,7 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
 
       // Check for low hit rate
       if (strategyData.metrics && strategyData.metrics.hit_rate < 0.3) {
-        warnings.push({
+        pushUniqueWarning(target, {
           type: 'warning',
           title: 'Baixa Taxa de Acerto',
           message: `Taxa de acerto de ${(strategyData.metrics.hit_rate * 100).toFixed(1)}%. Considere ajustar os parâmetros da estratégia.`,
@@ -126,7 +205,7 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
 
       // Check for extreme drawdown
       if (strategyData.metrics && strategyData.metrics.max_drawdown < -0.5) {
-        warnings.push({
+        pushUniqueWarning(target, {
           type: 'error',
           title: 'Drawdown Extremo',
           message: `Drawdown máximo de ${(strategyData.metrics.max_drawdown * 100).toFixed(1)}%. Esta estratégia apresentou alta volatilidade e risco.`,
@@ -139,7 +218,7 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
   // Check for benchmark data issues
   if (backtestRequest.benchmarks && backtestRequest.benchmarks.length > 0) {
     if (!backtestResponse.benchmarks || Object.keys(backtestResponse.benchmarks).length === 0) {
-      warnings.push({
+      pushUniqueWarning(target, {
         type: 'error',
         title: 'Dados de Benchmarks Indisponíveis',
         message: 'Não foi possível obter dados para os benchmarks selecionados. Verifique a conexão com a internet ou os tickers informados.',
@@ -149,11 +228,11 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
 
   // SELIC warnings
   if (backtestRequest.apply_cash_yield && backtestRequest.use_real_selic) {
-    const firstResult = Object.values(backtestResponse.results)[0] as any;
+    const firstResult = Object.values(results)[0];
     if (firstResult && firstResult.metrics) {
       const selicRatesUsed = firstResult.metrics.selic_rates_used;
       if (!selicRatesUsed || selicRatesUsed.length === 0) {
-        warnings.push({
+        pushUniqueWarning(target, {
           type: 'warning',
           title: 'Dados SELIC Não Utilizados',
           message: 'SELIC real foi configurada mas não foi possível obter os dados. Foi utilizada a taxa fallback.',
@@ -166,7 +245,7 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
   if (backtestResponse.data_info) {
     const totalDays = backtestResponse.data_info.total_days;
     if (totalDays < 30) {
-      warnings.push({
+      pushUniqueWarning(target, {
         type: 'info',
         title: 'Período Curto',
         message: `O backtest foi executado com apenas ${totalDays} dias. Resultados podem não ser estatisticamente significativos.`,
@@ -176,13 +255,22 @@ export const generateWarnings = (backtestResponse: any, backtestRequest: any): W
 
   // Capital warnings
   if (backtestRequest.initial_capital && backtestRequest.initial_capital < 5000) {
-    warnings.push({
+    pushUniqueWarning(target, {
       type: 'info',
       title: 'Capital Reduzido',
       message: 'Capital inicial baixo pode limitar a eficácia de estratégias com múltiplas posições.',
     });
   }
+}
 
+// Helper function to generate warnings from backtest response
+export const generateWarnings = (
+  backtestResponse: BacktestResponse,
+  backtestRequest: BacktestRequest
+): WarningItem[] => {
+  const warnings: WarningItem[] = [];
+  addBackendWarnings(warnings, backtestResponse);
+  addHeuristicWarnings(warnings, backtestResponse, backtestRequest);
   return warnings;
 };
 

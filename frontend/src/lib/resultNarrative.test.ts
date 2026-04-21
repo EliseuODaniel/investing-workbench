@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildResultsInterpretation } from './resultNarrative';
+import { buildResultsInterpretation } from './result-narrative';
 import { StrategyResult } from '../types/api';
 
 function createStrategyResult(
@@ -12,6 +12,16 @@ function createStrategyResult(
     trades: [],
     start_price: 100,
     end_price: 120,
+    execution_summary: {
+      fill_count: 1,
+      partial_fill_count: 0,
+      rejected_buy_count: 0,
+      rejected_sell_count: 0,
+      rejected_order_count: 0,
+      liquidity_constrained: false,
+      requested_quantity_total: 1,
+      filled_quantity_total: 1,
+    },
     metrics: {
       total_return: 0.1,
       cagr: 0.1,
@@ -76,6 +86,36 @@ describe('buildResultsInterpretation', () => {
     ).toBe(true);
     expect(
       interpretation?.insights.some((item) => item.body.includes('Sharpe negativo'))
+    ).toBe(true);
+  });
+
+  it('surfaces execution realism constraints when liquidity affected the run', () => {
+    const constrained = createStrategyResult('Constrained', {
+      total_return: 0.18,
+      sharpe_ratio: 1.1,
+    });
+    constrained.execution_summary = {
+      fill_count: 1,
+      partial_fill_count: 2,
+      rejected_buy_count: 1,
+      rejected_sell_count: 0,
+      rejected_order_count: 1,
+      liquidity_constrained: true,
+      requested_quantity_total: 10,
+      filled_quantity_total: 6,
+    };
+
+    const interpretation = buildResultsInterpretation({
+      Constrained: constrained,
+      Baseline: createStrategyResult('Baseline', {
+        total_return: 0.14,
+        sharpe_ratio: 0.9,
+      }),
+    });
+
+    expect(interpretation).not.toBeNull();
+    expect(
+      interpretation?.insights.some((item) => item.title.includes('Liquidez interferiu'))
     ).toBe(true);
   });
 });

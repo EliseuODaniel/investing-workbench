@@ -80,6 +80,7 @@ export function useOptimizations(
     try {
       const response = await apiClient.listOptimizations();
       setOptimizations(response);
+      onError(null);
     } catch (error: any) {
       onError(error.response?.data?.detail || 'Failed to load persisted optimizations');
     } finally {

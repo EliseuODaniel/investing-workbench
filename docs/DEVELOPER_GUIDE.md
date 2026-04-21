@@ -8,8 +8,8 @@ This guide provides comprehensive information for developers contributing to the
 
 ### Prerequisites
 
-- **Python 3.10+** with pip
-- **Node.js 16+** with npm
+- **Python 3.12+** with pip
+- **Node.js 22.x** with npm
 - **Git** for version control
 - **IDE** (VS Code recommended with extensions)
 
@@ -26,8 +26,7 @@ cd bitcoin-martingale
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-pip install -r requirements-dev.txt  # Development dependencies
+pip install -e .[dev]
 ```
 
 3. **Frontend Setup**
@@ -50,7 +49,7 @@ pre-commit install
   "recommendations": [
     "ms-python.python",
     "ms-python.black-formatter",
-    "ms-python.flake8",
+    "charliermarsh.ruff",
     "bradlc.vscode-tailwindcss",
     "esbenp.prettier-vscode",
     "ms-vscode.vscode-typescript-next"
@@ -60,19 +59,9 @@ pre-commit install
 
 ### Environment Configuration
 
-**Backend Environment (.env)**
-```bash
-# Copy and customize
-cp .env.example .env
+The backend does not require a committed `.env.example` to run the standard local workflow.
 
-# Optional environment variables
-export DATA_CACHE_DIR="custom/cache/path"
-export LOG_LEVEL="DEBUG"
-export API_HOST="localhost"
-export API_PORT="8001"
-```
-
-**Frontend Environment (frontend/.env)**
+**Frontend Environment (`frontend/.env`)**
 ```bash
 # API configuration
 VITE_API_BASE=http://localhost:8001
@@ -85,42 +74,25 @@ VITE_API_TIMEOUT=30000
 
 ```
 src/
-├── __init__.py                 # Package initialization
-├── __main__.py                 # CLI entry point
-├── api/                        # FastAPI web backend
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI application
-│   └── models.py               # Pydantic data models
-├── strategies/                 # Trading strategies
-│   ├── __init__.py
-│   ├── base.py                 # Base strategy classes
-│   ├── buy_and_hold.py         # Buy & Hold strategy
-│   ├── dca_simple.py           # Simple DCA
-│   ├── martingale_fixed.py     # Fixed Martingale
-│   ├── martingale_vol_adj.py   # Volatility-Adjusted
-│   └── ...                     # Other strategies
-├── cli.py                      # Command-line interface
-├── config.py                   # Configuration management
-├── data.py                     # Data download & caching
-├── engine.py                   # Backtest engine
-├── metrics.py                  # Performance metrics
-└── plots.py                    # Visualization
+├── __main__.py                 # `python -m src` entry point
+├── api/                        # FastAPI entrypoint and API models
+├── cli.py                      # Legacy-compatible CLI surface
+├── strategies/                 # Current strategy implementations
+└── bitcoin_martingale/         # New application/domain/infrastructure layers
+    ├── application/            # Use cases and orchestration
+    ├── domain/                 # Domain models and engine logic
+    ├── infrastructure/         # Persistence, logging, reporting
+    └── interfaces/             # Current API/CLI adapters
 ```
 
 ### Frontend Structure
 
 ```
 frontend/src/
-├── components/                 # React components
-│   ├── BacktestForm.tsx        # Configuration form
-│   ├── ChartsSection.tsx       # Charts display
-│   ├── MetricsCards.tsx        # Performance metrics
-│   └── TradesTable.tsx         # Trade history table
+├── components/                 # Main UI panels and workspaces
+├── hooks/                      # Feature-facing React hooks
 ├── lib/                        # Utilities
-│   ├── api.ts                  # API client
-│   └── utils.ts                # Helper functions
 ├── types/                      # TypeScript definitions
-│   └── api.ts                  # API response types
 ├── App.tsx                     # Main application
 ├── main.tsx                    # Entry point
 └── index.css                   # Global styles
@@ -132,36 +104,142 @@ frontend/src/
 
 **Backend Changes**
 ```bash
-# Run tests after changes
-python -m pytest tests/ -v
-
-# Type checking
-mypy src/
-
-# Code formatting
-black src/
-isort src/
-
-# Linting
-flake8 src/
+./.venv/bin/pytest -q
+./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/mypy src/bitcoin_martingale
 ```
 
 **Frontend Changes**
 ```bash
 cd frontend
 
-# Run tests
-npm test
-
-# Type checking
-npm run type-check
-
-# Linting
+# Lint and tests
 npm run lint
+npm test -- --run
 
-# Formatting
-npm run format
+# Production build performs the TypeScript compile step
+npm run build
+
+# Run the full frontend validation sequence
+npm run validate
 ```
+
+The frontend `npm test` script now batches Vitest files sequentially so the canonical command
+stays reliable in lower-memory local environments.
+The supported runtime is pinned in `frontend/.nvmrc`, `frontend/.node-version`, and the
+frontend `package.json` engines field.
+
+**Convenience Make Targets**
+```bash
+make backend-test
+make backend-lint
+make backend-format
+make backend-type
+make frontend-lint
+make frontend-test
+make frontend-build
+```
+
+### Research Workspace Contracts
+
+Recent product work added a shared research-workspace/report contract across backend, CLI, and frontend.
+
+Backend/API:
+```bash
+GET    /experiments
+GET    /experiments/{experiment_type}/{experiment_id}
+GET    /research-workspaces
+POST   /research-workspaces
+GET    /research-workspaces/{workspace_id}
+PATCH  /research-workspaces/{workspace_id}
+POST   /research-workspaces/import
+GET    /research-workspaces/{workspace_id}/report?format=json|markdown|html
+```
+
+CLI:
+```bash
+python -m src system-status --format text
+python -m src experiments-list --limit 10
+python -m src experiments-show --type run --id <experiment_id>
+python -m src experiments-show --type pairs_backtest --id <experiment_id>
+python -m src research-workspaces-list --limit 10
+python -m src research-workspaces-show --workspace-id <workspace_id>
+python -m src research-workspaces-export --workspace-id <workspace_id> --format markdown
+```
+
+Frontend:
+- `ResearchOverviewPanel` consumes the experiment registry and lineage drilldown.
+- `SavedResearchWorkspacesPanel` manages saved workspaces, imports/exports, and metadata edits.
+- `Report View` now reads the same server-side workspace report contract used by the API and CLI.
+
+### B3 Pairs Trading Contracts
+
+Recent product work also added a dedicated B3 pairs-trading vertical slice across backend, CLI, and frontend.
+
+Backend/API:
+```bash
+GET    /pairs/universes
+GET    /pairs/ibov-snapshots
+GET    /pairs/ibov-snapshots/{as_of_date}
+POST   /pairs/ibov-snapshots/backfill
+POST   /pairs/universe/resolve
+POST   /pairs/screener
+POST   /pairs/backtests
+POST   /pairs/backtests/jobs
+POST   /pairs/backtests/jobs/batch
+GET    /pairs/backtests/jobs
+GET    /pairs/backtests/jobs/{job_id}
+POST   /pairs/backtests/jobs/{job_id}/cancel
+POST   /pairs/backtests/jobs/{job_id}/resume
+GET    /pairs/backtests/jobs/{job_id}/response
+POST   /pairs/backtests/batch
+GET    /pairs/backtests
+GET    /pairs/backtests/{pairs_backtest_id}
+GET    /pairs/backtests/{pairs_backtest_id}/results
+```
+
+CLI:
+```bash
+python -m src pairs-universes --format text
+python -m src pairs-ibov-snapshots --format text
+python -m src pairs-ibov-snapshot-show --as-of-date 2025-01-20
+python -m src pairs-ibov-snapshots-backfill --start-date 2025-01-01 --end-date 2025-12-31
+python -m src pairs-universe-resolve --preset ibov_proxy
+python -m src pairs-universe-resolve --preset ibov_historical --as-of-date 2025-01-20
+python -m src pairs-screen --preset ibov_proxy
+python -m src pairs-backtest --preset ibov_proxy --portfolio-construction risk_parity --target-pair-volatility-annual 0.12
+python -m src pairs-backtest-batch --preset ibov_proxy
+python -m src pairs-backtest-job --preset ibov_proxy
+python -m src pairs-backtest-job-batch --preset ibov_proxy
+python -m src pairs-backtest-jobs-list --limit 10
+python -m src pairs-backtest-jobs-show --job-id <job_id>
+python -m src pairs-backtest-jobs-worker --once
+python -m src pairs-backtests-list --limit 10
+```
+
+Frontend:
+- `PairsTradingWorkspace` lives in the `Labs` section and exposes universe diagnostics, screener rankings, persisted history, benchmark summaries, and robustness batches.
+- The workspace is now decomposed into smaller `frontend/src/components/pairs/*` panels instead of concentrating the whole feature in one large component.
+- `usePairsTrading` is the main hook for the feature and keeps the API contract typed through `frontend/src/types/api.ts`.
+- The workspace now exposes an explicit `Snapshot Ibov` date field. For `ibov_historical`, leaving it blank uses `start_date` to avoid look-ahead and enriches the preset metadata with the resolved B3 source snapshot.
+- The workspace also exposes optional borrow snapshot input plus portfolio construction controls for `risk_parity`, gross/net caps, and sector concentration caps.
+- The screener controls now expose stability and robustness thresholds such as `min_level_corr`, `min_stability_score`, `max_structural_break_risk`, and beta bounds, and the UI surfaces `rejected_pairs` with rejection summaries for diagnostics.
+- The batch summary now highlights `alpha_decomposition`, benchmark gaps, top/worst pairs, and robustness dispersion instead of only aggregate return cards.
+- The controls card also includes a research batch builder that generates sensitivity scenarios across z-score thresholds, z-score windows, pair limits, dynamic beta, frictionless, and no-cointegration-filter variants through the same typed API contract.
+
+Backend notes:
+- Official IBOV constituents are imported on demand from B3 BDI PDFs through `B3IbovUniverseHistoryService`.
+- Parsed snapshots are cached in `data/index_universes/ibov/<YYYY-MM-DD>.json`.
+- Pairs backtests using `ibov_historical` reconstitute the universe across later official B3 review windows when the selected period spans multiple snapshots.
+- The API and CLI expose explicit snapshot list/show/backfill tooling so the official cache can be inspected and preloaded before large research runs.
+- Borrow overrides can be loaded from a local CSV with `ticker`, `borrow_rate_annual`, `short_eligible`, and `margin_haircut` columns when you need more realistic B3 short assumptions.
+- Borrow snapshots passed through `borrow_snapshot_path` are copied into the governed dataset catalog through `DatasetCatalogService.register_pairs_borrow_snapshot`, so they keep provenance history and appear in Dataset Manager views like any other managed dataset.
+- Universe diagnostics preserve the original `borrow_snapshot_path` for compatibility and also expose `borrow_snapshot_managed_path` plus `borrow_snapshot_dataset_id` so the governed copy can be audited explicitly.
+- `PairsTradingService` now stays focused on orchestration and context building, while `benchmarks.py`, `execution.py`, and `reporting.py` own benchmark preparation, scenario execution, and scenario summaries respectively.
+- Async pairs jobs are backed by `PairsBacktestJobService` and reuse the same detached execution-mode flag as core backtests. In detached mode, run `python -m src pairs-backtest-jobs-worker` in a separate process.
+- Scenario payloads now surface blocked entries caused by portfolio caps and sector caps, plus portfolio construction metadata in `portfolio_summary`.
+- The unified experiment registry now includes persisted pairs artifacts as `experiment_type=pairs_backtest`, so Research Overview and saved workspaces can link them through the same lineage surface used by runs, optimizations, walk-forward, and Monte Carlo workflows.
 
 ### 2. Adding New Features
 
@@ -237,28 +315,51 @@ strategies:
       slippage: 0.0005    # 0.05% execution slippage per trade
 ```
 
-#### Slippage Configuration
+#### Execution Cost and Liquidity Configuration
 
-**Understanding Slippage in Strategy Development**
+**Understanding Execution Realism in Strategy Development**
 
-The framework implements realistic trade execution with configurable slippage to simulate real-world trading costs:
+The framework now models execution with explicit costs and liquidity assumptions in `BacktestCoreEngine`:
 
-**Default Slippage Values**:
-- **Conservative**: 0.05% (0.0005) - Default setting
-- **Tight Markets**: 0.01% (0.0001) - High liquidity assets
-- **Volatile Markets**: 0.1% - 0.5% (0.001 - 0.005) - Wider spreads
+- `fee_rate`: percentage fee applied to the executed notional
+- `fixed_fee`: fixed cash fee per executed order
+- `buy_slippage` and `sell_slippage`: per-side execution adjustments
+- `max_volume_participation`: optional cap for how much of each bar volume can be traded
+- `allow_partial_fills`: whether the engine can fill only the executable portion of an order
+- `min_fill_quantity`: lower bound for a valid partial fill
 
-**Slippage Implementation**:
 ```python
-# In your strategy constructor
-def __init__(self, slippage: float = 0.0005, **kwargs):
-    super().__init__(slippage=slippage, **kwargs)
-    self.slippage = slippage
+from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine
 
-# Execution modeling (handled by framework)
-# BUY orders: execution_price = close_price * (1 + slippage)
-# SELL orders: execution_price = close_price * (1 - slippage)
+engine = BacktestCoreEngine(
+    initial_cash=30_000.0,
+    fee_rate=0.0003,
+    fixed_fee=0.0,
+    buy_slippage=0.0005,
+    sell_slippage=0.0005,
+    max_volume_participation=0.10,
+    allow_partial_fills=True,
+    min_fill_quantity=0.001,
+)
 ```
+
+**Default Reference Values**:
+- **Conservative slippage**: 0.05% (0.0005) per side
+- **Tight markets**: 0.01% (0.0001) per side
+- **Volatile markets**: 0.1% - 0.5% (0.001 - 0.005) per side
+- **Participation cap**: 5% - 15% of bar volume for daily-bar research
+
+**Execution Semantics**:
+```python
+# BUY orders: execution_price = close_price * (1 + buy_slippage)
+# SELL orders: execution_price = close_price * (1 - sell_slippage)
+# fees = gross_value * fee_rate + fixed_fee
+# if requested quantity exceeds available liquidity:
+#   - partial fill when allow_partial_fills is enabled
+#   - rejection when allow_partial_fills is disabled
+```
+
+Legacy strategy configs that expose a single `slippage` parameter can still map into the older strategy layer, but new engine-facing work should prefer the explicit cost and liquidity controls above.
 
 **Signal Detection vs Execution**:
 ```python
@@ -267,28 +368,37 @@ def on_bar(self, timestamp, data, engine) -> Optional[str]:
     buy_signal = data['Low'] <= self.target_buy_price
     sell_signal = data['High'] >= self.target_sell_price
 
-    # Execution occurs at close price with slippage (automatic)
+    # Execution occurs at close price with configured costs/liquidity rules
     if buy_signal:
-        return "BUY"  # Framework handles slippage
+        return "BUY"  # Framework handles execution modeling
     elif sell_signal:
-        return "SELL"  # Framework handles slippage
+        return "SELL"  # Framework handles execution modeling
     return None
 ```
 
 **Configuration Examples**:
 ```yaml
-# High-frequency trading strategy (tight slippage)
-- name: "Scalping Strategy"
-  slippage: 0.0001  # 0.01% per trade
+# Tight-market research profile
+fee_rate: 0.0001
+buy_slippage: 0.0001
+sell_slippage: 0.0001
+max_volume_participation: 0.15
 
-# Martingale strategy (conservative slippage)
-- name: "Conservative Martingale"
-  slippage: 0.0005  # 0.05% per trade
+# Conservative crypto profile
+fee_rate: 0.0003
+buy_slippage: 0.0005
+sell_slippage: 0.0005
+max_volume_participation: 0.10
 
-# Volatile market strategy (wider slippage)
-- name: "Volatility Trading"
-  slippage: 0.002   # 0.2% per trade
+# Lower-liquidity profile
+fee_rate: 0.0010
+buy_slippage: 0.0020
+sell_slippage: 0.0020
+max_volume_participation: 0.05
+allow_partial_fills: true
 ```
+
+Every run now records `total_fees_paid`, execution parameters, `execution_log`, `execution_summary`, and `warnings`, which makes it easier to inspect why an order filled, partially filled, or was rejected.
 
 4. **Write Tests**
 ```python
@@ -549,13 +659,9 @@ test('ApiClient handles backtest request', async () => {
 
 **Formatting and Linting**
 ```bash
-# Auto-format code
-black src/ tests/
-isort src/ tests/
-
-# Check code style
-flake8 src/ tests/
-mypy src/
+./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/mypy src/bitcoin_martingale
 ```
 
 **Naming Conventions**

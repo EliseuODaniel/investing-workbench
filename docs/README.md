@@ -12,6 +12,8 @@ Welcome to the comprehensive documentation for the Bitcoin Martingale Backtestin
 
 ### Architecture & Development
 - **[Architecture Documentation](ARCHITECTURE.md)** - Deep dive into system design and components
+- **[Codex Handoff](CODEX_HANDOFF.md)** - Current resume point for the active uncommitted worktree
+- **[Master Plan](MASTER_PLAN.md)** - Current execution plan, product direction, and implementation phases
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Comprehensive development workflow and coding standards
 - **[API Reference](API_REFERENCE.md)** - Complete REST API documentation with examples
 - **[Final Status](FINAL_STATUS.md)** - Handoff summary, validation status, and optional next backlog

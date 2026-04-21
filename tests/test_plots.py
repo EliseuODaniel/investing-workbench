@@ -1,10 +1,9 @@
 """Tests for plotting functionality."""
 
-import pytest
+from unittest.mock import patch
+
 import pandas as pd
-import numpy as np
-from pathlib import Path
-from unittest.mock import patch, Mock
+import pytest
 
 from src.plots import plot_candlesticks_with_trades, plot_equity_comparison
 
@@ -16,13 +15,16 @@ class TestCandlestickPlotting:
         """Test candlestick plotting without trades."""
         # Create sample OHLCV data
         dates = pd.date_range("2023-01-01", periods=5, freq="D")
-        ohlcv_data = pd.DataFrame({
-            "Open": [100.0, 101.0, 102.0, 103.0, 104.0],
-            "High": [105.0, 106.0, 107.0, 108.0, 109.0],
-            "Low": [95.0, 96.0, 97.0, 98.0, 99.0],
-            "Close": [104.0, 105.0, 106.0, 107.0, 108.0],
-            "Volume": [1000, 1200, 800, 1500, 900]
-        }, index=dates)
+        ohlcv_data = pd.DataFrame(
+            {
+                "Open": [100.0, 101.0, 102.0, 103.0, 104.0],
+                "High": [105.0, 106.0, 107.0, 108.0, 109.0],
+                "Low": [95.0, 96.0, 97.0, 98.0, 99.0],
+                "Close": [104.0, 105.0, 106.0, 107.0, 108.0],
+                "Volume": [1000, 1200, 800, 1500, 900],
+            },
+            index=dates,
+        )
 
         trades = pd.DataFrame()
 
@@ -40,19 +42,38 @@ class TestCandlestickPlotting:
         """Test candlestick plotting with buy and sell trades."""
         # Create sample OHLCV data
         dates = pd.date_range("2023-01-01", periods=5, freq="D")
-        ohlcv_data = pd.DataFrame({
-            "Open": [100.0, 101.0, 102.0, 103.0, 104.0],
-            "High": [105.0, 106.0, 107.0, 108.0, 109.0],
-            "Low": [95.0, 96.0, 97.0, 98.0, 99.0],
-            "Close": [104.0, 105.0, 106.0, 107.0, 108.0],
-            "Volume": [1000, 1200, 800, 1500, 900]
-        }, index=dates)
+        ohlcv_data = pd.DataFrame(
+            {
+                "Open": [100.0, 101.0, 102.0, 103.0, 104.0],
+                "High": [105.0, 106.0, 107.0, 108.0, 109.0],
+                "Low": [95.0, 96.0, 97.0, 98.0, 99.0],
+                "Close": [104.0, 105.0, 106.0, 107.0, 108.0],
+                "Volume": [1000, 1200, 800, 1500, 900],
+            },
+            index=dates,
+        )
 
         # Create sample trades
-        trades = pd.DataFrame([
-            {"timestamp": dates[1], "action": "BUY", "price": 101.5, "quantity": 1.0, "pnl": None, "layer": 1},
-            {"timestamp": dates[3], "action": "SELL", "price": 106.5, "quantity": 1.0, "pnl": 5.0, "layer": 1},
-        ])
+        trades = pd.DataFrame(
+            [
+                {
+                    "timestamp": dates[1],
+                    "action": "BUY",
+                    "price": 101.5,
+                    "quantity": 1.0,
+                    "pnl": None,
+                    "layer": 1,
+                },
+                {
+                    "timestamp": dates[3],
+                    "action": "SELL",
+                    "price": 106.5,
+                    "quantity": 1.0,
+                    "pnl": 5.0,
+                    "layer": 1,
+                },
+            ]
+        )
 
         # Should not raise any exceptions
         fig = plot_candlesticks_with_trades(
@@ -70,22 +91,34 @@ class TestCandlestickPlotting:
         # This is a limitation of the library, not our code
         pass
 
-    @patch('src.plots.MPLFINANCE_AVAILABLE', False)
+    @patch("src.plots.MPLFINANCE_AVAILABLE", False)
     def test_plot_candlesticks_fallback_mode(self):
         """Test candlestick plotting fallback mode when mplfinance is not available."""
         # Create sample OHLCV data
         dates = pd.date_range("2023-01-01", periods=3, freq="D")
-        ohlcv_data = pd.DataFrame({
-            "Open": [100.0, 101.0, 102.0],
-            "High": [105.0, 106.0, 107.0],
-            "Low": [95.0, 96.0, 97.0],
-            "Close": [104.0, 105.0, 106.0],
-            "Volume": [1000, 1200, 800]
-        }, index=dates)
+        ohlcv_data = pd.DataFrame(
+            {
+                "Open": [100.0, 101.0, 102.0],
+                "High": [105.0, 106.0, 107.0],
+                "Low": [95.0, 96.0, 97.0],
+                "Close": [104.0, 105.0, 106.0],
+                "Volume": [1000, 1200, 800],
+            },
+            index=dates,
+        )
 
-        trades = pd.DataFrame([
-            {"timestamp": dates[0], "action": "BUY", "price": 101.0, "quantity": 1.0, "pnl": None, "layer": 1},
-        ])
+        trades = pd.DataFrame(
+            [
+                {
+                    "timestamp": dates[0],
+                    "action": "BUY",
+                    "price": 101.0,
+                    "quantity": 1.0,
+                    "pnl": None,
+                    "layer": 1,
+                },
+            ]
+        )
 
         # Should use fallback mode and not raise exceptions
         fig = plot_candlesticks_with_trades(
@@ -103,9 +136,7 @@ class TestEquityComparison:
     def test_plot_equity_comparison_single_strategy(self):
         """Test equity comparison with single strategy."""
         dates = pd.date_range("2023-01-01", periods=3, freq="D")
-        equity_curves = {
-            "Test Strategy": pd.Series([1000.0, 1100.0, 1200.0], index=dates)
-        }
+        equity_curves = {"Test Strategy": pd.Series([1000.0, 1100.0, 1200.0], index=dates)}
 
         # Should not raise any exceptions
         fig = plot_equity_comparison(

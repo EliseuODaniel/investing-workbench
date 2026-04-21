@@ -24,7 +24,7 @@ export default function RunHistoryPanel({
         <div className="flex items-center">
           <History className="h-4 w-4 mr-2" />
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Recent Runs
+            Resultados recentes
           </h3>
         </div>
         <button
@@ -34,13 +34,13 @@ export default function RunHistoryPanel({
           disabled={isLoading}
         >
           <RefreshCw className="h-3 w-3 inline mr-1" />
-          Refresh
+          Atualizar
         </button>
       </div>
 
       {runs.length === 0 ? (
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          No persisted runs yet.
+          Nenhum resultado salvo ainda.
         </div>
       ) : (
         <div className="space-y-3">
@@ -60,7 +60,7 @@ export default function RunHistoryPanel({
                   {new Date(run.created_at).toLocaleString('pt-BR')}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Data: {run.data_fingerprint.slice(0, 12)}
+                  Base: {run.data_fingerprint.slice(0, 12)}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {run.strategy_names.slice(0, 3).map((strategy) => (
@@ -82,7 +82,7 @@ export default function RunHistoryPanel({
                     : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
               >
-                {selectedRunIds.includes(run.run_id) ? 'Selected for comparison' : 'Compare'}
+                {selectedRunIds.includes(run.run_id) ? 'Selecionado para comparar' : 'Comparar'}
               </button>
             </div>
           ))}

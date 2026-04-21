@@ -99,6 +99,50 @@ class DatasetCatalogService:
         )
         return self._build_detail(target).to_dict()
 
+    def register_pairs_borrow_snapshot(self, *, source_path: str) -> dict[str, object]:
+        """Copy a local borrow snapshot into the managed catalog and persist provenance."""
+        source = Path(source_path)
+        if not source.exists():
+            raise FileNotFoundError(f"Borrow snapshot source not found: {source_path}")
+        if source.suffix != ".csv":
+            raise ValueError("Pairs borrow snapshots must be provided as CSV files")
+
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        target = self.data_dir / f"pairs_borrow__{source.stem}.csv"
+        target_existed = target.exists()
+        if source.resolve() != target.resolve():
+            shutil.copy2(source, target)
+
+        metadata = self._load_metadata(target) if target_existed else {}
+        history = list(metadata.get("history", []))
+        history.append(
+            {
+                "event_type": (
+                    "pairs_borrow_snapshot_updated"
+                    if target_existed
+                    else "pairs_borrow_snapshot_registered"
+                ),
+                "occurred_at": self._now_iso(),
+                "details": {
+                    "source_path": str(source.resolve()),
+                    "managed_path": str(target.resolve()),
+                },
+            }
+        )
+        metadata.update(
+            {
+                "managed": True,
+                "source_kind": "pairs_borrow_snapshot",
+                "source_path": str(source.resolve()),
+                "refresh_strategy": None,
+                "imported_at": metadata.get("imported_at") or self._now_iso(),
+                "last_refreshed_at": self._now_iso(),
+                "history": history,
+            }
+        )
+        self._write_metadata(target, metadata)
+        return self._build_detail(target).to_dict()
+
     def set_refresh_policy(
         self,
         dataset_id: str,
@@ -303,6 +347,9 @@ class DatasetCatalogService:
         return normalized
 
     def _categorize_dataset(self, dataset_path: Path) -> str:
+        metadata = self._load_metadata(dataset_path)
+        if metadata.get("source_kind") == "pairs_borrow_snapshot":
+            return "borrow"
         stem = dataset_path.stem.lower()
         if stem.endswith("_benchmark"):
             return "benchmark"
@@ -324,12 +371,9 @@ class DatasetCatalogService:
         preview_rows: list[dict[str, object]] = []
         for index, row in preview_frame.iterrows():
             payload = {
-                key: self._normalize_preview_value(value)
-                for key, value in row.to_dict().items()
+                key: self._normalize_preview_value(value) for key, value in row.to_dict().items()
             }
-            payload["__index__"] = (
-                index.isoformat() if hasattr(index, "isoformat") else str(index)
-            )
+            payload["__index__"] = index.isoformat() if hasattr(index, "isoformat") else str(index)
             preview_rows.append(payload)
         return preview_rows
 
@@ -343,9 +387,7 @@ class DatasetCatalogService:
         if dataframe.empty:
             warnings.append("Dataset is empty")
         if validation.missing_required_columns:
-            warnings.append(
-                "OHLC dataset is missing one or more expected price columns"
-            )
+            warnings.append("OHLC dataset is missing one or more expected price columns")
         if validation.duplicate_index_count:
             warnings.append("Datetime index contains duplicate rows")
         if validation.date_gap_count:
@@ -422,8 +464,7 @@ class DatasetCatalogService:
 
         high_low_invalid = (dataframe["High"] < dataframe["Low"]).sum()
         close_invalid = (
-            (dataframe["Close"] > dataframe["High"])
-            | (dataframe["Close"] < dataframe["Low"])
+            (dataframe["Close"] > dataframe["High"]) | (dataframe["Close"] < dataframe["Low"])
         ).sum()
         return int(high_low_invalid + close_invalid)
 
@@ -507,17 +548,11 @@ class DatasetCatalogService:
             source_kind=str(metadata.get("source_kind", "inferred")),
             source_path=str(metadata["source_path"]) if metadata.get("source_path") else None,
             refresh_strategy=(
-                str(metadata["refresh_strategy"])
-                if metadata.get("refresh_strategy")
-                else None
+                str(metadata["refresh_strategy"]) if metadata.get("refresh_strategy") else None
             ),
-            imported_at=(
-                str(metadata["imported_at"]) if metadata.get("imported_at") else None
-            ),
+            imported_at=(str(metadata["imported_at"]) if metadata.get("imported_at") else None),
             last_refreshed_at=(
-                str(metadata["last_refreshed_at"])
-                if metadata.get("last_refreshed_at")
-                else None
+                str(metadata["last_refreshed_at"]) if metadata.get("last_refreshed_at") else None
             ),
             refresh_policy=refresh_policy,
             history=history,

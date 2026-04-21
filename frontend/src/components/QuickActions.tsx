@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileSpreadsheet, Image, FileText, Share, Copy } from 'lucide-react';
+import { FileSpreadsheet, Image, FileText, Share, Copy } from 'lucide-react';
 
 interface QuickActionsProps {
   strategies: string[];
@@ -101,22 +101,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
           <Copy className="h-4 w-4 mr-2" />
           Copiar
         </button>
-      </div>
-
-      {/* Info */}
-      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <div className="flex items-start">
-          <Download className="h-4 w-4 mt-0.5 mr-2 text-blue-500 flex-shrink-0" />
-          <div>
-            <h4 className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
-              Exportação de Dados
-            </h4>
-            <p className="text-xs text-blue-700 dark:text-blue-300">
-              Exporte os resultados em diferentes formatos para análise posterior ou compartilhamento.
-              CSV contém todos os trades, PNG gera imagem dos gráficos, e HTML cria um relatório completo.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Share Options */}

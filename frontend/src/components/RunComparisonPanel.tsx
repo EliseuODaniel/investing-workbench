@@ -15,7 +15,17 @@ export default function RunComparisonPanel({
   onClear,
 }: RunComparisonPanelProps) {
   if (!isLoading && comparisonRuns.length === 0) {
-    return null;
+    return (
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          Comparacao de resultados
+        </h3>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Selecione pelo menos dois resultados em "Recentes" para comparar retorno,
+          drawdown, Sharpe e trades lado a lado.
+        </p>
+      </div>
+    );
   }
 
   const summarizedRuns = comparisonRuns.map(summarizeComparisonRun);
@@ -26,7 +36,7 @@ export default function RunComparisonPanel({
         <div className="flex items-center">
           <GitCompare className="h-4 w-4 mr-2" />
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Run Comparison
+            Comparacao de resultados
           </h3>
         </div>
         <button
@@ -35,14 +45,14 @@ export default function RunComparisonPanel({
           className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           <X className="h-3 w-3 inline mr-1" />
-          Clear
+          Limpar
         </button>
       </div>
 
       {isLoading ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Loading selected runs...
+          Carregando resultados selecionados...
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -63,19 +73,19 @@ export default function RunComparisonPanel({
 
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <div className="text-gray-500 dark:text-gray-400">Best Strategy</div>
+                  <div className="text-gray-500 dark:text-gray-400">Melhor estrategia</div>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
                     {run.bestStrategyName}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-500 dark:text-gray-400">Strategies</div>
+                  <div className="text-gray-500 dark:text-gray-400">Estrategias</div>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
                     {run.strategyCount}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-500 dark:text-gray-400">Best Return</div>
+                  <div className="text-gray-500 dark:text-gray-400">Melhor retorno</div>
                   <div className="font-medium text-emerald-600 dark:text-emerald-400">
                     {formatPercent(run.bestReturn)}
                   </div>

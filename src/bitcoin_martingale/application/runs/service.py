@@ -10,22 +10,13 @@ from copy import deepcopy
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 import pandas as pd
 import yaml
 
-from src.api.models import (
-    BacktestRequest,
-    BacktestResponse,
-    BenchmarkResult,
-    ConfigInfo,
-    EquityPoint,
-    StrategyMetrics,
-    StrategyResult,
-    Trade,
-)
+from src.api.models import BacktestResponse, ConfigInfo
 from src.benchmarks import get_benchmark_data, get_selic_benchmark
 from src.bitcoin_martingale.domain.runs import RunManifest
 from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
@@ -33,9 +24,15 @@ from src.bitcoin_martingale.infrastructure.reporting import PersistedRunHTMLRepo
 from src.config import AppConfig, BenchmarkConfig, load_strategy
 from src.data import get_data
 from src.engine import BacktestEngine
-from src.metrics import calculate_metrics
+
+from .dto import BacktestRunInput
+from .request_adapter import to_backtest_run_input
+from .serializers import RunResponseSerializer, build_config_info
 
 logger = logging.getLogger(__name__)
+
+ProgressCallback = Callable[[dict[str, Any]], None]
+CancellationProbe = Callable[[], bool]
 
 
 class RunBacktestService:
@@ -44,6 +41,7 @@ class RunBacktestService:
     def __init__(self, runs_repository: LocalRunsRepository | None = None) -> None:
         self.runs_repository = runs_repository or LocalRunsRepository()
         self.report_builder = PersistedRunHTMLReportBuilder()
+        self.response_serializer = RunResponseSerializer()
 
     def list_configs(self) -> list[ConfigInfo]:
         """List available YAML configs for the application."""
@@ -56,34 +54,37 @@ class RunBacktestService:
             try:
                 with config_file.open("r", encoding="utf-8") as handle:
                     config_data = yaml.safe_load(handle)
-
-                display_name = config_data.get("name", config_file.stem)
-                strategy_names = [
-                    strategy.get("name", "") for strategy in config_data.get("strategies", [])
-                ]
-
-                configs.append(
-                    ConfigInfo(
-                        name=config_file.stem,
-                        path=str(config_file),
-                        display_name=display_name,
-                        strategies=strategy_names,
-                    )
-                )
+                configs.append(build_config_info(config_file, config_data))
             except Exception:
                 logger.exception("Skipping invalid config file: %s", config_file)
 
         return configs
 
-    def run(self, request: BacktestRequest) -> BacktestResponse:
+    def run(
+        self,
+        request: BacktestRunInput | dict[str, Any] | object,
+        *,
+        progress_callback: ProgressCallback | None = None,
+        should_cancel: CancellationProbe | None = None,
+    ) -> BacktestResponse:
         """Run a backtest request and return the serialized response model."""
-        config = self._load_config(request)
+        run_input = to_backtest_run_input(request)
+        self._raise_if_cancelled(should_cancel)
+        self._emit_progress(
+            progress_callback,
+            phase="config",
+            message="Resolving backtest configuration.",
+            percent=1.0,
+        )
+        config = self._load_config(run_input)
         return self.run_with_config(
             config=config,
-            config_path=request.config_path or "configs/martingale.yaml",
-            strategy_names=request.strategies,
-            request_payload=request.model_dump(exclude_none=True),
-            force_download=bool(request.force_download),
+            config_path=run_input.config_path,
+            strategy_names=run_input.strategies,
+            request_payload=run_input.to_request_payload(),
+            force_download=run_input.force_download,
+            progress_callback=progress_callback,
+            should_cancel=should_cancel,
         )
 
     def run_with_config(
@@ -94,24 +95,48 @@ class RunBacktestService:
         strategy_names: list[str] | None = None,
         request_payload: dict[str, Any] | None = None,
         force_download: bool = False,
+        progress_callback: ProgressCallback | None = None,
+        should_cancel: CancellationProbe | None = None,
     ) -> BacktestResponse:
         """Run a backtest from a resolved config and persist the artifacts."""
         strategies_to_run = self._resolve_strategies(config, strategy_names)
+        self._raise_if_cancelled(should_cancel)
+        self._emit_progress(
+            progress_callback,
+            phase="market_data",
+            message="Loading market data.",
+            percent=10.0,
+        )
         data = self._load_market_data(config, force_download=force_download)
         run_id = self._build_run_id()
         config_snapshot = self._build_config_snapshot(config)
         data_profile = self._build_data_profile(config, data)
+        self._emit_progress(
+            progress_callback,
+            phase="market_data",
+            message="Market data loaded.",
+            percent=30.0,
+        )
 
+        self._raise_if_cancelled(should_cancel)
         response = self._build_response(
             config=config,
             strategies_to_run=strategies_to_run,
             data=data,
+            progress_callback=progress_callback,
+            should_cancel=should_cancel,
         )
         response.run_info = {
             "run_id": run_id,
             "artifact_dir": str(self.runs_repository.base_dir / run_id),
             "data_fingerprint": data_profile["data_fingerprint"],
         }
+        self._emit_progress(
+            progress_callback,
+            phase="persisting",
+            message="Persisting run artifacts.",
+            percent=90.0,
+        )
         persisted = self._persist_run(
             run_id=run_id,
             request_payload=request_payload or {},
@@ -130,6 +155,12 @@ class RunBacktestService:
             }
         )
         persisted.response_path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
+        self._emit_progress(
+            progress_callback,
+            phase="completed",
+            message="Backtest run completed.",
+            percent=100.0,
+        )
         return response
 
     def run_trial(
@@ -204,7 +235,7 @@ class RunBacktestService:
         """Generate a trades CSV for a persisted run and strategy."""
         return self.runs_repository.build_trades_csv(run_id, strategy_name)
 
-    def _load_config(self, request: BacktestRequest) -> AppConfig:
+    def _load_config(self, request: BacktestRunInput) -> AppConfig:
         config_path = request.config_path or "configs/martingale.yaml"
         if not Path(config_path).exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -231,6 +262,20 @@ class RunBacktestService:
             config.backtest.selic_path = request.selic_path
         if request.selic_fallback_rate is not None:
             config.backtest.selic_fallback_rate = request.selic_fallback_rate
+        if request.fee_rate is not None:
+            config.backtest.fee_rate = request.fee_rate
+        if request.fixed_fee is not None:
+            config.backtest.fixed_fee = request.fixed_fee
+        if request.buy_slippage is not None:
+            config.backtest.buy_slippage = request.buy_slippage
+        if request.sell_slippage is not None:
+            config.backtest.sell_slippage = request.sell_slippage
+        if request.max_volume_participation is not None:
+            config.backtest.max_volume_participation = request.max_volume_participation
+        if request.allow_partial_fills is not None:
+            config.backtest.allow_partial_fills = request.allow_partial_fills
+        if request.min_fill_quantity is not None:
+            config.backtest.min_fill_quantity = request.min_fill_quantity
 
         if request.benchmarks is not None:
             config.backtest.benchmarks = [
@@ -288,6 +333,7 @@ class RunBacktestService:
                 start=config.backtest.start_date,
                 end=config.backtest.end_date,
                 cache_path=cache_path,
+                data_source=config.backtest.data_source,
             )
         for line in stdout_buffer.getvalue().splitlines():
             logger.info("market-data: %s", line)
@@ -322,56 +368,55 @@ class RunBacktestService:
         hashed = pd.util.hash_pandas_object(data, index=True)
         return hashlib.sha256(hashed.values.tobytes()).hexdigest()
 
-    def _build_buy_hold_curve(
-        self, data: pd.DataFrame, initial_capital: float
-    ) -> list[EquityPoint]:
-        initial_price = float(data.iloc[0]["Close"])
-        curve: list[EquityPoint] = []
-
-        for timestamp, row in data.iterrows():
-            current_price = float(row["Close"])
-            buy_hold_value = initial_capital * (current_price / initial_price)
-            curve.append(
-                EquityPoint(
-                    timestamp=timestamp.isoformat(),
-                    equity=buy_hold_value,
-                    cash=initial_capital,
-                )
-            )
-
-        return curve
-
     def _build_response(
         self,
         *,
         config: AppConfig,
         strategies_to_run,
         data: pd.DataFrame,
+        progress_callback: ProgressCallback | None = None,
+        should_cancel: CancellationProbe | None = None,
     ) -> BacktestResponse:
-        buy_hold_equity = self._build_buy_hold_curve(data, config.backtest.initial_capital)
-        results = self._run_strategies(config, strategies_to_run, data)
-        benchmarks = self._process_benchmarks(config)
-
-        return BacktestResponse(
-            results=results,
-            buy_hold_equity=buy_hold_equity,
-            benchmarks=benchmarks if benchmarks else None,
-            data_info={
-                "start_date": data.index[0].isoformat(),
-                "end_date": data.index[-1].isoformat(),
-                "total_days": len(data),
-                "initial_price": float(data.iloc[0]["Close"]),
-                "final_price": float(data.iloc[-1]["Close"]),
-            },
-            run_info={},
+        return self.response_serializer.build_response(
+            config=config,
+            strategies_to_run=strategies_to_run,
+            data=data,
+            strategy_runner=lambda resolved_config, resolved_strategies, resolved_data: (
+                self._run_strategies(
+                    resolved_config,
+                    resolved_strategies,
+                    resolved_data,
+                    progress_callback=progress_callback,
+                    should_cancel=should_cancel,
+                )
+            ),
+            benchmark_loader=self._process_benchmarks,
         )
 
     def _run_strategies(
-        self, config: AppConfig, strategies_to_run, data: pd.DataFrame
-    ) -> dict[str, StrategyResult]:
-        results: dict[str, StrategyResult] = {}
+        self,
+        config: AppConfig,
+        strategies_to_run,
+        data: pd.DataFrame,
+        *,
+        progress_callback: ProgressCallback | None = None,
+        should_cancel: CancellationProbe | None = None,
+    ) -> dict[str, Any]:
+        results: dict[str, Any] = {}
+        total_strategies = len(strategies_to_run)
 
-        for strategy_config in strategies_to_run:
+        for index, strategy_config in enumerate(strategies_to_run, start=1):
+            self._raise_if_cancelled(should_cancel)
+            base_percent = 35.0
+            percent = base_percent + (50.0 * (index - 1) / max(total_strategies, 1))
+            self._emit_progress(
+                progress_callback,
+                phase="strategy",
+                message=f"Running strategy {strategy_config.name} ({index}/{total_strategies}).",
+                percent=percent,
+                current_step=index,
+                total_steps=total_strategies,
+            )
             strategy = load_strategy(strategy_config)
             engine = BacktestEngine(
                 initial_cash=config.backtest.initial_capital,
@@ -381,62 +426,66 @@ class RunBacktestService:
                 use_real_selic=config.backtest.use_real_selic,
                 selic_path=config.backtest.selic_path,
                 selic_fallback_rate=config.backtest.selic_fallback_rate,
+                fee_rate=config.backtest.fee_rate,
+                fixed_fee=config.backtest.fixed_fee,
+                buy_slippage=config.backtest.buy_slippage,
+                sell_slippage=config.backtest.sell_slippage,
+                max_volume_participation=config.backtest.max_volume_participation,
+                allow_partial_fills=config.backtest.allow_partial_fills,
+                min_fill_quantity=config.backtest.min_fill_quantity,
             )
 
             result = engine.run(data, strategy)
-            equity_points = [
-                EquityPoint(
-                    timestamp=timestamp.isoformat(),
-                    equity=row["equity"],
-                    cash=row["cash"],
-                )
-                for timestamp, row in result["equity"].iterrows()
-            ]
-
-            trades = [
-                self._serialize_trade(trade_row) for _, trade_row in result["trades"].iterrows()
-            ]
-            metrics = calculate_metrics(
-                result["equity"]["equity"],
-                result["trades"],
-                config.backtest.initial_capital,
-                total_interest_earned=result.get("total_interest_earned", 0.0),
-            )
-
-            selic_rates_used = None
-            selic_rates_dict = result.get("selic_rates_used", {})
-            if selic_rates_dict:
-                selic_rates_used = [
-                    {"year": year, "month": month, "rate": rate}
-                    for (year, month), rate in selic_rates_dict.items()
-                ]
-
-            results[strategy_config.name] = StrategyResult(
+            results[strategy_config.name] = self.response_serializer.build_strategy_result(
                 strategy_name=strategy_config.name,
-                equity=equity_points,
-                trades=trades,
-                metrics=StrategyMetrics(
-                    total_return=metrics["total_return"],
-                    cagr=metrics["cagr"],
-                    sharpe_ratio=metrics["sharpe_ratio"],
-                    sortino_ratio=metrics["sortino_ratio"],
-                    max_drawdown=metrics["max_drawdown"],
-                    hit_rate=metrics["hit_rate"],
-                    profit_factor=metrics["profit_factor"],
-                    total_trades=metrics["total_trades"],
-                    avg_trade_pnl=metrics["avg_trade_pnl"],
-                    volatility=metrics["volatility"],
-                    total_interest_earned=metrics["total_interest_earned"],
-                    selic_rates_used=selic_rates_used,
-                ),
-                start_price=float(data.iloc[0]["Close"]),
-                end_price=float(data.iloc[-1]["Close"]),
+                result=result,
+                initial_capital=config.backtest.initial_capital,
+                data=data,
+            )
+            percent = 35.0 + (50.0 * index / max(total_strategies, 1))
+            self._emit_progress(
+                progress_callback,
+                phase="strategy",
+                message=f"Finished strategy {strategy_config.name}.",
+                percent=percent,
+                current_step=index,
+                total_steps=total_strategies,
             )
 
         return results
 
-    def _process_benchmarks(self, config: AppConfig) -> dict[str, BenchmarkResult]:
-        benchmark_results: dict[str, BenchmarkResult] = {}
+    def _emit_progress(
+        self,
+        progress_callback: ProgressCallback | None,
+        *,
+        phase: str,
+        message: str,
+        percent: float,
+        current_step: int | None = None,
+        total_steps: int | None = None,
+    ) -> None:
+        if progress_callback is None:
+            return
+
+        payload: dict[str, Any] = {
+            "phase": phase,
+            "message": message,
+            "percent": percent,
+        }
+        if current_step is not None:
+            payload["current_step"] = current_step
+        if total_steps is not None:
+            payload["total_steps"] = total_steps
+        progress_callback(payload)
+
+    def _raise_if_cancelled(self, should_cancel: CancellationProbe | None) -> None:
+        if should_cancel is not None and should_cancel():
+            from src.bitcoin_martingale.application.backtest_jobs import BacktestJobCancelledError
+
+            raise BacktestJobCancelledError("Backtest run cancelled")
+
+    def _process_benchmarks(self, config: AppConfig) -> dict[str, object]:
+        benchmark_results: dict[str, object] = {}
 
         if not (
             config.backtest.benchmarks
@@ -460,10 +509,12 @@ class RunBacktestService:
 
                     for ticker, benchmark_data_frame in benchmark_data.items():
                         benchmark_config = next(b for b in enabled_benchmarks if b.ticker == ticker)
-                        benchmark_results[benchmark_config.name] = self._serialize_benchmark(
-                            name=benchmark_config.name,
-                            ticker=ticker,
-                            benchmark_data=benchmark_data_frame,
+                        benchmark_results[benchmark_config.name] = (
+                            self.response_serializer.serialize_benchmark(
+                                name=benchmark_config.name,
+                                ticker=ticker,
+                                benchmark_data=benchmark_data_frame,
+                            )
                         )
 
             if config.backtest.include_selic_benchmark:
@@ -476,7 +527,7 @@ class RunBacktestService:
                     selic_fallback_rate=config.backtest.selic_fallback_rate,
                     cache_dir=config.backtest.cache_path.replace("/btc_brl.parquet", ""),
                 )
-                benchmark_results["SELIC"] = self._serialize_benchmark(
+                benchmark_results["SELIC"] = self.response_serializer.serialize_benchmark(
                     name="SELIC",
                     ticker="SELIC",
                     benchmark_data=selic_data,
@@ -486,65 +537,12 @@ class RunBacktestService:
 
         return benchmark_results
 
-    def _serialize_trade(self, trade_row: pd.Series) -> Trade:
-        layer_value = trade_row.get("layer")
-        if pd.isna(layer_value):
-            layer_value = None
-        elif isinstance(layer_value, float) and layer_value.is_integer():
-            layer_value = int(layer_value)
-
-        pnl_value = trade_row.get("pnl")
-        if pd.isna(pnl_value):
-            pnl_value = None
-
-        return Trade(
-            timestamp=trade_row["timestamp"].isoformat(),
-            action=trade_row["action"],
-            price=trade_row["price"],
-            quantity=trade_row["quantity"],
-            pnl=pnl_value,
-            layer=layer_value,
-        )
-
-    def _serialize_benchmark(
-        self, *, name: str, ticker: str, benchmark_data: dict[str, Any]
-    ) -> BenchmarkResult:
-        equity_points = [
-            EquityPoint(
-                timestamp=timestamp.isoformat(),
-                equity=row["equity"],
-                cash=0.0,
-            )
-            for timestamp, row in benchmark_data["equity_curve"].iterrows()
-        ]
-
-        metrics = benchmark_data["metrics"]
-        return BenchmarkResult(
-            name=name,
-            ticker=ticker,
-            equity=equity_points,
-            metrics=StrategyMetrics(
-                total_return=metrics["total_return"],
-                cagr=metrics["cagr"],
-                sharpe_ratio=metrics["sharpe_ratio"],
-                sortino_ratio=0.0,
-                max_drawdown=metrics["max_drawdown"],
-                hit_rate=0.0,
-                profit_factor=0.0,
-                total_trades=0,
-                avg_trade_pnl=0.0,
-                volatility=metrics["volatility"],
-                total_interest_earned=0.0,
-                selic_rates_used=None,
-            ),
-        )
-
     def _persist_run(
         self,
         *,
         run_id: str,
         request_payload: dict[str, Any],
-        response: BacktestResponse,
+        response: Any,
         config_path: str,
         config_snapshot: dict[str, Any],
         data_profile: dict[str, Any],

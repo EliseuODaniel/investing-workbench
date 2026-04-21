@@ -1,7 +1,7 @@
 # Final Status
 
-Last updated: `2026-03-23T09:32:01-03:00`
-Reference commit: `c4b40a2`
+Last updated: `2026-03-24T19:30:00-03:00`
+Reference point: repository state validated locally on `2026-03-24`
 
 ## Project State
 
@@ -16,6 +16,9 @@ Delivered areas:
 - Analytics extracted into reusable analyzers.
 - Frontend workspace for persisted run history, comparison, sharing, and exports.
 - PNG export, HTML report download, and CSV trade export flows.
+- Unified experiment registry across API, CLI, and frontend.
+- Saved research workspaces with persistence, lineage context, and report export.
+- Shared report contract for research workspaces across API, CLI, and frontend.
 - Frontend performance hardening with lazy loading and manual chunking.
 - Frontend dependency and security hardening with `npm audit` clean.
 
@@ -56,6 +59,15 @@ Status at handoff:
 - Frontend production build passing.
 - Frontend `npm audit` reporting `0 vulnerabilities`.
 
+Local verification on `2026-03-24`:
+- `./.venv/bin/pytest -q` passing
+- `./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py` passing
+- `./.venv/bin/mypy src/bitcoin_martingale` passing
+- `cd frontend && npm run lint` passing
+- `cd frontend && npm test -- --run` passing
+- `cd frontend && npm run build` passing
+- `cd frontend && npm audit --json` reporting `0 vulnerabilities`
+
 ## Key User-Facing Capabilities
 
 - Run backtests through API, CLI, or React UI.
@@ -63,6 +75,10 @@ Status at handoff:
 - List and reopen historical runs.
 - Compare up to three persisted runs in the frontend.
 - Share runs through `?run=<run_id>` permalinks.
+- Inspect normalized experiments across runs, optimizations, walk-forward validations, and Monte Carlo jobs.
+- Save curated research workspaces and reopen them later.
+- Export research workspace reports as JSON, Markdown, or HTML through API and CLI.
+- Review the same research workspace report contract inside the frontend Report View.
 - Export persisted trades as CSV.
 - Download persisted HTML reports.
 - Export the current frontend results workspace as PNG.
@@ -76,6 +92,7 @@ Status at handoff:
 - Supported datasets now expose persisted refresh policies, due-state tracking, and manual batch refresh execution.
 - The frontend now includes a didactic interpretation layer for reading strategy results with explicit return-vs-risk guidance.
 - The frontend quick actions now export a complete JSON project bundle for the current run.
+- The frontend now includes saved research workspaces, executive snapshots, report exports, and a server-backed report view.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
 - The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
 
@@ -83,9 +100,9 @@ Status at handoff:
 
 If the project continues, the highest-value optional items are:
 - Parameter optimization with Optuna.
-- Frontend views for walk-forward and Monte Carlo workflows.
 - Monte Carlo robustness storytelling and warnings inside the UI.
-- Dataset import/refresh and stronger quality validation workflows.
 - Optional background refresh workers and notifications.
 - A fuller user guide focused on interpreting strategy results.
 - Visual polish and deeper dashboard storytelling.
+- Architectural consolidation of legacy entrypoints into thinner adapters.
+- Frontend decomposition beyond the current single-shell composition.

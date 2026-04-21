@@ -1,6 +1,6 @@
 import { BookOpen, ShieldAlert, Sparkles, Target } from 'lucide-react';
 import { StrategyResult } from '../types/api';
-import { buildResultsInterpretation } from '../lib/resultNarrative';
+import { buildResultsInterpretation } from '../lib/result-narrative';
 
 interface ResultsInterpretationPanelProps {
   results: Record<string, StrategyResult>;

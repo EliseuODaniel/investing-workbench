@@ -1,6 +1,6 @@
 # Bitcoin Martingale Backtesting Framework
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
 [![React](https://img.shields.io/badge/React-18.2+-61dafb.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2+-blue.svg)](https://typescriptlang.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
@@ -14,7 +14,9 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - Repository-level agent guidance lives in `AGENTS.md`.
 - Codex workflows, skills, and review conventions live in `docs/codex_workflows.md`, `docs/code_review.md`, and `.agents/skills/`.
 - Final handoff status and remaining optional backlog live in `docs/FINAL_STATUS.md`.
+- The latest Codex resume point for in-progress work lives in `docs/CODEX_HANDOFF.md`.
 - Evolution planning for the next product cycle lives in `docs/EVOLUTION_V2.md`.
+- The current execution plan for the next cycle lives in `docs/MASTER_PLAN.md`.
 
 ## 🌟 Features
 
@@ -24,7 +26,7 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - **Extensible Architecture**: Easy to add custom strategies with clean abstractions
 
 ### 🚀 Modern Technology Stack
-- **Backend**: Python 3.10+ with FastAPI, pandas, and Plotly
+- **Backend**: Python 3.12+ with FastAPI, pandas, and Plotly
 - **Frontend**: React 18 + TypeScript with interactive visualizations
 - **Data**: Yahoo Finance integration with intelligent caching (Parquet format)
 - **Testing**: Comprehensive test suite with pytest and vitest
@@ -33,7 +35,7 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - **Performance Metrics**: CAGR, Sharpe ratio, maximum drawdown, hit rate, profit factor, and more
 - **Interactive Charts**: Equity curves, drawdown analysis, allocation heatmaps, and trade markers
 - **Risk Management**: Position sizing, layer management, and portfolio exposure tracking
-- **Realistic Execution**: Candle-level backtesting with conservative slippage modeling
+- **Realistic Execution**: Candle-level backtesting with fees, per-side slippage, optional liquidity caps, and auditable fills
 - **Cash Yield**: Optional SELIC-based yield on uninvested cash for more realistic returns
 - **Export Capabilities**: CSV downloads and HTML reports
 
@@ -45,6 +47,17 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - **Performance Metrics**: Calculate CAGR, Sharpe ratio, and drawdown for all benchmarks
 - **Visual Comparison**: Side-by-side charts and ranking tables
 
+### 🇧🇷 B3 Research Labs
+- **Pairs Trading B3**: Cointegration screener, batch backtests, and robustness comparisons for long-short research on Brazilian equities
+- **Universe Builder**: Curated IBOV proxy presets, an official `ibov_historical` preset resolved from B3 BDI PDFs, plus custom B3 tickers, quality diagnostics, and short-eligibility heuristics
+- **Better Local Benchmarks**: BOVA11, ^BVSP, equal-weight universe, and SELIC cash proxy available in the pairs workflow
+- **Data Quality Dashboard**: Coverage, liquidity, price, and proxy borrow diagnostics exposed through API, CLI, and frontend
+- **Versioned Snapshot Cache**: Official IBOV snapshots imported from B3 are cached under `data/index_universes/ibov/` by resolved as-of date
+- **Dynamic IBOV Reconstitution**: Backtests using `ibov_historical` can rotate the universe across later official B3 rebalance snapshots inside the same run, with the executed segment plan persisted in the result payload
+- **Snapshot Tooling**: API and CLI commands can list, inspect, and backfill cached official IBOV snapshots for auditability and offline reuse
+- **Borrow Snapshot Overrides**: Universe diagnostics and backtests can load a local CSV with per-ticker borrow rate, short availability, and margin haircut overrides
+- **Portfolio Construction Controls**: Pairs backtests now support `equal_notional` and `risk_parity` sizing plus explicit gross, net, and sector concentration caps
+
 ### 🎯 Production-Ready Features
 - **RESTful API**: Full API for integration with external systems
 - **Web Interface**: Intuitive React-based UI with dark mode support
@@ -55,21 +68,24 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 
 ```
 bitcoin-martingale/
-├── src/                              # Core Python backend
+├── src/                              # Legacy-compatible Python runtime and entrypoints
 │   ├── api/                          # FastAPI web backend
-│   ├── strategies/                   # Trading strategy implementations
-│   ├── engine.py                     # Backtesting engine core
-│   ├── data.py                       # Data download and caching
-│   ├── metrics.py                    # Performance calculations
-│   └── cli.py                        # Command-line interface
-├── frontend/                         # React web interface
-│   ├── components/                   # UI components
-│   ├── lib/                         # API client and utilities
-│   └── types/                       # TypeScript definitions
-├── configs/                          # Strategy configuration files
-├── tests/                           # Test suite
-├── data/                            # Data cache
-└── reports/                         # Generated reports
+│   ├── strategies/                   # Current strategy implementations
+│   ├── engine.py                     # Legacy-compatible engine entrypoint
+│   └── cli.py                        # Legacy-compatible CLI entrypoint
+├── src/bitcoin_martingale/           # New application/domain/infrastructure architecture
+├── frontend/                         # React + TypeScript research workspace
+├── configs/                          # Strategy and optimization presets
+├── tests/                            # Backend test suite
+├── data/                             # Managed datasets and caches
+│   └── index_universes/              # Cached official index-universe snapshots
+├── runs/                             # Persisted backtest artifacts
+├── pairs_backtests/                  # Persisted B3 pairs-trading artifacts
+├── optimizations/                    # Persisted optimization artifacts
+├── walkforward/                      # Persisted walk-forward artifacts
+├── montecarlo/                       # Persisted Monte Carlo artifacts
+├── allocation_workspaces/           # Persisted portfolio rebalance workspaces
+└── docs/                             # Product, architecture, and workflow documentation
 ```
 
 ## 🚀 Quick Start
@@ -93,8 +109,23 @@ uvicorn src.api.main:app --reload --port 8001
 ```bash
 # Open new terminal
 cd frontend
+nvm use  # or any Node 22.x runtime that honors frontend/.nvmrc
 npm install
 npm run dev
+```
+
+If you want heavy async jobs to run outside the API process, start the backend in detached mode and
+run a dedicated worker:
+
+```bash
+export BITCOIN_MARTINGALE_BACKTEST_JOB_EXECUTION_MODE=detached
+uvicorn src.api.main:app --reload --port 8001
+
+# Open another terminal
+python -m src backtest-jobs-worker --poll-interval 1.0
+
+# Run this worker too if you queue async B3 pairs jobs
+python -m src pairs-backtest-jobs-worker --poll-interval 1.0
 ```
 
 3. **Access Web Interface**
@@ -128,19 +159,40 @@ make frontend-test
 make frontend-build
 ```
 
+Direct equivalents:
+
+```bash
+./.venv/bin/pytest -q
+./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
+./.venv/bin/mypy src/bitcoin_martingale
+cd frontend && npm run lint
+cd frontend && npm test -- --run
+cd frontend && npm run build
+```
+
 ### Persisted Runs
 
 - Every `POST /backtest` call now persists a run manifest and serialized response under `runs/<run_id>/`.
+- Heavy backtests can also be queued through `POST /backtest/jobs`, then monitored with `GET /backtest/jobs` and `GET /backtest/jobs/{job_id}`.
+- Async jobs support cancellation and retry through `POST /backtest/jobs/{job_id}/cancel` and `POST /backtest/jobs/{job_id}/resume`.
+- Queued or running async jobs are now recovered automatically after a process restart and re-queued with a new attempt count.
+- Async jobs can also run in detached mode through `BITCOIN_MARTINGALE_BACKTEST_JOB_EXECUTION_MODE=detached` plus `python -m src backtest-jobs-worker`.
+- Completed async jobs expose the same persisted payload contract through `GET /backtest/jobs/{job_id}/response`.
 - The API response includes `run_info.run_id`, `artifact_dir`, artifact paths, and a `data_fingerprint`.
 - The API exposes `GET /runs`, `GET /runs/{run_id}`, `GET /runs/{run_id}/response`, `GET /runs/{run_id}/config`, `GET /runs/{run_id}/data-profile`, and `GET /runs/{run_id}/report.html`.
 - Trades can be exported from a persisted run with `GET /runs/{run_id}/strategies/{strategy_name}/trades.csv`.
 - The legacy route `GET /reports/{strategy}/download` now downloads trades for the newest persisted run containing that strategy.
 - The frontend can now select up to 3 persisted runs and compare their best-performing strategies side by side.
+- The frontend `Operacao` workspace now includes a Backtest Jobs panel with queue status, progress, cancellation, and resume controls.
 - Persisted runs can also be shared and reopened directly via `?run=<run_id>` links in the frontend.
 - The frontend now exports the current results workspace as PNG and downloads persisted HTML reports directly.
 - The frontend now lazy-loads heavy analytics panels and vendor bundles, reducing the initial application payload.
 - The frontend dependency stack is hardened, the production build is clean, and `npm audit` is currently at `0 vulnerabilities`.
+- Frontend scripts now pin the supported runtime to Node 22.x through `frontend/.nvmrc`, `frontend/.node-version`, and `package.json` engines.
+- The frontend CI job now uses the same pinned Node 22.x runtime as the local developer workflow, so `npm run validate` matches GitHub Actions behavior.
 - The CLI now includes `python -m src runs-list`, `python -m src runs-show --run-id <id>`, `python -m src runs-config --run-id <id>`, and `python -m src runs-export-csv --run-id <id> --strategy "<name>"`.
+- The CLI now includes `python -m src backtest-jobs-list`, `python -m src backtest-jobs-show --job-id <id>`, and `python -m src backtest-jobs-worker --once|--poll-interval <seconds>`.
 - Optimization planning is available with `python -m src optimize-plan --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml`.
 - Optimization execution is now persisted with `python -m src optimize-run --config configs/test.yaml --strategies "Simple Martingale" --space-file configs/optimization_simple_martingale.yaml --objective total_return`.
 - Persisted optimization jobs can be inspected with `python -m src optimizations-list`, `python -m src optimizations-show --optimization-id <id>`, and `python -m src optimizations-results --optimization-id <id>`.
@@ -148,8 +200,21 @@ make frontend-build
 - Walk-forward validation is now available with `python -m src walkforward-run --config configs/test.yaml --strategies "Simple Martingale" --train-days 45 --test-days 20 --step-days 20`.
 - Monte Carlo robustness analysis is now available with `python -m src montecarlo-run --config configs/test.yaml --strategies "Simple Martingale" --simulations 250 --method bootstrap`.
 - Persisted Monte Carlo jobs can be inspected with `python -m src montecarlo-list`, `python -m src montecarlo-show --montecarlo-id <id>`, and `python -m src montecarlo-results --montecarlo-id <id>`.
-- The frontend now includes Walk-Forward Lab and Monte Carlo Lab workspaces for executing and reviewing robustness jobs directly from the UI.
+- The frontend now includes Walk-Forward Lab, Monte Carlo Lab, and a dedicated Pairs Trading B3 workspace for executing and reviewing robustness jobs directly from the UI.
+- The platform now exposes B3 pairs-trading through `GET /pairs/universes`, `GET /pairs/ibov-snapshots`, `GET /pairs/ibov-snapshots/{as_of_date}`, `POST /pairs/ibov-snapshots/backfill`, `POST /pairs/universe/resolve`, `POST /pairs/screener`, `POST /pairs/backtests`, `POST /pairs/backtests/jobs`, `POST /pairs/backtests/jobs/batch`, `GET /pairs/backtests/jobs`, `GET /pairs/backtests/jobs/{job_id}`, `GET /pairs/backtests`, and `GET /pairs/backtests/{pairs_backtest_id}/results`.
+- `ibov_historical` resolves official B3 IBOV snapshots from BDI PDFs, caches the parsed constituents locally, and automatically reconstitutes the universe across later official snapshots when the backtest period spans multiple B3 review windows.
+- The curated pairs presets now also include tighter sector sleeves such as `banks_core`, `oil_gas_core`, `metals_core`, and `consumer_domestic_core` for more disciplined pair discovery.
+- `pairs-backtest` and `pairs-backtest-batch` now accept portfolio controls such as `--portfolio-construction risk_parity`, `--target-pair-volatility-annual`, `--max-gross-exposure-pct`, `--max-net-exposure-pct`, `--max-sector-pairs`, and `--borrow-snapshot-path`.
+- Async pairs jobs support the same queue lifecycle as core backtests, including `cancel`, `resume`, detached worker execution, persisted progress events, and `GET /pairs/backtests/jobs/{job_id}/response` once the linked result is ready.
+- The CLI now includes `python -m src pairs-universes`, `python -m src pairs-ibov-snapshots`, `python -m src pairs-ibov-snapshot-show --as-of-date YYYY-MM-DD`, `python -m src pairs-ibov-snapshots-backfill --start-date YYYY-MM-DD --end-date YYYY-MM-DD`, `python -m src pairs-universe-resolve`, `python -m src pairs-screen`, `python -m src pairs-backtest`, `python -m src pairs-backtest-batch`, `python -m src pairs-backtest-job`, `python -m src pairs-backtest-job-batch`, `python -m src pairs-backtest-jobs-list`, `python -m src pairs-backtest-jobs-show --job-id <id>`, `python -m src pairs-backtest-jobs-worker`, and `python -m src pairs-backtests-list`.
+- Borrow snapshot CSVs passed through `borrow_snapshot_path` are now copied into the managed dataset catalog as `data/pairs_borrow__*.csv`, tracked with provenance, and exposed through the Dataset Manager alongside other governed datasets. Pairs universe diagnostics keep the original `borrow_snapshot_path` and also expose `borrow_snapshot_managed_path` plus `borrow_snapshot_dataset_id`.
 - The frontend now includes a unified Research Overview panel that summarizes persisted optimization, walk-forward, and Monte Carlo workflows in one place.
+- The platform now exposes a normalized experiment registry through `GET /experiments`, `GET /experiments/{experiment_type}/{experiment_id}`, `python -m src experiments-list`, and `python -m src experiments-show`, and it now includes persisted B3 pairs artifacts under `experiment_type=pairs_backtest`.
+- Curated research workspaces can now be saved, reopened, edited, imported, and exported across API, CLI, and frontend.
+- The API now exposes `GET /research-workspaces`, `POST /research-workspaces`, `GET /research-workspaces/{workspace_id}`, `PATCH /research-workspaces/{workspace_id}`, `POST /research-workspaces/import`, and `GET /research-workspaces/{workspace_id}/report?format=json|markdown|html`.
+- The CLI now includes `python -m src research-workspaces-list`, `python -m src research-workspaces-show --workspace-id <id>`, and `python -m src research-workspaces-export --workspace-id <id> --format markdown|html|json`.
+- The frontend now includes Saved Research Workspaces with search, sorting, metadata editing, import/export, executive snapshots, and a dedicated Report View backed by the same server-side report contract used by the API and CLI.
+- The Pairs Trading workspace now exposes rejection diagnostics in the screener, alpha decomposition in scenario summaries, and a research batch builder for sensitivity runs directly from the UI.
 - The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
 - The Dataset Manager now supports importing local CSV/Parquet files into `data/`, refreshing supported cached datasets, and exposing richer validation diagnostics.
 - The frontend now includes a Research Drilldown panel that cross-checks optimization winners against walk-forward behavior and Monte Carlo tail risk.
@@ -157,6 +222,9 @@ make frontend-build
 - Supported datasets can now store a persisted refresh policy, show when they are due, and be refreshed in batch through the API, CLI, and Dataset Manager.
 - The frontend now includes a guided interpretation panel that explains return vs risk trade-offs and helps users read each run more critically.
 - The quick actions panel now exports a full JSON project bundle with request, response, artifacts, and warnings for the current run.
+- Portfolio allocation planning is now available through `POST /allocations/rebalance-plan` and `python -m src allocations-plan --input allocation.json`.
+- A lightweight platform status snapshot is now available through `GET /system/status` and `python -m src system-status --format text|json`, including async `job_counts`, execution mode, worker runtime capacity, and the latest persisted backtest and pairs-trading artifact ids.
+- Saved allocation workspaces are now available through `GET|POST /allocations/workspaces`, `GET|PATCH /allocations/workspaces/{workspace_id}`, and `POST /allocations/workspaces/import`, with a dedicated `Alocacao` section in the frontend.
 
 ### Option 3: Python API
 
@@ -227,6 +295,11 @@ backtest:
   apply_cash_yield: false     # Optional: Enable SELIC cash yield
   selic_rate_annual: 0.13    # Annual SELIC rate (13%)
   yield_frequency: "monthly"  # Compounding frequency
+  fee_rate: 0.0003            # Optional: percentage fee per trade
+  buy_slippage: 0.0005        # Optional: buy-side execution slippage
+  sell_slippage: 0.0005       # Optional: sell-side execution slippage
+  max_volume_participation: 0.10  # Optional: cap fill size to 10% of bar volume
+  allow_partial_fills: true
 
 strategies:
   - name: "Risk-Cap Martingale"
@@ -338,17 +411,29 @@ python -m src run --config configs/martingale.yaml \
 The framework implements a conservative execution model to avoid look-ahead bias and unrealistic backtesting results:
 
 - **Signal Detection**: Strategies use high/low prices to detect trading opportunities (touch levels, breakouts, reversals)
-- **Trade Execution**: All trades execute at the candle's close price with default slippage of 0.05% (configurable)
-- **Slippage Model**: Conservative bid-ask spread simulation to account for real-world trading costs
+- **Trade Execution**: Orders execute at the candle close with configurable buy-side and sell-side slippage
+- **Transaction Costs**: Percentage fees and fixed fees can be applied directly in the engine
+- **Liquidity Constraints**: Optional participation caps can limit how much of each bar volume is executable
+- **Partial Fill Support**: Orders can be partially filled or rejected when liquidity is insufficient
+- **Audit Trail**: Each fill, partial fill, and rejection is recorded in `execution_log`
+- **Decision Surface**: Runs also expose `execution_summary` and human-readable `warnings` when liquidity assumptions affect results
 - **No Perfect Fills**: Eliminates unrealistic perfect-timing assumptions common in backtesting
 
 ### Execution Parameters
 
 | Parameter | Default | Description | Impact |
 |-----------|---------|-------------|--------|
-| `slippage` | 0.0005 (0.05%) | Price execution adjustment per trade | Reduces unrealistic profits |
+| `fee_rate` | 0.0 | Percentage fee applied to each trade | Models exchange and broker costs |
+| `fixed_fee` | 0.0 | Fixed cash cost per executed order | Captures ticket-like fees |
+| `buy_slippage` | 0.0 | Positive slippage applied to buy executions | Avoids optimistic entry prices |
+| `sell_slippage` | 0.0 | Negative slippage applied to sell executions | Avoids optimistic exit prices |
+| `max_volume_participation` | `None` | Max share of bar volume available to the strategy | Enforces liquidity realism |
+| `allow_partial_fills` | `True` | Allows orders to fill only the executable quantity | Preserves liquidity constraints without forcing rejection |
+| `min_fill_quantity` | 0.0 | Minimum quantity required for a partial fill | Avoids dust fills |
 | `price_source` | Close price | Execution price for all trades | Conservative fill modeling |
 | `signal_source` | High/Low prices | Level detection for triggers | Maintains signal accuracy |
+
+When `max_volume_participation` is configured, the engine uses bar volume to cap executable quantity. If the requested size exceeds available liquidity, the order is partially filled when `allow_partial_fills=True` and rejected otherwise. The resulting `execution_log`, `execution_summary`, and `warnings` make those assumptions explicit in every run artifact.
 
 This approach provides more realistic backtesting results while maintaining the simplicity and speed of daily-data backtesting.
 
@@ -622,7 +707,12 @@ Content-Type: application/json
   "initial_capital": 30000,
   "force_download": false,
   "apply_cash_yield": true,
-  "selic_rate_annual": 0.13
+  "selic_rate_annual": 0.13,
+  "fee_rate": 0.0003,
+  "buy_slippage": 0.0005,
+  "sell_slippage": 0.0005,
+  "max_volume_participation": 0.10,
+  "allow_partial_fills": true
 }
 ```
 
@@ -640,10 +730,21 @@ Content-Type: application/json
         "hit_rate": 0.8543,
         "profit_factor": 2.1456,
         "total_trades": 142,
-        "total_interest_earned": 1847.32
+        "total_interest_earned": 1847.32,
+        "total_fees_paid": 96.40
       },
+      "execution_summary": {
+        "fill_count": 141,
+        "partial_fill_count": 1,
+        "rejected_order_count": 0,
+        "liquidity_constrained": true
+      },
+      "warnings": [
+        "One or more orders were partially filled due to configured liquidity limits."
+      ],
       "equity": [...],
-      "trades": [...]
+      "trades": [...],
+      "execution_log": [...]
     }
   },
   "buy_hold_equity": [...],
@@ -651,7 +752,10 @@ Content-Type: application/json
     "start_date": "2020-01-01",
     "end_date": "2023-12-31",
     "total_days": 1456
-  }
+  },
+  "warnings": [
+    "Risk-Cap Martingale: One or more orders were partially filled due to configured liquidity limits."
+  ]
 }
 ```
 
@@ -677,7 +781,7 @@ Content-Type: application/json
 ### System Requirements
 
 - **Python**: 3.10+ (recommended: 3.11+)
-- **Node.js**: 16+ (recommended: 18+)
+- **Node.js**: 22.x
 - **Memory**: Minimum 4GB RAM (8GB+ recommended)
 - **Storage**: 1GB+ for data cache and reports
 - **OS**: Windows, macOS, Linux
@@ -747,8 +851,8 @@ python -m src validate --config configs/martingale.yaml
 # Test backend
 python -c "from src.api.main import app; print('✅ Backend ready')"
 
-# Test frontend build
-cd frontend && npm run build
+# Test frontend validation
+cd frontend && npm run validate
 ```
 
 ## 🐛 Troubleshooting

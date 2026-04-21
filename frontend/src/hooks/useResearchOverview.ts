@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../lib/api';
 import {
+  ExperimentRegistryRecord,
   MonteCarloManifest,
   OptimizationManifest,
   WalkForwardManifest,
 } from '../types/api';
 
 export function useResearchOverview(onError: (message: string | null) => void) {
+  const [experiments, setExperiments] = useState<ExperimentRegistryRecord[]>([]);
   const [optimizations, setOptimizations] = useState<OptimizationManifest[]>([]);
   const [walkForwardExecutions, setWalkForwardExecutions] = useState<WalkForwardManifest[]>([]);
   const [monteCarloExecutions, setMonteCarloExecutions] = useState<MonteCarloManifest[]>([]);
@@ -15,16 +17,19 @@ export function useResearchOverview(onError: (message: string | null) => void) {
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [optimizationResponse, walkForwardResponse, monteCarloResponse] =
+      const [experimentResponse, optimizationResponse, walkForwardResponse, monteCarloResponse] =
         await Promise.all([
+          apiClient.listExperiments(),
           apiClient.listOptimizations(),
           apiClient.listWalkForwardExecutions(),
           apiClient.listMonteCarloExecutions(),
         ]);
 
+      setExperiments(experimentResponse);
       setOptimizations(optimizationResponse);
       setWalkForwardExecutions(walkForwardResponse);
       setMonteCarloExecutions(monteCarloResponse);
+      onError(null);
     } catch (error: any) {
       onError(error.response?.data?.detail || 'Failed to load research overview');
     } finally {
@@ -37,6 +42,7 @@ export function useResearchOverview(onError: (message: string | null) => void) {
   }, [refresh]);
 
   return {
+    experiments,
     optimizations,
     walkForwardExecutions,
     monteCarloExecutions,

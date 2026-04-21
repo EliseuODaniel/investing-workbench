@@ -1,14 +1,16 @@
 """Configuration management for backtesting."""
 
-import yaml
-from pathlib import Path
-from typing import Dict, Any, List
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List
+
+import yaml
 
 
 @dataclass
 class BenchmarkConfig:
     """Configuration for a market benchmark."""
+
     ticker: str
     name: str
     enabled: bool = True
@@ -17,6 +19,7 @@ class BenchmarkConfig:
 @dataclass
 class BacktestConfig:
     """Configuration for backtest execution."""
+
     initial_capital: float = 30000.0
     start_date: str = "2020-01-01"
     end_date: str = None  # None means today
@@ -29,6 +32,13 @@ class BacktestConfig:
     use_real_selic: bool = False
     selic_path: str = "data/selic.csv"
     selic_fallback_rate: float = 0.13
+    fee_rate: float = 0.0
+    fixed_fee: float = 0.0
+    buy_slippage: float = 0.0
+    sell_slippage: float = 0.0
+    max_volume_participation: float | None = None
+    allow_partial_fills: bool = True
+    min_fill_quantity: float = 0.0
     benchmarks: List[BenchmarkConfig] = None
     include_selic_benchmark: bool = False
     include_buy_hold_benchmark: bool = True
@@ -37,6 +47,7 @@ class BacktestConfig:
 @dataclass
 class StrategyConfig:
     """Configuration for a trading strategy."""
+
     name: str
     class_path: str
     parameters: Dict[str, Any]
@@ -45,6 +56,7 @@ class StrategyConfig:
 @dataclass
 class AppConfig:
     """Application configuration."""
+
     backtest: BacktestConfig
     strategies: List[StrategyConfig]
     plotting: Dict[str, Any] = None
@@ -75,7 +87,7 @@ class AppConfig:
             benchmark = BenchmarkConfig(
                 ticker=benchmark_data["ticker"],
                 name=benchmark_data["name"],
-                enabled=benchmark_data.get("enabled", True)
+                enabled=benchmark_data.get("enabled", True),
             )
             benchmarks.append(benchmark)
 
@@ -121,11 +133,18 @@ class AppConfig:
                 "use_real_selic": self.backtest.use_real_selic,
                 "selic_path": self.backtest.selic_path,
                 "selic_fallback_rate": self.backtest.selic_fallback_rate,
+                "fee_rate": self.backtest.fee_rate,
+                "fixed_fee": self.backtest.fixed_fee,
+                "buy_slippage": self.backtest.buy_slippage,
+                "sell_slippage": self.backtest.sell_slippage,
+                "max_volume_participation": self.backtest.max_volume_participation,
+                "allow_partial_fills": self.backtest.allow_partial_fills,
+                "min_fill_quantity": self.backtest.min_fill_quantity,
                 "benchmarks": [
                     {
                         "ticker": benchmark.ticker,
                         "name": benchmark.name,
-                        "enabled": benchmark.enabled
+                        "enabled": benchmark.enabled,
                     }
                     for benchmark in (self.backtest.benchmarks or [])
                 ],
@@ -171,17 +190,19 @@ def load_strategy(config: StrategyConfig):
             # Import from src.strategies
             module_name = f"src.{module_path}"
             import importlib
+
             module = importlib.import_module(module_name)
         else:
             # Absolute import
             import importlib
+
             module = importlib.import_module(module_path)
 
         strategy_class = getattr(module, class_name)
         return strategy_class(**config.parameters)
 
     except (ImportError, AttributeError) as e:
-        raise ImportError(f"Failed to load strategy {config.class_path}: {e}")
+        raise ImportError(f"Failed to load strategy {config.class_path}: {e}") from e
 
 
 def create_default_config() -> AppConfig:

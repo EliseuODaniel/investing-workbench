@@ -54,6 +54,10 @@ def test_run_service_persists_manifest_and_response(tmp_path: Path) -> None:
     assert response_payload["run_info"]["run_id"] == run_id
     assert response_payload["run_info"]["data_fingerprint"] == data_profile["data_fingerprint"]
     assert response_payload["run_info"]["report_path"].endswith("report.html")
+    assert "warnings" in response_payload
+    first_result = next(iter(response_payload["results"].values()))
+    assert "execution_summary" in first_result
+    assert "warnings" in first_result
     assert config_snapshot["backtest"]["start_date"] == "2023-01-01"
     assert data_profile["row_count"] > 0
     assert run_id in report_html
@@ -73,6 +77,7 @@ def test_run_manifest_and_response_can_be_read_via_repository(tmp_path: Path) ->
 
     assert manifest["run_id"] == run_id
     assert response_payload["run_info"]["run_id"] == run_id
+    assert "warnings" in response_payload
     assert config_snapshot["strategies"]
     assert data_profile["data_fingerprint"]
 

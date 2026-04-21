@@ -1,16 +1,17 @@
 """Plotting utilities for backtest visualization."""
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import pandas as pd
-import numpy as np
-from typing import Dict, List, Optional, Any
-from pathlib import Path
-from datetime import datetime
 import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import pandas as pd
 
 try:
     import mplfinance as mpf
+
     MPLFINANCE_AVAILABLE = True
 except ImportError:
     MPLFINANCE_AVAILABLE = False
@@ -42,13 +43,21 @@ def plot_equity_comparison(
 
     # Plot benchmark if provided
     if benchmark is not None:
-        ax.plot(benchmark.index, benchmark.values, label="Buy & Hold",
-                color="gray", linestyle="--", alpha=0.7)
+        ax.plot(
+            benchmark.index,
+            benchmark.values,
+            label="Buy & Hold",
+            color="gray",
+            linestyle="--",
+            alpha=0.7,
+        )
 
     ax.set_title(title, fontsize=14, fontweight="bold")
     ax.set_xlabel("Date")
     ax.set_ylabel("Portfolio Value ($)")
-    ax.legend()
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend()
     ax.grid(True, alpha=0.3)
 
     # Format x-axis dates
@@ -82,9 +91,9 @@ def plot_price_with_trades(
     Returns:
         matplotlib Figure object
     """
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8),
-                                   gridspec_kw={"height_ratios": [3, 1]},
-                                   sharex=True)
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(12, 8), gridspec_kw={"height_ratios": [3, 1]}, sharex=True
+    )
 
     # Plot price
     ax1.plot(price_data.index, price_data.values, color="black", linewidth=1, alpha=0.7)
@@ -218,8 +227,7 @@ def plot_drawdown(
     ax1.grid(True, alpha=0.3)
 
     # Plot drawdown
-    ax2.fill_between(drawdown.index, drawdown.values * 100, 0,
-                     color="red", alpha=0.6)
+    ax2.fill_between(drawdown.index, drawdown.values * 100, 0, color="red", alpha=0.6)
     ax2.plot(drawdown.index, drawdown.values * 100, color="red", linewidth=1)
     ax2.set_title(f"{title} - Max Drawdown: {drawdown.min():.2%}")
     ax2.set_ylabel("Drawdown (%)")
@@ -258,8 +266,15 @@ def plot_layer_allocation_heatmap(
     fig, ax = plt.subplots(figsize=(12, 6))
 
     if len(trades) == 0:
-        ax.text(0.5, 0.5, "No trades to visualize",
-                ha="center", va="center", transform=ax.transAxes, fontsize=12)
+        ax.text(
+            0.5,
+            0.5,
+            "No trades to visualize",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=12,
+        )
         ax.set_title(title)
         ax.axis("off")
     else:
@@ -276,6 +291,7 @@ def plot_layer_allocation_heatmap(
             if not pivot_data.empty:
                 try:
                     import seaborn as sns
+
                     sns.heatmap(pivot_data.T, annot=True, fmt="d", cmap="YlOrRd", ax=ax)
                 except ImportError:
                     # Fallback to matplotlib heatmap
@@ -295,13 +311,27 @@ def plot_layer_allocation_heatmap(
                 ax.set_xlabel("Month")
                 ax.set_ylabel("Layer ID")
             else:
-                ax.text(0.5, 0.5, "Insufficient layer data for heatmap",
-                        ha="center", va="center", transform=ax.transAxes, fontsize=12)
+                ax.text(
+                    0.5,
+                    0.5,
+                    "Insufficient layer data for heatmap",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                    fontsize=12,
+                )
                 ax.set_title(title)
                 ax.axis("off")
         else:
-            ax.text(0.5, 0.5, "No layer information available",
-                    ha="center", va="center", transform=ax.transAxes, fontsize=12)
+            ax.text(
+                0.5,
+                0.5,
+                "No layer information available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=12,
+            )
             ax.set_title(title)
             ax.axis("off")
 
@@ -342,80 +372,80 @@ def plot_candlesticks_with_trades(
 
     if indicators:
         # Moving Averages
-        if 'ma_short' in indicators:
+        if "ma_short" in indicators:
             ma_short = mpf.make_addplot(
-                indicators['ma_short'],
-                type='line',
-                color='blue',
+                indicators["ma_short"],
+                type="line",
+                color="blue",
                 width=1.5,
                 alpha=0.8,
-                label=f"MA {indicators.get('ma_short_period', 'N/A')}"
+                label=f"MA {indicators.get('ma_short_period', 'N/A')}",
             )
             addplot.append(ma_short)
 
-        if 'ma_long' in indicators:
+        if "ma_long" in indicators:
             ma_long = mpf.make_addplot(
-                indicators['ma_long'],
-                type='line',
-                color='red',
+                indicators["ma_long"],
+                type="line",
+                color="red",
                 width=1.5,
                 alpha=0.8,
-                label=f"MA {indicators.get('ma_long_period', 'N/A')}"
+                label=f"MA {indicators.get('ma_long_period', 'N/A')}",
             )
             addplot.append(ma_long)
 
         # Bollinger Bands
-        if 'bb_upper' in indicators and 'bb_lower' in indicators:
+        if "bb_upper" in indicators and "bb_lower" in indicators:
             bb_upper = mpf.make_addplot(
-                indicators['bb_upper'],
-                type='line',
-                color='orange',
+                indicators["bb_upper"],
+                type="line",
+                color="orange",
                 width=1,
                 alpha=0.6,
-                label='BB Upper'
+                label="BB Upper",
             )
             bb_lower = mpf.make_addplot(
-                indicators['bb_lower'],
-                type='line',
-                color='orange',
+                indicators["bb_lower"],
+                type="line",
+                color="orange",
                 width=1,
                 alpha=0.6,
-                label='BB Lower'
+                label="BB Lower",
             )
             bb_middle = mpf.make_addplot(
-                indicators.get('bb_middle', indicators['bb_upper']),
-                type='line',
-                color='gray',
+                indicators.get("bb_middle", indicators["bb_upper"]),
+                type="line",
+                color="gray",
                 width=1,
                 alpha=0.5,
-                label='BB Middle'
+                label="BB Middle",
             )
             addplot.extend([bb_upper, bb_middle, bb_lower])
 
         # Support/Resistance levels
-        if 'support_levels' in indicators:
-            for i, level in enumerate(indicators['support_levels']):
+        if "support_levels" in indicators:
+            for i, level in enumerate(indicators["support_levels"]):
                 support_line = mpf.make_addplot(
                     pd.Series(level, index=ohlcv_data.index),
-                    type='line',
-                    color='green',
+                    type="line",
+                    color="green",
                     width=1,
                     alpha=0.5,
-                    linestyle='--',
-                    label=f'Support {i+1}'
+                    linestyle="--",
+                    label=f"Support {i+1}",
                 )
                 addplot.append(support_line)
 
-        if 'resistance_levels' in indicators:
-            for i, level in enumerate(indicators['resistance_levels']):
+        if "resistance_levels" in indicators:
+            for i, level in enumerate(indicators["resistance_levels"]):
                 resistance_line = mpf.make_addplot(
                     pd.Series(level, index=ohlcv_data.index),
-                    type='line',
-                    color='red',
+                    type="line",
+                    color="red",
                     width=1,
                     alpha=0.5,
-                    linestyle='--',
-                    label=f'Resistance {i+1}'
+                    linestyle="--",
+                    label=f"Resistance {i+1}",
                 )
                 addplot.append(resistance_line)
 
@@ -438,7 +468,7 @@ def plot_candlesticks_with_trades(
                 marker="^",
                 color="lime",
                 alpha=0.8,
-                label="Buy"
+                label="Buy",
             )
             addplot.append(buy_scatter)
 
@@ -454,7 +484,7 @@ def plot_candlesticks_with_trades(
                 marker="v",
                 color="red",
                 alpha=0.8,
-                label="Sell"
+                label="Sell",
             )
             addplot.append(sell_scatter)
 
@@ -468,7 +498,7 @@ def plot_candlesticks_with_trades(
         if len(addplot) > 8:
             # Keep only essential plots (first 8)
             addplot = addplot[:8]
-            print(f"Warning: Limiting to 8 addplots for mplfinance compatibility")
+            print("Warning: Limiting to 8 addplots for mplfinance compatibility")
 
         # Configure plot appearance
         kwargs = {
@@ -480,24 +510,20 @@ def plot_candlesticks_with_trades(
             "figratio": (16, 10),
             "figscale": 1.1,
             "tight_layout": True,
-            "warn_too_much_data": len(ohlcv_data) > 50000,
+            "warn_too_much_data": max(len(ohlcv_data) + 1, 10_000),
         }
 
         if addplot:
             kwargs["addplot"] = addplot
 
         # Plot using mplfinance
-        fig, axes = mpf.plot(
-            ohlcv_data,
-            **kwargs,
-            returnfig=True
-        )
+        fig, axes = mpf.plot(ohlcv_data, **kwargs, returnfig=True)
 
         # Add legend if we have indicators or trades
-        if addplot and hasattr(axes[0], 'legend'):
+        if addplot and hasattr(axes[0], "legend"):
             handles, labels = axes[0].get_legend_handles_labels()
             if handles:  # Only add legend if there are items to show
-                axes[0].legend(handles, labels, loc='upper left', framealpha=0.9)
+                axes[0].legend(handles, labels, loc="upper left", framealpha=0.9)
 
         # Save if path provided
         if save_path:
@@ -530,42 +556,83 @@ def _plot_candlesticks_fallback(
     Returns:
         matplotlib Figure object
     """
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8),
-                                   gridspec_kw={"height_ratios": [3, 1]},
-                                   sharex=True)
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(14, 8), gridspec_kw={"height_ratios": [3, 1]}, sharex=True
+    )
 
     # Plot candlesticks as lines (simplified)
-    ax1.plot(ohlcv_data.index, ohlcv_data["Close"], label="Close Price", linewidth=1.5, color="black", alpha=0.8)
+    ax1.plot(
+        ohlcv_data.index,
+        ohlcv_data["Close"],
+        label="Close Price",
+        linewidth=1.5,
+        color="black",
+        alpha=0.8,
+    )
 
     # Add high-low range
-    ax1.fill_between(ohlcv_data.index, ohlcv_data["High"], ohlcv_data["Low"],
-                     alpha=0.2, color="gray", label="High-Low Range")
+    ax1.fill_between(
+        ohlcv_data.index,
+        ohlcv_data["High"],
+        ohlcv_data["Low"],
+        alpha=0.2,
+        color="gray",
+        label="High-Low Range",
+    )
 
     # Add technical indicators
     if indicators:
-        if 'ma_short' in indicators:
-            ax1.plot(ohlcv_data.index, indicators['ma_short'],
-                    color='blue', linewidth=1.5, alpha=0.8,
-                    label=f"MA {indicators.get('ma_short_period', 'N/A')}")
+        if "ma_short" in indicators:
+            ax1.plot(
+                ohlcv_data.index,
+                indicators["ma_short"],
+                color="blue",
+                linewidth=1.5,
+                alpha=0.8,
+                label=f"MA {indicators.get('ma_short_period', 'N/A')}",
+            )
 
-        if 'ma_long' in indicators:
-            ax1.plot(ohlcv_data.index, indicators['ma_long'],
-                    color='red', linewidth=1.5, alpha=0.8,
-                    label=f"MA {indicators.get('ma_long_period', 'N/A')}")
+        if "ma_long" in indicators:
+            ax1.plot(
+                ohlcv_data.index,
+                indicators["ma_long"],
+                color="red",
+                linewidth=1.5,
+                alpha=0.8,
+                label=f"MA {indicators.get('ma_long_period', 'N/A')}",
+            )
 
-        if 'bb_upper' in indicators and 'bb_lower' in indicators:
-            ax1.plot(ohlcv_data.index, indicators['bb_upper'],
-                    color='orange', linewidth=1, alpha=0.6, label='BB Upper')
-            ax1.plot(ohlcv_data.index, indicators['bb_lower'],
-                    color='orange', linewidth=1, alpha=0.6, label='BB Lower')
-            if 'bb_middle' in indicators:
-                ax1.plot(ohlcv_data.index, indicators['bb_middle'],
-                        color='gray', linewidth=1, alpha=0.5, label='BB Middle')
+        if "bb_upper" in indicators and "bb_lower" in indicators:
+            ax1.plot(
+                ohlcv_data.index,
+                indicators["bb_upper"],
+                color="orange",
+                linewidth=1,
+                alpha=0.6,
+                label="BB Upper",
+            )
+            ax1.plot(
+                ohlcv_data.index,
+                indicators["bb_lower"],
+                color="orange",
+                linewidth=1,
+                alpha=0.6,
+                label="BB Lower",
+            )
+            if "bb_middle" in indicators:
+                ax1.plot(
+                    ohlcv_data.index,
+                    indicators["bb_middle"],
+                    color="gray",
+                    linewidth=1,
+                    alpha=0.5,
+                    label="BB Middle",
+                )
 
     ax1.set_title(title, fontsize=14, fontweight="bold")
     ax1.set_ylabel("Price ($)")
     ax1.grid(True, alpha=0.3)
-    ax1.legend(loc='upper left')
+    ax1.legend(loc="upper left")
 
     # Add trade markers
     if len(trades) > 0:
@@ -574,20 +641,38 @@ def _plot_candlesticks_fallback(
         sells = trades_with_index[trades_with_index["action"] == "SELL"]
 
         if len(buys) > 0:
-            ax1.scatter(buys.index, buys["price"], marker="^", color="lime",
-                      s=120, label="Buy", alpha=0.9, zorder=5, edgecolors='darkgreen')
+            ax1.scatter(
+                buys.index,
+                buys["price"],
+                marker="^",
+                color="lime",
+                s=120,
+                label="Buy",
+                alpha=0.9,
+                zorder=5,
+                edgecolors="darkgreen",
+            )
 
         if len(sells) > 0:
-            ax1.scatter(sells.index, sells["price"], marker="v", color="red",
-                      s=120, label="Sell", alpha=0.9, zorder=5, edgecolors='darkred')
+            ax1.scatter(
+                sells.index,
+                sells["price"],
+                marker="v",
+                color="red",
+                s=120,
+                label="Sell",
+                alpha=0.9,
+                zorder=5,
+                edgecolors="darkred",
+            )
 
     # Volume subplot
-    if 'Volume' in ohlcv_data.columns:
+    if "Volume" in ohlcv_data.columns:
         ax2.bar(ohlcv_data.index, ohlcv_data["Volume"], alpha=0.6, color="blue")
         ax2.set_ylabel("Volume")
         ax2.set_title("Trading Volume")
     else:
-        ax2.axis('off')
+        ax2.axis("off")
 
     # Format x-axis dates
     ax2.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
@@ -657,7 +742,7 @@ def create_strategy_report(
         )
 
         # Enhanced candlestick chart with trades and indicators (if price_data is OHLCV)
-        if all(col in price_data.columns for col in ['Open', 'High', 'Low', 'Close']):
+        if all(col in price_data.columns for col in ["Open", "High", "Low", "Close"]):
             # Filter price_data to match equity period
             start_date = equity.index.min()
             end_date = equity.index.max()
@@ -665,7 +750,9 @@ def create_strategy_report(
 
             if len(filtered_price_data) > 0:
                 # Extract technical indicators from strategy if available
-                indicators = _extract_strategy_indicators(strategy_name, result, filtered_price_data)
+                indicators = _extract_strategy_indicators(
+                    strategy_name, result, filtered_price_data
+                )
 
                 plot_candlesticks_with_trades(
                     filtered_price_data,
@@ -697,7 +784,7 @@ def create_interactive_html_report(
     price_data: pd.DataFrame,
     output_dir: str = "reports",
     config_info: Optional[Dict[str, Any]] = None,
-    filename: str = "interactive_backtest_report.html"
+    filename: str = "interactive_backtest_report.html",
 ) -> str:
     """Create interactive HTML report for backtest results.
 
@@ -716,10 +803,7 @@ def create_interactive_html_report(
 
         generator = HTMLReportGenerator(output_dir)
         report_path = generator.generate_comprehensive_report(
-            results=results,
-            price_data=price_data,
-            config_info=config_info,
-            filename=filename
+            results=results, price_data=price_data, config_info=config_info, filename=filename
         )
 
         return report_path
@@ -737,7 +821,7 @@ def create_comprehensive_backtest_report(
     output_dir: str = "reports",
     config_info: Optional[Dict[str, Any]] = None,
     generate_html: bool = True,
-    generate_pngs: bool = True
+    generate_pngs: bool = True,
 ) -> Dict[str, str]:
     """Create comprehensive backtest report with both HTML and PNG outputs.
 
@@ -760,9 +844,7 @@ def create_comprehensive_backtest_report(
     # Generate interactive HTML report
     if generate_html:
         try:
-            html_path = create_interactive_html_report(
-                results, price_data, output_dir, config_info
-            )
+            html_path = create_interactive_html_report(results, price_data, output_dir, config_info)
             generated_files["html_report"] = html_path
         except Exception as e:
             print(f"Warning: HTML report generation failed: {e}")
@@ -780,7 +862,7 @@ def create_comprehensive_backtest_report(
         summary_data = {
             "generated_at": datetime.now().isoformat(),
             "strategies": list(results.keys()),
-            "summary_stats": {}
+            "summary_stats": {},
         }
 
         for strategy_name, result in results.items():
@@ -788,7 +870,7 @@ def create_comprehensive_backtest_report(
                 summary_data["summary_stats"][strategy_name] = result["metrics"]
 
         summary_path = output_path / "summary.json"
-        with open(summary_path, 'w') as f:
+        with open(summary_path, "w") as f:
             json.dump(summary_data, f, indent=2, default=str)
 
         generated_files["summary_json"] = str(summary_path)
@@ -802,7 +884,9 @@ def create_comprehensive_backtest_report(
     return generated_files
 
 
-def _extract_strategy_indicators(strategy_name: str, result: Dict[str, Any], price_data: pd.DataFrame) -> Optional[Dict[str, Any]]:
+def _extract_strategy_indicators(
+    strategy_name: str, result: Dict[str, Any], price_data: pd.DataFrame
+) -> Optional[Dict[str, Any]]:
     """Extract technical indicators from strategy results for plotting.
 
     Args:
@@ -825,7 +909,7 @@ def _extract_strategy_indicators(strategy_name: str, result: Dict[str, Any], pri
             ma_history = result["strategy"]["ma_history"]
             if ma_history:
                 ma_df = pd.DataFrame(ma_history).set_index("timestamp")
-                ma_df = ma_df.reindex(price_data.index, method='ffill')
+                ma_df = ma_df.reindex(price_data.index, method="ffill")
 
                 if "short_ma" in ma_df.columns:
                     indicators["ma_short"] = ma_df["short_ma"]
@@ -841,7 +925,7 @@ def _extract_strategy_indicators(strategy_name: str, result: Dict[str, Any], pri
             ind_history = result["strategy"]["indicators_history"]
             if ind_history:
                 ind_df = pd.DataFrame(ind_history).set_index("timestamp")
-                ind_df = ind_df.reindex(price_data.index, method='ffill')
+                ind_df = ind_df.reindex(price_data.index, method="ffill")
 
                 if "sma" in ind_df.columns:
                     indicators["ma_short"] = ind_df["sma"]
@@ -850,7 +934,9 @@ def _extract_strategy_indicators(strategy_name: str, result: Dict[str, Any], pri
                 if "upper_band" in ind_df.columns and "lower_band" in ind_df.columns:
                     indicators["bb_upper"] = ind_df["upper_band"]
                     indicators["bb_lower"] = ind_df["lower_band"]
-                    indicators["bb_middle"] = ind_df["sma"] if "sma" in ind_df.columns else ind_df["upper_band"]
+                    indicators["bb_middle"] = (
+                        ind_df["sma"] if "sma" in ind_df.columns else ind_df["upper_band"]
+                    )
 
     # Breakout strategies
     elif "breakout" in strategy_lower:
@@ -867,7 +953,7 @@ def _extract_strategy_indicators(strategy_name: str, result: Dict[str, Any], pri
             atr_history = result["strategy"]["atr_history"]
             if atr_history:
                 atr_df = pd.DataFrame(atr_history).set_index("timestamp")
-                atr_df = atr_df.reindex(price_data.index, method='ffill')
+                atr_df = atr_df.reindex(price_data.index, method="ffill")
 
                 if "atr" in atr_df.columns:
                     # Show ATR as bands around price (upper/lower volatility bands)

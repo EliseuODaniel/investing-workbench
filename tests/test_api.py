@@ -1,29 +1,52 @@
 """Tests for FastAPI backend."""
 
 import json
+import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.models import BacktestRequest
+from src.bitcoin_martingale.application.backtest_jobs import BacktestJobService
 from src.bitcoin_martingale.application.datasets import DatasetCatalogService
+from src.bitcoin_martingale.application.experiments import ExperimentRegistryService
 from src.bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from src.bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
     OptimizationPlanningService,
 )
+from src.bitcoin_martingale.application.research_workspaces import ResearchWorkspaceService
 from src.bitcoin_martingale.application.runs import RunBacktestService
 from src.bitcoin_martingale.application.walkforward import WalkForwardValidationService
 from src.bitcoin_martingale.infrastructure.persistence import (
+    LocalBacktestJobsRepository,
     LocalMonteCarloRepository,
     LocalOptimizationsRepository,
+    LocalPairsBacktestsRepository,
+    LocalResearchWorkspacesRepository,
     LocalRunsRepository,
     LocalWalkForwardRepository,
 )
+from tests.support import override_api_services
 
 client = TestClient(app)
+
+
+def _wait_for_job_status(
+    job_id: str, expected_status: str, timeout_seconds: float = 5.0
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        response = client.get(f"/backtest/jobs/{job_id}")
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] == expected_status:
+            return payload
+        time.sleep(0.05)
+    raise AssertionError(f"Timed out waiting for {job_id} to reach status {expected_status}")
 
 
 class TestConfigsEndpoint:
@@ -72,11 +95,12 @@ class TestDatasetsEndpoint:
 
     def test_import_dataset(self, tmp_path):
         source_path = tmp_path / "import.csv"
-        source_path.write_text("Date,Open,High,Low,Close\n2024-01-01,1,2,0.5,1.5\n", encoding="utf-8")
+        source_path.write_text(
+            "Date,Open,High,Low,Close\n2024-01-01,1,2,0.5,1.5\n", encoding="utf-8"
+        )
 
-        with patch(
-            "src.api.main.dataset_service",
-            DatasetCatalogService(data_dir=tmp_path / "data"),
+        with override_api_services(
+            dataset_service=DatasetCatalogService(data_dir=tmp_path / "data")
         ):
             response = client.post(
                 "/datasets/import",
@@ -106,7 +130,7 @@ class TestDatasetsEndpoint:
         patched_dataset_service = DatasetCatalogService(data_dir=data_dir)
         dataset_id = patched_dataset_service.list_datasets()[0]["dataset_id"]
 
-        with patch("src.api.main.dataset_service", patched_dataset_service):
+        with override_api_services(dataset_service=patched_dataset_service):
             policy_response = client.post(
                 f"/datasets/{dataset_id}/refresh-policy",
                 json={
@@ -122,7 +146,7 @@ class TestDatasetsEndpoint:
         metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
 
         with (
-            patch("src.api.main.dataset_service", patched_dataset_service),
+            override_api_services(dataset_service=patched_dataset_service),
             patch(
                 "src.bitcoin_martingale.application.datasets.service.get_data",
                 return_value=pd.DataFrame({"Close": [1.0]}),
@@ -137,6 +161,55 @@ class TestDatasetsEndpoint:
         assert due_response.json()[0]["dataset_id"] == dataset_id
         assert execute_due_response.status_code == 200
         assert execute_due_response.json()[0]["dataset_id"] == dataset_id
+
+
+class TestAllocationsEndpoint:
+    """Test portfolio allocation endpoints."""
+
+    def test_rebalance_plan_success(self):
+        response = client.post(
+            "/allocations/rebalance-plan",
+            json={
+                "cash": 2000.0,
+                "holdings": [
+                    {"asset": "BTC-BRL", "quantity": 0.05},
+                    {"asset": "ETH-USD", "quantity": 2.0},
+                ],
+                "prices": {
+                    "BTC-BRL": 60000.0,
+                    "ETH-USD": 2000.0,
+                    "SPY": 900.0,
+                },
+                "targets": [
+                    {"asset": "BTC-BRL", "target_weight": 0.5},
+                    {"asset": "ETH-USD", "target_weight": 0.2},
+                    {"asset": "SPY", "target_weight": 0.1},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["needs_rebalance"] is True
+        assert payload["target_cash"] == pytest.approx(1800.0)
+        assert any(
+            action["asset"] == "ETH-USD" and action["action"] == "sell"
+            for action in payload["actions"]
+        )
+
+    def test_rebalance_plan_rejects_missing_prices(self):
+        response = client.post(
+            "/allocations/rebalance-plan",
+            json={
+                "cash": 1000.0,
+                "holdings": [{"asset": "BTC-BRL", "quantity": 0.1}],
+                "prices": {},
+                "targets": [{"asset": "BTC-BRL", "target_weight": 0.5}],
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Missing prices" in response.json()["detail"]
 
 
 class TestBacktestEndpoint:
@@ -160,6 +233,58 @@ class TestBacktestEndpoint:
         # We just test it doesn't return a routing error
         assert response.status_code in [400, 404, 500]
         assert "detail" in response.json()
+
+    def test_backtest_response_exposes_execution_contract(self, tmp_path):
+        repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        patched_service = RunBacktestService(runs_repository=repository)
+
+        with override_api_services(run_service=patched_service):
+            response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert "warnings" in payload
+        first_result = next(iter(payload["results"].values()))
+        assert "execution_summary" in first_result
+        assert "warnings" in first_result
+        assert "execution_log" in first_result
+
+
+class TestBacktestJobsEndpoint:
+    """Test async backtest job endpoints."""
+
+    def test_async_backtest_job_lifecycle(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        run_service = RunBacktestService(runs_repository=runs_repository)
+        job_service = BacktestJobService(
+            run_service=run_service,
+            jobs_repository=LocalBacktestJobsRepository(base_dir=tmp_path / "jobs"),
+            max_workers=1,
+        )
+
+        with override_api_services(
+            run_service=run_service,
+            backtest_job_service=job_service,
+        ):
+            create_response = client.post(
+                "/backtest/jobs", json={"config_path": "configs/test.yaml"}
+            )
+
+            assert create_response.status_code == 200
+            job_payload = create_response.json()
+            assert job_payload["status"] in {"queued", "running"}
+
+            completed_payload = _wait_for_job_status(job_payload["job_id"], "completed")
+            assert completed_payload["result_available"] is True
+            assert completed_payload["run_id"]
+
+            list_response = client.get("/backtest/jobs")
+            assert list_response.status_code == 200
+            assert any(item["job_id"] == job_payload["job_id"] for item in list_response.json())
+
+            response_payload = client.get(f"/backtest/jobs/{job_payload['job_id']}/response")
+            assert response_payload.status_code == 200
+            assert "results" in response_payload.json()
 
 
 class TestRootEndpoint:
@@ -239,7 +364,7 @@ class TestPersistedRunsEndpoint:
         response_model = patched_service.run(BacktestRequest(config_path="configs/test.yaml"))
         run_id = response_model.run_info["run_id"]
 
-        with patch("src.api.main.service", patched_service):
+        with override_api_services(run_service=patched_service):
             config_response = client.get(f"/runs/{run_id}/config")
             data_profile_response = client.get(f"/runs/{run_id}/data-profile")
 
@@ -256,7 +381,7 @@ class TestPersistedRunsEndpoint:
         run_id = response_model.run_info["run_id"]
         strategy_name = next(iter(response_model.results.keys()))
 
-        with patch("src.api.main.service", patched_service):
+        with override_api_services(run_service=patched_service):
             html_response = client.get(f"/runs/{run_id}/report.html")
             csv_response = client.get(f"/reports/{strategy_name}/download")
 
@@ -302,10 +427,10 @@ class TestOptimizationsEndpoint:
             "objective": "total_return",
         }
 
-        with (
-            patch("src.api.main.service", patched_run_service),
-            patch("src.api.main.optimization_planner", patched_planner),
-            patch("src.api.main.optimization_service", patched_optimization_service),
+        with override_api_services(
+            run_service=patched_run_service,
+            optimization_planner=patched_planner,
+            optimization_service=patched_optimization_service,
         ):
             execute_response = client.post("/optimizations", json=request_data)
 
@@ -323,6 +448,357 @@ class TestOptimizationsEndpoint:
         assert results_response.status_code == 200
         assert len(results_response.json()["ranked_results"]) == 2
 
+    def test_list_experiments_endpoint(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        optimizations_repository = LocalOptimizationsRepository(base_dir=tmp_path / "optimizations")
+        walkforward_repository = LocalWalkForwardRepository(base_dir=tmp_path / "walkforward")
+        montecarlo_repository = LocalMonteCarloRepository(base_dir=tmp_path / "montecarlo")
+
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_optimization_service = OptimizationExecutionService(
+            run_service=patched_run_service,
+            repository=optimizations_repository,
+        )
+        patched_walkforward_service = WalkForwardValidationService(
+            repository=walkforward_repository
+        )
+        patched_montecarlo_service = MonteCarloSimulationService(
+            run_service=patched_run_service,
+            repository=montecarlo_repository,
+            runs_repository=runs_repository,
+        )
+        patched_registry = ExperimentRegistryService(
+            runs_repository=runs_repository,
+            optimizations_repository=optimizations_repository,
+            walkforward_repository=walkforward_repository,
+            montecarlo_repository=montecarlo_repository,
+        )
+
+        optimization_request = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "parameter_space": {"base_bet": {"values": [250.0]}},
+        }
+        walkforward_request = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "train_window_days": 45,
+            "test_window_days": 20,
+            "step_days": 20,
+        }
+        montecarlo_request = {
+            "config_path": "configs/test.yaml",
+            "strategies": ["Simple Martingale"],
+            "simulation_count": 10,
+            "random_seed": 7,
+        }
+
+        with override_api_services(
+            run_service=patched_run_service,
+            optimization_service=patched_optimization_service,
+            walkforward_service=patched_walkforward_service,
+            montecarlo_service=patched_montecarlo_service,
+            experiment_registry_service=patched_registry,
+        ):
+            client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            client.post("/optimizations", json=optimization_request)
+            client.post("/walkforward", json=walkforward_request)
+            client.post("/montecarlo", json=montecarlo_request)
+            experiments_response = client.get("/experiments")
+
+        assert experiments_response.status_code == 200
+        payload = experiments_response.json()
+        experiment_types = {item["experiment_type"] for item in payload}
+        assert {"run", "optimization", "walkforward", "montecarlo"}.issubset(experiment_types)
+        assert all("artifact_dir" in item for item in payload)
+
+    def test_list_experiments_endpoint_supports_filters(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        optimizations_repository = LocalOptimizationsRepository(base_dir=tmp_path / "optimizations")
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_optimization_service = OptimizationExecutionService(
+            run_service=patched_run_service,
+            repository=optimizations_repository,
+        )
+        patched_registry = ExperimentRegistryService(
+            runs_repository=runs_repository,
+            optimizations_repository=optimizations_repository,
+        )
+
+        with override_api_services(
+            run_service=patched_run_service,
+            optimization_service=patched_optimization_service,
+            experiment_registry_service=patched_registry,
+        ):
+            client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            client.post(
+                "/optimizations",
+                json={
+                    "config_path": "configs/test.yaml",
+                    "strategies": ["Simple Martingale"],
+                    "parameter_space": {"base_bet": {"values": [250.0]}},
+                },
+            )
+            filtered_response = client.get(
+                "/experiments",
+                params={"experiment_type": "optimization", "strategy_name": "Simple Martingale"},
+            )
+
+        assert filtered_response.status_code == 200
+        payload = filtered_response.json()
+        assert len(payload) == 1
+        assert payload[0]["experiment_type"] == "optimization"
+
+    def test_experiment_registry_includes_pairs_backtests(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        pairs_repository = LocalPairsBacktestsRepository(base_dir=tmp_path / "pairs_backtests")
+        patched_registry = ExperimentRegistryService(
+            runs_repository=runs_repository,
+            pairs_repository=pairs_repository,
+        )
+        pairs_repository.persist_execution(
+            backtest_id="pairs_1",
+            manifest={
+                "pairs_backtest_id": "pairs_1",
+                "created_at": "2026-04-20T15:00:00+00:00",
+                "preset_id": "ibov_proxy",
+                "preset_label": "IBOV Proxy",
+                "universe_as_of_date": None,
+                "start_date": "2021-01-01",
+                "end_date": None,
+                "requested_tickers": ["PETR4", "PETR3"],
+                "available_tickers": ["PETR4", "PETR3"],
+                "eligible_tickers": ["PETR4", "PETR3"],
+                "scenario_count": 1,
+                "batch_mode": False,
+                "benchmark_ids": ["equal_weight"],
+                "candidate_pair_count": 1,
+                "reconstitution_segment_count": 0,
+                "warnings": [],
+            },
+            results={
+                "pairs_backtest_id": "pairs_1",
+                "created_at": "2026-04-20T15:00:00+00:00",
+                "manifest": {"pairs_backtest_id": "pairs_1"},
+                "preset": {"preset_id": "ibov_proxy"},
+                "universe": {},
+                "candidate_pairs": [],
+                "benchmarks": [],
+                "scenarios": [],
+                "robustness_report": {"rankings": []},
+                "warnings": [],
+            },
+        )
+
+        with override_api_services(
+            experiment_registry_service=patched_registry,
+        ):
+            experiments_response = client.get(
+                "/experiments",
+                params={"experiment_type": "pairs_backtest"},
+            )
+            detail_response = client.get("/experiments/pairs_backtest/pairs_1")
+
+        assert experiments_response.status_code == 200
+        payload = experiments_response.json()
+        assert len(payload) == 1
+        assert payload[0]["experiment_type"] == "pairs_backtest"
+        assert payload[0]["experiment_id"] == "pairs_1"
+        assert detail_response.status_code == 200
+        assert detail_response.json()["record"]["experiment_type"] == "pairs_backtest"
+        assert detail_response.json()["manifest"]["pairs_backtest_id"] == "pairs_1"
+
+    def test_get_experiment_endpoint_returns_detail_payload(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_registry = ExperimentRegistryService(runs_repository=runs_repository)
+
+        with override_api_services(
+            run_service=patched_run_service,
+            experiment_registry_service=patched_registry,
+        ):
+            run_response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            run_id = run_response.json()["run_info"]["run_id"]
+            detail_response = client.get(f"/experiments/run/{run_id}")
+
+        assert detail_response.status_code == 200
+        payload = detail_response.json()
+        assert payload["record"]["experiment_id"] == run_id
+        assert payload["record"]["experiment_type"] == "run"
+        assert payload["manifest"]["run_id"] == run_id
+
+    def test_get_experiment_endpoint_includes_related_experiments(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        montecarlo_repository = LocalMonteCarloRepository(base_dir=tmp_path / "montecarlo")
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_montecarlo_service = MonteCarloSimulationService(
+            run_service=patched_run_service,
+            repository=montecarlo_repository,
+            runs_repository=runs_repository,
+        )
+        patched_registry = ExperimentRegistryService(
+            runs_repository=runs_repository,
+            montecarlo_repository=montecarlo_repository,
+        )
+
+        with override_api_services(
+            run_service=patched_run_service,
+            montecarlo_service=patched_montecarlo_service,
+            experiment_registry_service=patched_registry,
+        ):
+            run_response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            run_id = run_response.json()["run_info"]["run_id"]
+            montecarlo_response = client.post(
+                "/montecarlo",
+                json={
+                    "run_id": run_id,
+                    "strategies": ["Simple Martingale"],
+                    "simulation_count": 10,
+                    "random_seed": 7,
+                },
+            )
+            detail_response = client.get(f"/experiments/run/{run_id}")
+
+        assert montecarlo_response.status_code == 200
+        assert detail_response.status_code == 200
+        payload = detail_response.json()
+        assert len(payload["related_experiments"]) == 1
+        assert payload["related_experiments"][0]["relationship"] == "source_run_for_montecarlo"
+        assert payload["related_experiments"][0]["record"]["experiment_type"] == "montecarlo"
+
+    def test_save_and_list_research_workspaces(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        workspaces_repository = LocalResearchWorkspacesRepository(
+            base_dir=tmp_path / "research_workspaces"
+        )
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_registry = ExperimentRegistryService(runs_repository=runs_repository)
+        patched_workspace_service = ResearchWorkspaceService(
+            repository=workspaces_repository,
+            experiment_registry_service=patched_registry,
+        )
+
+        with override_api_services(
+            run_service=patched_run_service,
+            experiment_registry_service=patched_registry,
+            research_workspace_service=patched_workspace_service,
+        ):
+            run_response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            run_id = run_response.json()["run_info"]["run_id"]
+            save_response = client.post(
+                "/research-workspaces",
+                json={
+                    "name": "Simple run workspace",
+                    "selected_experiment_type": "run",
+                    "selected_experiment_id": run_id,
+                    "anchor_run_id": run_id,
+                },
+            )
+            workspace_id = save_response.json()["workspace_id"]
+            list_response = client.get("/research-workspaces")
+            detail_response = client.get(f"/research-workspaces/{workspace_id}")
+
+        assert save_response.status_code == 200
+        assert save_response.json()["name"] == "Simple run workspace"
+        assert save_response.json()["records"]["selected"]["experiment_id"] == run_id
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["workspace_id"] == workspace_id
+        assert detail_response.status_code == 200
+        assert detail_response.json()["selection"]["anchor_run_id"] == run_id
+
+    def test_update_and_import_research_workspaces(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        workspaces_repository = LocalResearchWorkspacesRepository(
+            base_dir=tmp_path / "research_workspaces"
+        )
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_registry = ExperimentRegistryService(runs_repository=runs_repository)
+        patched_workspace_service = ResearchWorkspaceService(
+            repository=workspaces_repository,
+            experiment_registry_service=patched_registry,
+        )
+
+        with override_api_services(
+            run_service=patched_run_service,
+            experiment_registry_service=patched_registry,
+            research_workspace_service=patched_workspace_service,
+        ):
+            run_response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            run_id = run_response.json()["run_info"]["run_id"]
+            save_response = client.post(
+                "/research-workspaces",
+                json={
+                    "name": "Editable workspace",
+                    "selected_experiment_type": "run",
+                    "selected_experiment_id": run_id,
+                    "anchor_run_id": run_id,
+                },
+            )
+            workspace = save_response.json()
+            workspace_id = workspace["workspace_id"]
+            update_response = client.patch(
+                f"/research-workspaces/{workspace_id}",
+                json={"name": "Updated workspace", "notes": "Saved notes"},
+            )
+            import_response = client.post(
+                "/research-workspaces/import",
+                json={"payload": update_response.json()},
+            )
+
+        assert update_response.status_code == 200
+        assert update_response.json()["name"] == "Updated workspace"
+        assert update_response.json()["notes"] == "Saved notes"
+        assert import_response.status_code == 200
+        assert import_response.json()["workspace_id"] != workspace_id
+        assert import_response.json()["name"] == "Updated workspace"
+
+    def test_export_research_workspace_report_formats(self, tmp_path):
+        runs_repository = LocalRunsRepository(base_dir=tmp_path / "runs")
+        workspaces_repository = LocalResearchWorkspacesRepository(
+            base_dir=tmp_path / "research_workspaces"
+        )
+        patched_run_service = RunBacktestService(runs_repository=runs_repository)
+        patched_registry = ExperimentRegistryService(runs_repository=runs_repository)
+        patched_workspace_service = ResearchWorkspaceService(
+            repository=workspaces_repository,
+            experiment_registry_service=patched_registry,
+        )
+
+        with override_api_services(
+            run_service=patched_run_service,
+            experiment_registry_service=patched_registry,
+            research_workspace_service=patched_workspace_service,
+        ):
+            run_response = client.post("/backtest", json={"config_path": "configs/test.yaml"})
+            run_id = run_response.json()["run_info"]["run_id"]
+            save_response = client.post(
+                "/research-workspaces",
+                json={
+                    "name": "Report workspace",
+                    "selected_experiment_type": "run",
+                    "selected_experiment_id": run_id,
+                    "anchor_run_id": run_id,
+                },
+            )
+            workspace_id = save_response.json()["workspace_id"]
+            json_response = client.get(f"/research-workspaces/{workspace_id}/report")
+            markdown_response = client.get(
+                f"/research-workspaces/{workspace_id}/report?format=markdown"
+            )
+            html_response = client.get(f"/research-workspaces/{workspace_id}/report?format=html")
+
+        assert json_response.status_code == 200
+        assert json_response.json()["workspace"]["workspace_id"] == workspace_id
+        assert json_response.json()["report"]["title"] == "Report workspace"
+
+        assert markdown_response.status_code == 200
+        assert markdown_response.headers["content-type"].startswith("text/markdown")
+        assert "# Report workspace" in markdown_response.text
+
+        assert html_response.status_code == 200
+        assert html_response.headers["content-type"].startswith("text/html")
+        assert "Research Workspace Report" in html_response.text
+
 
 class TestWalkForwardEndpoint:
     """Test walk-forward validation endpoints."""
@@ -338,7 +814,7 @@ class TestWalkForwardEndpoint:
             "step_days": 20,
         }
 
-        with patch("src.api.main.walkforward_service", patched_service):
+        with override_api_services(walkforward_service=patched_service):
             execute_response = client.post("/walkforward", json=request_data)
             walkforward_id = execute_response.json()["walkforward_id"]
             list_response = client.get("/walkforward")
@@ -374,9 +850,9 @@ class TestMonteCarloEndpoint:
             "random_seed": 7,
         }
 
-        with (
-            patch("src.api.main.service", patched_run_service),
-            patch("src.api.main.montecarlo_service", patched_service),
+        with override_api_services(
+            run_service=patched_run_service,
+            montecarlo_service=patched_service,
         ):
             execute_response = client.post("/montecarlo", json=request_data)
             montecarlo_id = execute_response.json()["montecarlo_id"]

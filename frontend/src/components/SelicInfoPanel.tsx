@@ -1,11 +1,12 @@
 import React from 'react';
 import { TrendingUp, DollarSign, Info, FileText, AlertTriangle } from 'lucide-react';
+import { SelicRateUsage } from '../types/api';
 
 interface SelicInfoPanelProps {
   useRealSelic?: boolean;
   selicRateAnnual?: number;
   selicFallbackRate?: number;
-  selicRatesUsed?: Array<{ year: number; month: number; rate: number }>;
+  selicRatesUsed?: SelicRateUsage[];
   totalInterestEarned?: number;
   selicPath?: string;
   capital?: number;
@@ -20,9 +21,29 @@ const SelicInfoPanel: React.FC<SelicInfoPanelProps> = ({
   selicPath,
   capital = 30000,
 }) => {
+  const resolvePeriod = (rate: SelicRateUsage) => {
+    if (rate.period) {
+      return rate.period;
+    }
+    if (rate.year !== undefined && rate.month !== undefined) {
+      return `${rate.year}-${rate.month.toString().padStart(2, '0')}`;
+    }
+    return '';
+  };
+
+  const parsePeriod = (rate: SelicRateUsage) => {
+    const period = resolvePeriod(rate);
+    const [year, month] = period.split('-');
+    return {
+      year: Number.parseInt(year, 10),
+      month: Number.parseInt(month, 10),
+      raw: period,
+    };
+  };
+
   const getUniqueMonths = () => {
     if (!selicRatesUsed) return 0;
-    const uniqueMonths = new Set(selicRatesUsed.map(rate => `${rate.year}-${rate.month}`));
+    const uniqueMonths = new Set(selicRatesUsed.map(rate => resolvePeriod(rate)).filter(Boolean));
     return uniqueMonths.size;
   };
 
@@ -33,7 +54,10 @@ const SelicInfoPanel: React.FC<SelicInfoPanelProps> = ({
 
   const getYearRange = () => {
     if (!selicRatesUsed || selicRatesUsed.length === 0) return null;
-    const years = selicRatesUsed.map(rate => rate.year);
+    const years = selicRatesUsed
+      .map((rate) => parsePeriod(rate).year)
+      .filter((year) => !Number.isNaN(year));
+    if (years.length === 0) return null;
     const minYear = Math.min(...years);
     const maxYear = Math.max(...years);
     return minYear === maxYear ? `${minYear}` : `${minYear}-${maxYear}`;
@@ -160,12 +184,23 @@ const SelicInfoPanel: React.FC<SelicInfoPanelProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {selicRatesUsed.slice(0, 12).map((rate, index) => (
                 <div key={index} className="text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
+                  {(() => {
+                    const parsed = parsePeriod(rate);
+                    const periodLabel =
+                      !Number.isNaN(parsed.year) && !Number.isNaN(parsed.month)
+                        ? `${parsed.month.toString().padStart(2, '0')}/${parsed.year.toString().slice(2)}`
+                        : parsed.raw || 'n/a';
+                    return (
+                      <>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
-                    {rate.rate.toFixed(4)}%
+                    {(rate.rate * 100).toFixed(4)}%
                   </div>
                   <div className="text-gray-500">
-                    {rate.month.toString().padStart(2, '0')}/{rate.year.toString().slice(2)}
+                        {periodLabel}
                   </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
               {selicRatesUsed.length > 12 && (

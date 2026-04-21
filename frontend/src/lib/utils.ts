@@ -47,6 +47,24 @@ export function downloadJSON(data: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: 'application/json;charset=utf-8;',
   });
+  downloadBlob(blob, filename);
+}
+
+export function downloadText(data: string, filename: string): void {
+  const blob = new Blob([data], {
+    type: 'text/plain;charset=utf-8;',
+  });
+  downloadBlob(blob, filename);
+}
+
+export function downloadHTMLDocument(data: string, filename: string): void {
+  const blob = new Blob([data], {
+    type: 'text/html;charset=utf-8;',
+  });
+  downloadBlob(blob, filename);
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
