@@ -51,11 +51,11 @@ export default function BacktestJobsPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Backtest Jobs
+            Processamento em segundo plano
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Execute backtests pesados fora do request principal, acompanhe progresso e retome jobs
-            interrompidos.
+            Esta área só aparece quando existe execução em andamento, falha ou algo que precise da
+            sua atenção.
           </p>
         </div>
         <button

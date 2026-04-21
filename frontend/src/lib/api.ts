@@ -18,6 +18,9 @@ import {
   DatasetSummary,
   ExperimentDetailPayload,
   ExperimentRegistryRecord,
+  InvestmentCatalogPayload,
+  InvestmentCompareRequestPayload,
+  InvestmentComparisonResponsePayload,
   MonteCarloManifest,
   MonteCarloRequestPayload,
   MonteCarloResultsPayload,
@@ -66,6 +69,18 @@ export const apiClient = {
 
   getSystemStatus: async (): Promise<SystemStatusPayload> => {
     const response = await api.get('/system/status');
+    return response.data;
+  },
+
+  getInvestmentCatalog: async (): Promise<InvestmentCatalogPayload> => {
+    const response = await api.get('/investments/catalog');
+    return response.data;
+  },
+
+  compareInvestments: async (
+    request: InvestmentCompareRequestPayload
+  ): Promise<InvestmentComparisonResponsePayload> => {
+    const response = await api.post('/investments/compare', request);
     return response.data;
   },
 

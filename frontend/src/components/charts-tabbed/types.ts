@@ -52,12 +52,14 @@ export interface EquityChartPanelProps {
   visibleBenchmarks: string[];
   equityData: EquityChartPoint[];
   getStrategyColor: (strategyName: string) => string;
+  getBenchmarkColor: (benchmarkName: string) => string;
 }
 
 export interface DrawdownChartPanelProps {
   results: Record<string, StrategyResult>;
   visibleStrategies: string[];
   drawdownData: DrawdownChartPoint[];
+  getStrategyColor: (strategyName: string) => string;
 }
 
 export interface CashChartPanelProps {

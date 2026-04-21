@@ -52,7 +52,8 @@ export function getSelicAverageAnnualRate(result: StrategyResult) {
     return null;
   }
 
-  return (rates.reduce((sum, rate) => sum + rate.rate, 0) / rates.length) * 12;
+  const grossReturn = rates.reduce((acc, rate) => acc * (1 + rate.rate), 1);
+  return grossReturn ** (12 / rates.length) - 1;
 }
 
 export function getSelicPeriodLabel(result: StrategyResult) {

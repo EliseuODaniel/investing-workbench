@@ -60,18 +60,20 @@ const backtestResponse = {
 
 function renderPanel(activeTab: 'summary' | 'charts' | 'trades' | 'details') {
   render(
-    <ResultsTabsPanel
-      activeTab={activeTab}
-      backtestRequest={backtestRequest}
-      backtestResponse={backtestResponse}
-      isLoadingArtifacts={false}
-      onCopyLink={vi.fn()}
-      onCopySummary={vi.fn()}
-      onDownloadCSV={vi.fn()}
-      onDownloadHTML={vi.fn()}
-      onDownloadPNG={vi.fn()}
-      onSaveProject={vi.fn()}
-      onShareResults={vi.fn()}
+      <ResultsTabsPanel
+        activeTab={activeTab}
+        backtestRequest={backtestRequest}
+        backtestResponse={backtestResponse}
+        isLoadingArtifacts={false}
+        latestValidRunId={null}
+        onCopyLink={vi.fn()}
+        onCopySummary={vi.fn()}
+        onDownloadCSV={vi.fn()}
+        onDownloadHTML={vi.fn()}
+        onDownloadPNG={vi.fn()}
+        onOpenLatestValidRun={vi.fn()}
+        onSaveProject={vi.fn()}
+        onShareResults={vi.fn()}
       onToggleAllBenchmarks={vi.fn()}
       onToggleAllStrategies={vi.fn()}
       onToggleBenchmarkVisibility={vi.fn()}
@@ -108,5 +110,53 @@ describe('ResultsTabsPanel', () => {
 
     expect(screen.getByText('Summary Hero')).toBeTruthy();
     expect(screen.getByText('Summary View')).toBeTruthy();
+  });
+
+  it('surfaces a legacy warning when the loaded run is invalidated', () => {
+    const onOpenLatestValidRun = vi.fn();
+    render(
+      <ResultsTabsPanel
+        activeTab="summary"
+        backtestRequest={backtestRequest}
+        backtestResponse={{
+          ...backtestResponse,
+          run_quality: {
+            status: 'legacy_invalid',
+            code: 'selic_monthly_cache_bug',
+            title: 'Run legado invalidado',
+            message: 'Reexecute o estudo com o modelo atual.',
+          },
+        }}
+        isLoadingArtifacts={false}
+        latestValidRunId="run_123"
+        onCopyLink={vi.fn()}
+        onCopySummary={vi.fn()}
+        onDownloadCSV={vi.fn()}
+        onDownloadHTML={vi.fn()}
+        onDownloadPNG={vi.fn()}
+        onOpenLatestValidRun={onOpenLatestValidRun}
+        onSaveProject={vi.fn()}
+        onShareResults={vi.fn()}
+        onToggleAllBenchmarks={vi.fn()}
+        onToggleAllStrategies={vi.fn()}
+        onToggleBenchmarkVisibility={vi.fn()}
+        onToggleStrategyVisibility={vi.fn()}
+        runConfigSnapshot={null}
+        runDataProfile={null}
+        strategyNames={['Simple Martingale']}
+        totalTradesCount={0}
+        visibleStrategies={['Simple Martingale']}
+        visibleBenchmarks={[]}
+        warnings={[]}
+        onSetActiveTab={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Run legado invalidado')).toBeTruthy();
+    expect(screen.getByText(/Reexecute o estudo com o modelo atual/i)).toBeTruthy();
+    const button = screen.getByRole('button', { name: /Abrir ultimo run valido/i });
+    expect(button).toBeTruthy();
+    button.click();
+    expect(onOpenLatestValidRun).toHaveBeenCalledTimes(1);
   });
 });

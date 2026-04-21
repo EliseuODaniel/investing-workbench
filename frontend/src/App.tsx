@@ -3,6 +3,7 @@ import AdvancedSection from './components/app-shell/AdvancedSection';
 import AppHeader from './components/app-shell/AppHeader';
 import ErrorBanner from './components/app-shell/ErrorBanner';
 import HomeSection from './components/app-shell/HomeSection';
+import InvestmentsWorkspace from './components/InvestmentsWorkspace';
 import OperateSection from './components/app-shell/OperateSection';
 import ResultsSection from './components/app-shell/ResultsSection';
 import SectionTabs from './components/app-shell/SectionTabs';
@@ -77,6 +78,8 @@ function App() {
     loadRunFromPermalinkRef.current = workspace.handleLoadRun;
   }, [workspace.handleLoadRun]);
   const defaultStrategies = backtestRequest.strategies ?? selectedConfig?.strategies ?? [];
+  const latestValidRunId =
+    runs.find((run) => run.run_quality?.status !== 'legacy_invalid')?.run_id ?? null;
   const isBacktestBusy =
     workspace.appState === 'loading' ||
     backtestJobs.isSubmittingJob ||
@@ -104,6 +107,7 @@ function App() {
             runsCount={runs.length}
             workspaceCount={savedResearchWorkspaces.length}
             comparisonCount={selectedRunIds.length}
+            onOpenInvestments={() => appShell.setPrimarySection('investments')}
             onStartSimulation={() => appShell.setPrimarySection('simulate')}
             onOpenResults={() => appShell.setPrimarySection('results')}
             onOpenPlanner={() => {
@@ -112,6 +116,10 @@ function App() {
             }}
             onOpenAdvanced={() => appShell.setPrimarySection('advanced')}
           />
+        )}
+
+        {appShell.primarySection === 'investments' && (
+          <InvestmentsWorkspace onError={setError} />
         )}
 
         {appShell.primarySection === 'simulate' && (
@@ -159,11 +167,15 @@ function App() {
                     backtestResponse: workspace.backtestResponse,
                     exportContainerRef: workspace.exportContainerRef,
                     isLoadingArtifacts: workspace.isLoadingArtifacts,
+                    latestValidRunId,
                     onCopyLink: workspace.actions.copyRunLink,
                     onCopySummary: workspace.actions.copySummary,
                     onDownloadCSV: workspace.actions.downloadCSV,
                     onDownloadHTML: workspace.actions.downloadHTML,
                     onDownloadPNG: workspace.actions.downloadPNG,
+                    onOpenLatestValidRun: latestValidRunId
+                      ? () => workspace.handleLoadRun(latestValidRunId)
+                      : undefined,
                     onSaveProject: workspace.actions.saveProjectBundle,
                     onSetActiveTab: workspace.setActiveTab,
                     onShareResults: workspace.actions.shareResults,

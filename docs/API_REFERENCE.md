@@ -206,6 +206,50 @@ POST /scenarios/wege3-regra-a
 
 ### 1B. List Local Datasets
 
+### 1B. Investments Catalog
+
+The platform now exposes a didactic B3 investment-comparison flow designed for beginner-friendly
+questions such as “what would my money have become if I had used the same aporte plan in each
+asset class?”.
+
+**Endpoints**
+```
+GET  /investments/catalog
+POST /investments/compare
+```
+
+**Highlights**
+
+- `GET /investments/catalog`: returns the curated catalog used by the Investments workspace, grouped by families such as Brazilian stocks, ETFs, FIIs, international exposure via B3, and fixed-income proxies
+- `GET /investments/catalog`: also returns beginner-friendly presets like `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, and `Global pela B3`
+- `POST /investments/compare`: compares the same initial capital and monthly contribution schedule across the selected assets
+- `POST /investments/compare`: returns ranked results, benchmark curves, class summaries, and simple highlights such as how many chosen assets beat SELIC or BOVA11
+- Market assets use adjusted close to approximate total return, while `SELIC_PROXY` compounds by daily SELIC rate as a didactic cash / Tesouro Selic reference
+
+**Example Request**
+```json
+{
+  "asset_ids": ["SELIC_PROXY", "BOVA11", "IVVB11", "HGLG11"],
+  "start_date": "2021-01-01",
+  "end_date": "2026-04-21",
+  "initial_capital": 10000,
+  "monthly_contribution": 500,
+  "benchmark_ids": ["selic_cash", "bova11"],
+  "force_download": false
+}
+```
+
+**Example Response Highlights**
+
+- `results[*]`: invested total, final value, net profit, CAGR, volatility, max drawdown, and availability window for each selected investment
+- `benchmarks[*]`: the same summary plus serialized equity curves for comparison references
+- `chart`: rendered series metadata plus aligned points for the frontend chart
+- `class_summary`: average performance by asset family
+- `highlights`: best final value, most defensive asset, and plain-language insights
+- `warnings`: explains excluded assets or incomplete history when the requested window is not fair for all instruments
+
+### 1C. List Local Datasets
+
 **Endpoint**
 ```
 GET /datasets
@@ -214,7 +258,7 @@ GET /datasets
 Returns discovered local datasets from the `data/` directory, including parquet caches, benchmark files, and CSV rate files.
 Each summary now includes `refresh_due` and `next_refresh_due_at` when a supported dataset has a persisted refresh policy.
 
-### 1C. Inspect Local Dataset
+### 1D. Inspect Local Dataset
 
 **Endpoint**
 ```

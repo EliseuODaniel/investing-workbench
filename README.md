@@ -47,6 +47,14 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - **Performance Metrics**: Calculate CAGR, Sharpe ratio, and drawdown for all benchmarks
 - **Visual Comparison**: Side-by-side charts and ranking tables
 
+### 💼 Didactic B3 Investment Comparison
+- **Goal-first workspace**: Compare investments starting from a plain-language question: “if I had invested here, what would my money have become?”
+- **Cross-asset comparison on B3**: Side-by-side comparisons across Brazilian stocks, ETFs, FIIs, international exposure via BDR/ETF on B3, and a SELIC cash proxy
+- **Same cash-flow schedule**: Apply the same initial capital and monthly contribution plan to every alternative for a fair comparison
+- **Curated starter presets**: Built-in presets such as `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, and `Global pela B3`
+- **Didactic summaries**: Show class leaders, beat-the-SELIC counts, benchmark gaps, and simple insights instead of only raw quant metrics
+- **Interactive charts**: Clickable legends let the user isolate one asset or benchmark visually
+
 ### 🇧🇷 B3 Research Labs
 - **Pairs Trading B3**: Cointegration screener, batch backtests, and robustness comparisons for long-short research on Brazilian equities
 - **Universe Builder**: Curated IBOV proxy presets, an official `ibov_historical` preset resolved from B3 BDI PDFs, plus custom B3 tickers, quality diagnostics, and short-eligibility heuristics
@@ -130,6 +138,7 @@ python -m src pairs-backtest-jobs-worker --poll-interval 1.0
 
 3. **Access Web Interface**
 - Open **http://localhost:5173**
+- Open **Investimentos** in the main navigation to compare B3 alternatives with the same capital and aporte schedule
 - Select configuration (aggressive, conservative, martingale)
 - Adjust parameters and run backtests
 - Explore interactive charts and export results
@@ -215,6 +224,9 @@ cd frontend && npm run build
 - The CLI now includes `python -m src research-workspaces-list`, `python -m src research-workspaces-show --workspace-id <id>`, and `python -m src research-workspaces-export --workspace-id <id> --format markdown|html|json`.
 - The frontend now includes Saved Research Workspaces with search, sorting, metadata editing, import/export, executive snapshots, and a dedicated Report View backed by the same server-side report contract used by the API and CLI.
 - The Pairs Trading workspace now exposes rejection diagnostics in the screener, alpha decomposition in scenario summaries, and a research batch builder for sensitivity runs directly from the UI.
+- The main navigation now includes **Investimentos**, a didactic comparison workspace backed by `GET /investments/catalog` and `POST /investments/compare`.
+- The Investments workspace compares B3-listed stocks, ETFs, FIIs, international exposure via B3, and a SELIC proxy under the same initial capital and monthly contribution plan.
+- The comparison API returns ranked results, benchmark curves, class summaries, and beginner-friendly highlights such as “how many alternatives beat SELIC.”
 - The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
 - The Dataset Manager now supports importing local CSV/Parquet files into `data/`, refreshing supported cached datasets, and exposing richer validation diagnostics.
 - The frontend now includes a Research Drilldown panel that cross-checks optimization winners against walk-forward behavior and Monte Carlo tail risk.
@@ -551,7 +563,11 @@ When enabled, cash yield:
 
 ### Real SELIC Data
 
-The framework supports real monthly SELIC rates from Banco Central do Brasil:
+The framework supports real monthly SELIC rates from Banco Central do Brasil.
+When `--use-real-selic` is enabled, the monthly file is now derived from the
+official daily SELIC series and compounded into an effective monthly rate before
+it is applied to cash. This avoids treating the BCB annualized `1178` series as
+if it were already a monthly return.
 
 **Automatic Download**:
 ```bash

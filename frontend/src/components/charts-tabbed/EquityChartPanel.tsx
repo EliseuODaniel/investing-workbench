@@ -1,6 +1,6 @@
+import { useMemo, useState } from 'react';
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import SeriesLegendButtons from '../charts/SeriesLegendButtons';
 import { EquityChartPanelProps } from './types';
 import { formatCurrency, toNumber } from './utils';
 
@@ -18,66 +19,103 @@ export default function EquityChartPanel({
   visibleBenchmarks,
   equityData,
   getStrategyColor,
+  getBenchmarkColor,
 }: EquityChartPanelProps) {
+  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
+  const legendItems = useMemo(() => {
+    const strategyItems = Object.entries(results)
+      .filter(([strategyName]) => visibleStrategies.includes(strategyName))
+      .map(([strategyName]) => ({
+        id: strategyName,
+        label: strategyName,
+        color: getStrategyColor(strategyName),
+      }));
+
+    const benchmarkItems = [
+      ...(visibleBenchmarks.includes('Buy & Hold')
+        ? [{ id: 'Buy & Hold', label: 'Buy & Hold', color: getBenchmarkColor('Buy & Hold') }]
+        : []),
+      ...Object.keys(benchmarks ?? {})
+        .filter((name) => visibleBenchmarks.includes(name))
+        .map((name) => ({
+          id: name,
+          label: name,
+          color: getBenchmarkColor(name),
+        })),
+    ];
+
+    return [...strategyItems, ...benchmarkItems];
+  }, [benchmarks, getBenchmarkColor, getStrategyColor, results, visibleBenchmarks, visibleStrategies]);
+
   return (
-    <div className="h-96">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={equityData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
-          <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" tickFormatter={formatCurrency} />
-          <Tooltip
-            formatter={(value) => [formatCurrency(toNumber(value)), 'Patrimônio']}
-            labelFormatter={(label) => label}
-          />
-          <Legend />
-
-          {Object.entries(results).map(([strategyName]) =>
-            visibleStrategies.includes(strategyName) ? (
-              <Line
-                key={strategyName}
-                type="monotone"
-                dataKey={strategyName}
-                stroke={getStrategyColor(strategyName)}
-                strokeWidth={2}
-                dot={false}
-                name={strategyName}
-                connectNulls={false}
-              />
-            ) : null,
-          )}
-
-          {visibleBenchmarks.includes('Buy & Hold') && (
-            <Line
-              type="monotone"
-              dataKey="Buy & Hold"
-              stroke="#9333ea"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={false}
-              name="Buy & Hold"
-              connectNulls={false}
+    <div>
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={equityData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
+            <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" tickFormatter={formatCurrency} />
+            <Tooltip
+              formatter={(value) => [formatCurrency(toNumber(value)), 'Patrimônio']}
+              labelFormatter={(label) => label}
             />
-          )}
 
-          {benchmarks &&
-            Object.entries(benchmarks).map(([name]) =>
-              visibleBenchmarks.includes(name) ? (
+            {Object.entries(results).map(([strategyName]) =>
+              visibleStrategies.includes(strategyName) ? (
                 <Line
-                  key={name}
+                  key={strategyName}
                   type="monotone"
-                  dataKey={name}
-                  stroke="#6b7280"
-                  strokeWidth={2}
-                  strokeDasharray="3 3"
+                  dataKey={strategyName}
+                  stroke={getStrategyColor(strategyName)}
+                  strokeWidth={activeSeriesId === strategyName ? 4 : 2}
+                  opacity={activeSeriesId === null || activeSeriesId === strategyName ? 1 : 0.18}
                   dot={false}
-                  name={name}
+                  name={strategyName}
                   connectNulls={false}
                 />
-              ) : null,
+              ) : null
             )}
-        </LineChart>
-      </ResponsiveContainer>
+
+            {visibleBenchmarks.includes('Buy & Hold') && (
+              <Line
+                type="monotone"
+                dataKey="Buy & Hold"
+                stroke={getBenchmarkColor('Buy & Hold')}
+                strokeWidth={activeSeriesId === 'Buy & Hold' ? 4 : 2}
+                opacity={activeSeriesId === null || activeSeriesId === 'Buy & Hold' ? 1 : 0.18}
+                strokeDasharray="5 5"
+                dot={false}
+                name="Buy & Hold"
+                connectNulls={false}
+              />
+            )}
+
+            {benchmarks &&
+              Object.entries(benchmarks).map(([name]) =>
+                visibleBenchmarks.includes(name) ? (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    stroke={getBenchmarkColor(name)}
+                    strokeWidth={activeSeriesId === name ? 4 : 2}
+                    opacity={activeSeriesId === null || activeSeriesId === name ? 1 : 0.18}
+                    strokeDasharray="3 3"
+                    dot={false}
+                    name={name}
+                    connectNulls={false}
+                  />
+                ) : null
+              )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <SeriesLegendButtons
+        items={legendItems}
+        activeSeriesId={activeSeriesId}
+        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ from src.bitcoin_martingale.application.backtest_jobs import (
 )
 from src.bitcoin_martingale.application.datasets import DatasetCatalogService
 from src.bitcoin_martingale.application.experiments import ExperimentRegistryService
+from src.bitcoin_martingale.application.investments import InvestmentComparisonService
 from src.bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
 from src.bitcoin_martingale.application.optimizations import (
     OptimizationExecutionService,
@@ -53,6 +54,7 @@ class ApiServices:
     allocation_workspace_service: AllocationWorkspaceService
     backtest_job_service: BacktestJobService
     wege3_regra_a_service: Wege3RegraAScenarioService
+    investment_comparison_service: InvestmentComparisonService
     system_status_service: PlatformStatusService
 
 
@@ -78,6 +80,7 @@ def build_api_services(*, autostart_jobs: bool = True) -> ApiServices:
         allocation_service=allocation_service,
     )
     wege3_regra_a_service = Wege3RegraAScenarioService()
+    investment_comparison_service = InvestmentComparisonService()
     backtest_job_service = BacktestJobService(
         run_service=run_service,
         max_workers=job_settings.max_workers,
@@ -117,6 +120,7 @@ def build_api_services(*, autostart_jobs: bool = True) -> ApiServices:
         allocation_workspace_service=allocation_workspace_service,
         backtest_job_service=backtest_job_service,
         wege3_regra_a_service=wege3_regra_a_service,
+        investment_comparison_service=investment_comparison_service,
         system_status_service=system_status_service,
     )
 

@@ -25,22 +25,13 @@ export default function MetricsCards({ results, benchmarks }: MetricsCardsProps)
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           📊 Métricas de Performance
         </h3>
-        <div className="flex items-center space-x-4 text-sm">
-          {topReturn && (
-            <div className="flex items-center text-yellow-600 dark:text-yellow-400">
-              🏆 Top Retorno: <span className="font-medium">{topReturn.name}</span>
-            </div>
-          )}
-          {topSharpe && (
-            <div className="flex items-center text-blue-600 dark:text-blue-400">
-              📈 Top Sharpe: <span className="font-medium">{topSharpe.name}</span>
-            </div>
-          )}
-        </div>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Resumo mais direto das estratégias, com destaque para os indicadores realmente úteis.
+        </p>
       </div>
 
       <TopPerformersSummary

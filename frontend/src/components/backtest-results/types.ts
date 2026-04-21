@@ -8,11 +8,13 @@ export interface BacktestResultsWorkspaceProps {
   backtestResponse: BacktestResponse;
   exportContainerRef: React.RefObject<HTMLDivElement>;
   isLoadingArtifacts: boolean;
+  latestValidRunId?: string | null;
   onCopyLink: () => void;
   onCopySummary: () => void;
   onDownloadCSV: (strategy: string) => void;
   onDownloadHTML: () => void;
   onDownloadPNG: () => void;
+  onOpenLatestValidRun?: () => void;
   onSaveProject: () => void;
   onSetActiveTab: (tab: 'summary' | 'charts' | 'trades' | 'details') => void;
   onShareResults: () => void;
@@ -40,11 +42,13 @@ export interface ResultsTabsPanelProps {
   backtestRequest: BacktestRequest;
   backtestResponse: BacktestResponse;
   isLoadingArtifacts: boolean;
+  latestValidRunId?: string | null;
   onCopyLink: () => void;
   onCopySummary: () => void;
   onDownloadCSV: (strategy: string) => void;
   onDownloadHTML: () => void;
   onDownloadPNG: () => void;
+  onOpenLatestValidRun?: () => void;
   onSaveProject: () => void;
   onShareResults: () => void;
   onToggleAllBenchmarks: (visible: boolean) => void;

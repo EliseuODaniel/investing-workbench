@@ -14,6 +14,7 @@ describe('useAppShellState', () => {
 
     expect(result.current.primaryTabs).toEqual([
       { id: 'home', label: 'Inicio' },
+      { id: 'investments', label: 'Investimentos' },
       { id: 'simulate', label: 'Simular' },
       { id: 'results', label: 'Resultados', badge: 8 },
       { id: 'advanced', label: 'Avancado' },

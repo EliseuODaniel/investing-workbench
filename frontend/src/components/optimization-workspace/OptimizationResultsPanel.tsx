@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
+import InteractiveSeriesChart from '../charts/InteractiveSeriesChart';
+import { buildOptimizationObjectiveChart } from '../../lib/advancedCharts';
 import { formatPercent } from '../../lib/utils';
 import { OptimizationResultsPanelProps } from './types';
 
@@ -9,6 +12,13 @@ export default function OptimizationResultsPanel({
   isLoadingSelected,
 }: OptimizationResultsPanelProps) {
   const results = selectedResults ?? latestExecution;
+  const optimizationChart = useMemo(() => buildOptimizationObjectiveChart(results), [results]);
+  const objectiveFormatter = useMemo(() => {
+    const objective = results?.objective ?? '';
+    return objective.includes('return') || objective.includes('drawdown')
+      ? (value: number) => formatPercent(value)
+      : (value: number) => value.toFixed(4);
+  }, [results?.objective]);
 
   if (!results && !selectedManifest) {
     return null;
@@ -33,7 +43,21 @@ export default function OptimizationResultsPanel({
       )}
 
       {results && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {optimizationChart && (
+            <InteractiveSeriesChart
+              title="Leitura visual dos melhores trials"
+              description="Resumo grafico dos melhores resultados da optimization. Clique na legenda para destacar uma série."
+              data={optimizationChart.data}
+              xKey="label"
+              series={optimizationChart.series}
+              yTickFormatter={objectiveFormatter}
+              tooltipValueFormatter={(value) => objectiveFormatter(value)}
+              emptyText="Sem trials completos para gerar o gráfico da optimization."
+              heightClassName="h-[18rem]"
+            />
+          )}
+
           {results.ranked_results.slice(0, 5).map((result) => (
             <div key={result.trial_id} className="rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-3">
               <div className="flex items-center justify-between gap-3">

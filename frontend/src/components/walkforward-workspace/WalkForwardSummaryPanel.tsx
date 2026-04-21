@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { CalendarRange } from 'lucide-react';
+import InteractiveSeriesChart from '../charts/InteractiveSeriesChart';
+import { buildWalkForwardTestChart } from '../../lib/advancedCharts';
 import { formatPercent } from '../../lib/utils';
 import { WalkForwardSummaryPanelProps } from './types';
 
@@ -7,6 +10,11 @@ export default function WalkForwardSummaryPanel({
   selectedManifest,
   isLoadingSelected,
 }: WalkForwardSummaryPanelProps) {
+  const walkForwardChart = useMemo(
+    () => buildWalkForwardTestChart(activeResults),
+    [activeResults]
+  );
+
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center mb-3">
@@ -22,6 +30,20 @@ export default function WalkForwardSummaryPanel({
         </p>
       ) : (
         <div className="space-y-4">
+          {walkForwardChart && (
+            <InteractiveSeriesChart
+              title="Retorno por janela de teste"
+              description="Cada linha mostra como a estratégia performou nas janelas walk-forward. Clique na legenda para destacar uma curva."
+              data={walkForwardChart.data}
+              xKey="label"
+              series={walkForwardChart.series}
+              yTickFormatter={(value) => formatPercent(value)}
+              tooltipValueFormatter={(value) => formatPercent(value)}
+              emptyText="Sem resultados suficientes para gerar o gráfico walk-forward."
+              heightClassName="h-[18rem]"
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-gray-500 dark:text-gray-400">Windows</div>

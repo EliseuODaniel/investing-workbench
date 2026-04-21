@@ -7,7 +7,7 @@ import DrawdownChartPanel from './charts-tabbed/DrawdownChartPanel';
 import EquityChartPanel from './charts-tabbed/EquityChartPanel';
 import TradesChartPanel from './charts-tabbed/TradesChartPanel';
 import { ChartTabDefinition, ChartTabId, ChartsTabbedProps } from './charts-tabbed/types';
-import { getStrategyColorFactory } from './charts-tabbed/utils';
+import { getBenchmarkColorFactory, getStrategyColorFactory } from './charts-tabbed/utils';
 import { useChartsTabbedData } from '../hooks/useChartsTabbedData';
 
 const tabs: ChartTabDefinition[] = [
@@ -57,6 +57,13 @@ export default function ChartsTabbed({
     () => getStrategyColorFactory(Object.keys(results)),
     [results],
   );
+  const getBenchmarkColor = useMemo(
+    () => getBenchmarkColorFactory([
+      'Buy & Hold',
+      ...Object.keys(benchmarks ?? {}),
+    ]),
+    [benchmarks]
+  );
 
   const activeTabDefinition = tabs.find((tab) => tab.id === activeTab);
 
@@ -71,6 +78,7 @@ export default function ChartsTabbed({
             visibleBenchmarks={visibleBenchmarks}
             equityData={equityData}
             getStrategyColor={getStrategyColor}
+            getBenchmarkColor={getBenchmarkColor}
           />
         );
       case 'drawdown':
@@ -79,6 +87,7 @@ export default function ChartsTabbed({
             results={results}
             visibleStrategies={visibleStrategies}
             drawdownData={drawdownData}
+            getStrategyColor={getStrategyColor}
           />
         );
       case 'cash':

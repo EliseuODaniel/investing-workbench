@@ -180,6 +180,10 @@ class BacktestResponse(BaseModel):
     )
     data_info: Dict[str, Any] = Field(description="Information about the data used")
     warnings: List[str] = Field(default_factory=list)
+    run_quality: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Quality diagnostics for persisted runs that should not be trusted as-is",
+    )
 
 
 class ConfigInfo(BaseModel):
@@ -583,6 +587,51 @@ class Wege3RegraAScenarioResponseModel(BaseModel):
     reproduction_command: str
 
 
+class InvestmentCatalogRequestModel(BaseModel):
+    """Optional catalog query parameters for the investment comparison workspace."""
+
+    include_presets: bool = Field(default=True)
+
+
+class InvestmentCompareRequestModel(BaseModel):
+    """Request model for comparing historical B3 investment alternatives."""
+
+    asset_ids: List[str] = Field(default_factory=list, min_length=1)
+    start_date: str = Field(default="2021-01-01")
+    end_date: Optional[str] = Field(default=None)
+    initial_capital: float = Field(default=10000.0, gt=0.0)
+    monthly_contribution: float = Field(default=0.0, ge=0.0)
+    benchmark_ids: List[str] = Field(default_factory=list)
+    force_download: bool = Field(default=False)
+
+
+class InvestmentCatalogResponseModel(BaseModel):
+    """Catalog payload for the didactic B3 investment comparison experience."""
+
+    generated_at: datetime
+    categories: List[Dict[str, Any]] = Field(default_factory=list)
+    instruments: List[Dict[str, Any]] = Field(default_factory=list)
+    presets: List[Dict[str, Any]] = Field(default_factory=list)
+    benchmark_options: List[Dict[str, Any]] = Field(default_factory=list)
+    notes: List[str] = Field(default_factory=list)
+    sources: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class InvestmentCompareResponseModel(BaseModel):
+    """Result payload for one cross-asset B3 comparison run."""
+
+    generated_at: datetime
+    request: Dict[str, Any] = Field(default_factory=dict)
+    catalog_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    assumptions: List[str] = Field(default_factory=list)
+    results: List[Dict[str, Any]] = Field(default_factory=list)
+    benchmarks: List[Dict[str, Any]] = Field(default_factory=list)
+    chart: Dict[str, Any] = Field(default_factory=dict)
+    class_summary: List[Dict[str, Any]] = Field(default_factory=list)
+    highlights: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
+
+
 class DatasetSummaryModel(BaseModel):
     """Summary of a discovered local dataset."""
 
@@ -662,6 +711,10 @@ class RunSummary(BaseModel):
     config_snapshot_path: str
     data_profile_path: str
     data_fingerprint: str
+    run_quality: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Optional quality issue detected for this persisted run",
+    )
 
 
 class AllocationHoldingModel(BaseModel):

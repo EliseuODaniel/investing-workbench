@@ -12,6 +12,7 @@ interface HomeSectionProps {
   runsCount: number;
   workspaceCount: number;
   comparisonCount: number;
+  onOpenInvestments: () => void;
   onStartSimulation: () => void;
   onOpenResults: () => void;
   onOpenPlanner: () => void;
@@ -72,6 +73,7 @@ export default function HomeSection({
   runsCount,
   workspaceCount,
   comparisonCount,
+  onOpenInvestments,
   onStartSimulation,
   onOpenResults,
   onOpenPlanner,
@@ -94,6 +96,13 @@ export default function HomeSection({
               mais tecnico.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onOpenInvestments}
+                className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+              >
+                Comparar investimentos B3
+              </button>
               <button
                 type="button"
                 onClick={onStartSimulation}
@@ -140,9 +149,17 @@ export default function HomeSection({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
         <ActionCard
           eyebrow="Passo 1"
+          title="Investimentos"
+          description="Compare acoes, ETFs, FIIs, renda fixa e ativos internacionais pela B3 com o mesmo fluxo de aportes."
+          icon={<Briefcase className="h-5 w-5" />}
+          cta="Abrir comparador"
+          onClick={onOpenInvestments}
+        />
+        <ActionCard
+          eyebrow="Passo 2"
           title="Simular"
           description="Use o fluxo guiado para escolher configuracao, periodo e dados sem abrir areas tecnicas desnecessarias."
           icon={<PlayCircle className="h-5 w-5" />}
@@ -150,7 +167,7 @@ export default function HomeSection({
           onClick={onStartSimulation}
         />
         <ActionCard
-          eyebrow="Passo 2"
+          eyebrow="Passo 3"
           title="Resultados"
           description="Reabra backtests salvos, compare execucoes e continue de onde parou."
           icon={<BarChart3 className="h-5 w-5" />}

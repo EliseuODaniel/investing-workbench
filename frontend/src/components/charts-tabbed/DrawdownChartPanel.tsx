@@ -1,6 +1,6 @@
+import { useMemo, useState } from 'react';
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import SeriesLegendButtons from '../charts/SeriesLegendButtons';
 import { DrawdownChartPanelProps } from './types';
 import { toNumber } from './utils';
 
@@ -15,41 +16,67 @@ export default function DrawdownChartPanel({
   results,
   visibleStrategies,
   drawdownData,
+  getStrategyColor,
 }: DrawdownChartPanelProps) {
-  return (
-    <div className="h-96">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={drawdownData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            stroke="#6b7280"
-            tickFormatter={(value: number) => `${value.toFixed(1)}%`}
-          />
-          <Tooltip
-            formatter={(value) => [`${toNumber(value).toFixed(2)}%`, 'Drawdown']}
-            labelFormatter={(label) => label}
-          />
-          <Legend />
+  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
+  const legendItems = useMemo(
+    () =>
+      Object.keys(results)
+        .filter((strategyName) => visibleStrategies.includes(strategyName))
+        .map((strategyName) => ({
+          id: `${strategyName}_drawdown`,
+          label: `${strategyName} DD`,
+          color: getStrategyColor(strategyName),
+        })),
+    [getStrategyColor, results, visibleStrategies]
+  );
 
-          {Object.entries(results).map(([strategyName]) =>
-            visibleStrategies.includes(strategyName) ? (
-              <Line
-                key={`${strategyName}_drawdown`}
-                type="monotone"
-                dataKey={`${strategyName}_drawdown`}
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={false}
-                name={`${strategyName} DD`}
-                fill="#ef4444"
-                fillOpacity={0.1}
-              />
-            ) : null,
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+  return (
+    <div>
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={drawdownData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
+            <YAxis
+              tick={{ fontSize: 12 }}
+              stroke="#6b7280"
+              tickFormatter={(value: number) => `${value.toFixed(1)}%`}
+            />
+            <Tooltip
+              formatter={(value) => [`${toNumber(value).toFixed(2)}%`, 'Drawdown']}
+              labelFormatter={(label) => label}
+            />
+
+            {Object.entries(results).map(([strategyName]) =>
+              visibleStrategies.includes(strategyName) ? (
+                <Line
+                  key={`${strategyName}_drawdown`}
+                  type="monotone"
+                  dataKey={`${strategyName}_drawdown`}
+                  stroke={getStrategyColor(strategyName)}
+                  strokeWidth={activeSeriesId === `${strategyName}_drawdown` ? 4 : 2}
+                  opacity={
+                    activeSeriesId === null || activeSeriesId === `${strategyName}_drawdown`
+                      ? 1
+                      : 0.18
+                  }
+                  dot={false}
+                  name={`${strategyName} DD`}
+                  fill={getStrategyColor(strategyName)}
+                  fillOpacity={0.1}
+                />
+              ) : null
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <SeriesLegendButtons
+        items={legendItems}
+        activeSeriesId={activeSeriesId}
+        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+      />
     </div>
   );
 }

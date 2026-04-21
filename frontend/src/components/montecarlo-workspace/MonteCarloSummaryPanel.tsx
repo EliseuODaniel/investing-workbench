@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
+import InteractiveSeriesChart from '../charts/InteractiveSeriesChart';
+import { buildMonteCarloReturnChart } from '../../lib/advancedCharts';
 import { formatCurrency, formatPercent } from '../../lib/utils';
 import { MonteCarloSummaryPanelProps } from './types';
 
@@ -7,6 +10,11 @@ export default function MonteCarloSummaryPanel({
   selectedManifest,
   isLoadingSelected,
 }: MonteCarloSummaryPanelProps) {
+  const monteCarloChart = useMemo(
+    () => buildMonteCarloReturnChart(activeResults),
+    [activeResults]
+  );
+
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center mb-3">
@@ -22,6 +30,20 @@ export default function MonteCarloSummaryPanel({
         </p>
       ) : (
         <div className="space-y-4">
+          {monteCarloChart && (
+            <InteractiveSeriesChart
+              title="Leitura visual da robustez"
+              description="Compare o retorno real com a mediana e a faixa pessimista/otimista das simulações. Clique na legenda para destacar uma série."
+              data={monteCarloChart.data}
+              xKey="label"
+              series={monteCarloChart.series}
+              yTickFormatter={(value) => formatPercent(value)}
+              tooltipValueFormatter={(value) => formatPercent(value)}
+              emptyText="Sem dados suficientes para gerar o gráfico Monte Carlo."
+              heightClassName="h-[18rem]"
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-gray-500 dark:text-gray-400">Simulations</div>

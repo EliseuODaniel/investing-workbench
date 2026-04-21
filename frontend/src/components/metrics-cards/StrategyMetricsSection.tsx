@@ -1,15 +1,68 @@
-import {
-  Activity,
-  BarChart3,
-  DollarSign,
-  Target,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { Activity, BarChart3 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent } from '../../lib/utils';
-import MetricCard from './MetricCard';
 import { getSelicAverageAnnualRate, getSelicPeriodLabel } from './helpers';
-import { StrategyMetricsSectionProps } from './types';
+import { StrategyMetricsSectionProps, TopPerformer } from './types';
+
+function isTopPerformer(
+  performer: TopPerformer | null,
+  strategyName: string,
+  metric: 'strategy' | 'benchmark' = 'strategy',
+) {
+  return performer?.type === metric && performer.name === strategyName;
+}
+
+function StrategyBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'yellow' | 'blue' | 'green' | 'purple';
+}) {
+  const styles = {
+    yellow:
+      'border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-200',
+    blue:
+      'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-200',
+    green:
+      'border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/30 dark:text-green-200',
+    purple:
+      'border-purple-300 bg-purple-50 text-purple-800 dark:border-purple-700 dark:bg-purple-950/30 dark:text-purple-200',
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${styles[tone]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function DetailCell({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'danger' | 'success';
+}) {
+  const valueClass =
+    tone === 'danger'
+      ? 'text-red-500 dark:text-red-300'
+      : tone === 'success'
+        ? 'text-emerald-600 dark:text-emerald-300'
+        : 'text-gray-900 dark:text-gray-100';
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-800/70">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        {label}
+      </div>
+      <div className={`mt-1 text-lg font-semibold leading-tight ${valueClass}`}>{value}</div>
+    </div>
+  );
+}
 
 export default function StrategyMetricsSection({
   results,
@@ -20,159 +73,139 @@ export default function StrategyMetricsSection({
 }: StrategyMetricsSectionProps) {
   return (
     <div>
-      <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-        <BarChart3 className="h-5 w-5 mr-2 text-primary-600" />
+      <h4 className="mb-4 flex items-center text-md font-semibold text-gray-900 dark:text-gray-100">
+        <BarChart3 className="mr-2 h-5 w-5 text-primary-600" />
         Estratégias
       </h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div className="space-y-5">
         {Object.entries(results).map(([strategyName, result]) => {
           const selicAverageAnnualRate = getSelicAverageAnnualRate(result);
           const selicPeriodLabel = getSelicPeriodLabel(result);
+          const hasCashYield = result.metrics.total_interest_earned > 0;
+          const highlightBadges = [
+            isTopPerformer(topReturn, strategyName) ? (
+              <StrategyBadge key="return" label="🏆 Melhor retorno" tone="yellow" />
+            ) : null,
+            isTopPerformer(topSharpe, strategyName) ? (
+              <StrategyBadge key="sharpe" label="📈 Melhor Sharpe" tone="blue" />
+            ) : null,
+            isTopPerformer(topHitRate, strategyName) ? (
+              <StrategyBadge key="hit" label="🎯 Melhor hit rate" tone="green" />
+            ) : null,
+            isTopPerformer(lowestDrawdown, strategyName) &&
+            (lowestDrawdown?.value ?? 0) < -0.1 ? (
+              <StrategyBadge key="drawdown" label="🛡️ Menor drawdown" tone="purple" />
+            ) : null,
+          ].filter(Boolean);
 
           return (
-            <div key={strategyName} className="space-y-4">
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 border border-primary-200 dark:border-primary-800">
-                <h4 className="font-semibold text-primary-900 dark:text-primary-100">
-                  {strategyName}
-                </h4>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm text-primary-700 dark:text-primary-300">
-                    Total Return
-                  </span>
-                  <div className="flex items-center">
-                    {result.metrics.total_return >= 0 ? (
-                      <TrendingUp className="h-4 w-4 text-success-600 mr-1" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-danger-600 mr-1" />
-                    )}
-                    <span
-                      className={`font-semibold ${
-                        result.metrics.total_return >= 0 ? 'text-success-600' : 'text-danger-600'
-                      }`}
-                    >
-                      {formatPercent(result.metrics.total_return)}
-                    </span>
+            <section
+              key={strategyName}
+              className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900/40"
+            >
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="space-y-3">
+                  <div>
+                    <h5 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {strategyName}
+                    </h5>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Leitura rápida da estratégia, com os indicadores mais importantes em foco.
+                    </p>
+                  </div>
+                  {highlightBadges.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">{highlightBadges}</div>
+                  ) : null}
+                </div>
+
+                <div className="min-w-[220px] rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 dark:border-primary-800 dark:bg-primary-900/20">
+                  <div className="text-[11px] uppercase tracking-wide text-primary-700 dark:text-primary-300">
+                    Retorno total
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold leading-tight text-primary-950 dark:text-primary-100">
+                    {formatPercent(result.metrics.total_return)}
+                  </div>
+                  <div className="mt-1 text-sm text-primary-700 dark:text-primary-300">
+                    Sharpe {formatNumber(result.metrics.sharpe_ratio, 2)} · DD{' '}
+                    {formatPercent(Math.abs(result.metrics.max_drawdown))}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <MetricCard
-                  title="CAGR"
-                  value={formatPercent(result.metrics.cagr)}
-                  icon={<TrendingUp className="h-5 w-5" />}
-                  isTopPerformer={topReturn?.name === strategyName && topReturn.type === 'strategy'}
-                  topPerformerLabel="Top CAGR"
-                />
-
-                <MetricCard
-                  title="Sharpe Ratio"
-                  value={formatNumber(result.metrics.sharpe_ratio, 2)}
-                  icon={<BarChart3 className="h-5 w-5" />}
-                  isTopPerformer={topSharpe?.name === strategyName && topSharpe.type === 'strategy'}
-                  topPerformerLabel="Top Sharpe"
-                />
-
-                <MetricCard
-                  title="Max Drawdown"
+              <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <DetailCell label="CAGR" value={formatPercent(result.metrics.cagr)} />
+                <DetailCell
+                  label="Max Drawdown"
                   value={formatPercent(Math.abs(result.metrics.max_drawdown))}
-                  subtitle={result.metrics.max_drawdown < 0 ? 'Loss' : 'Gain'}
-                  trend={result.metrics.max_drawdown < 0 ? 'down' : 'up'}
-                  icon={<Activity className="h-5 w-5" />}
-                  isTopPerformer={
-                    lowestDrawdown?.name === strategyName &&
-                    lowestDrawdown.type === 'strategy' &&
-                    lowestDrawdown.value < -0.1
-                  }
-                  topPerformerLabel="Menor DD"
+                  tone={result.metrics.max_drawdown < 0 ? 'danger' : 'success'}
                 />
-
-                <MetricCard
-                  title="Hit Rate"
-                  value={formatPercent(result.metrics.hit_rate)}
-                  icon={<Target className="h-5 w-5" />}
-                  isTopPerformer={
-                    topHitRate?.name === strategyName && topHitRate.type === 'strategy'
-                  }
-                  topPerformerLabel="Top Hit Rate"
-                />
-
-                <MetricCard
-                  title="Total Trades"
+                <DetailCell label="Hit Rate" value={formatPercent(result.metrics.hit_rate)} />
+                <DetailCell
+                  label="Trades"
                   value={result.metrics.total_trades.toString()}
-                  icon={<BarChart3 className="h-5 w-5" />}
                 />
+              </div>
 
-                <MetricCard
-                  title="Avg Trade P&L"
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <DetailCell
+                  label="Trade médio"
                   value={formatCurrency(result.metrics.avg_trade_pnl)}
-                  icon={<DollarSign className="h-5 w-5" />}
                 />
+                <DetailCell
+                  label="Volatilidade"
+                  value={formatPercent(result.metrics.volatility)}
+                />
+                <DetailCell
+                  label="Sortino / Profit Factor"
+                  value={`${formatNumber(result.metrics.sortino_ratio, 2)} · ${formatNumber(
+                    result.metrics.profit_factor,
+                    2
+                  )}`}
+                />
+              </div>
 
-                {result.metrics.total_interest_earned > 0 && (
-                  <MetricCard
-                    title="Cash Yield Interest"
-                    value={formatCurrency(result.metrics.total_interest_earned)}
-                    icon={<TrendingUp className="h-5 w-5 text-success-600" />}
-                  />
-                )}
-
-                {result.metrics.selic_rates_used && result.metrics.selic_rates_used.length > 0 && (
-                  <div className="col-span-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center mb-2">
-                      <svg
-                        className="h-4 w-4 text-blue-600 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                        SELIC Real Utilizada
-                      </h4>
-                    </div>
-                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                      <p>
-                        Foram utilizadas {result.metrics.selic_rates_used.length} taxas mensais reais
-                        do Banco Central.
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div>
-                          <span className="font-medium">Taxa Média:</span>{' '}
-                          {selicAverageAnnualRate !== null
-                            ? formatPercent(selicAverageAnnualRate)
-                            : 'n/a'}{' '}
-                          a.a.
-                        </div>
-                        <div>
-                          <span className="font-medium">Período:</span>{' '}
-                          {selicPeriodLabel ?? 'n/a'}
-                        </div>
+              {hasCashYield ? (
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                    <Activity className="h-4 w-4" />
+                    Caixa remunerado
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
+                        Juros acumulados
+                      </div>
+                      <div className="mt-1 break-all text-xl font-semibold leading-tight text-emerald-950 dark:text-emerald-100">
+                        {formatCurrency(result.metrics.total_interest_earned)}
                       </div>
                     </div>
+                    {result.metrics.selic_rates_used && result.metrics.selic_rates_used.length > 0 ? (
+                      <>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
+                            Taxa média anualizada
+                          </div>
+                          <div className="mt-1 text-base font-semibold text-emerald-950 dark:text-emerald-100">
+                            {selicAverageAnnualRate !== null
+                              ? formatPercent(selicAverageAnnualRate)
+                              : 'n/a'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
+                            Período usado
+                          </div>
+                          <div className="mt-1 text-base font-semibold text-emerald-950 dark:text-emerald-100">
+                            {selicPeriodLabel ?? 'n/a'}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
-                )}
-              </div>
-
-              <div className="text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
-                <div className="flex justify-between mb-1">
-                  <span>Volatility:</span>
-                  <span>{formatPercent(result.metrics.volatility)}</span>
                 </div>
-                <div className="flex justify-between mb-1">
-                  <span>Profit Factor:</span>
-                  <span>{formatNumber(result.metrics.profit_factor, 2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Sortino Ratio:</span>
-                  <span>{formatNumber(result.metrics.sortino_ratio, 2)}</span>
-                </div>
-              </div>
-            </div>
+              ) : null}
+            </section>
           );
         })}
       </div>

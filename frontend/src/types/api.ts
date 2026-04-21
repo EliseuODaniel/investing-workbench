@@ -49,6 +49,134 @@ export interface SystemStatusPayload {
   warnings: string[];
 }
 
+export interface InvestmentCategoryPayload {
+  category_id: string;
+  label: string;
+  count: number;
+}
+
+export interface InvestmentInstrumentPayload {
+  instrument_id: string;
+  label: string;
+  ticker?: string | null;
+  category_id: string;
+  category_label: string;
+  description: string;
+  rationale: string;
+  risk_label: string;
+  region_label: string;
+  source_kind: string;
+  listed_on_b3: boolean;
+  uses_adjusted_close: boolean;
+  available_since?: string | null;
+  notes: string[];
+}
+
+export interface InvestmentPresetPayload {
+  preset_id: string;
+  label: string;
+  description: string;
+  asset_ids: string[];
+  goal_label: string;
+}
+
+export interface InvestmentBenchmarkOptionPayload {
+  benchmark_id: string;
+  label: string;
+  description: string;
+}
+
+export interface InvestmentCatalogPayload {
+  generated_at: string;
+  categories: InvestmentCategoryPayload[];
+  instruments: InvestmentInstrumentPayload[];
+  presets: InvestmentPresetPayload[];
+  benchmark_options: InvestmentBenchmarkOptionPayload[];
+  notes: string[];
+  sources: Array<{ label: string; url: string }>;
+}
+
+export interface InvestmentCompareRequestPayload {
+  asset_ids: string[];
+  start_date?: string;
+  end_date?: string | null;
+  initial_capital?: number;
+  monthly_contribution?: number;
+  benchmark_ids?: string[];
+  force_download?: boolean;
+}
+
+export interface InvestmentComparisonResultPayload {
+  instrument_id: string;
+  label: string;
+  ticker?: string | null;
+  category_id: string;
+  category_label: string;
+  description: string;
+  rationale: string;
+  risk_label: string;
+  region_label: string;
+  source_kind: string;
+  invested_total: number;
+  final_value: number;
+  net_profit: number;
+  total_return_on_invested: number;
+  time_weighted_return: number;
+  cagr: number;
+  annual_volatility: number;
+  max_drawdown: number;
+  availability_start: string;
+  availability_end: string;
+}
+
+export interface InvestmentComparisonBenchmarkPayload
+  extends InvestmentComparisonResultPayload {
+  benchmark_id: string;
+  equity_curve: Array<{ date: string; equity: number }>;
+}
+
+export interface InvestmentComparisonChartPayload {
+  reference_series_id?: string | null;
+  series: Array<{ id: string; label: string; color: string; dashed?: boolean }>;
+  points: Array<Record<string, string | number | null>>;
+}
+
+export interface InvestmentComparisonRequestSnapshotPayload {
+  asset_ids: string[];
+  start_date: string;
+  end_date?: string | null;
+  initial_capital: number;
+  monthly_contribution: number;
+  benchmark_ids: string[];
+  force_download: boolean;
+}
+
+export interface InvestmentComparisonResponsePayload {
+  generated_at: string;
+  request: InvestmentComparisonRequestSnapshotPayload;
+  catalog_snapshot: Record<string, unknown>;
+  assumptions: string[];
+  results: InvestmentComparisonResultPayload[];
+  benchmarks: InvestmentComparisonBenchmarkPayload[];
+  chart: InvestmentComparisonChartPayload;
+  class_summary: Array<{
+    category_label: string;
+    asset_count: number;
+    average_final_value: number;
+    average_cagr: number;
+    average_max_drawdown: number;
+    leader_label: string;
+  }>;
+  highlights: {
+    best_final_value?: InvestmentComparisonResultPayload;
+    most_defensive?: InvestmentComparisonResultPayload;
+    beats_selic_count?: number | null;
+    beats_bova11_count?: number | null;
+    insights?: string[];
+  };
+  warnings: string[];
+}
+
 export interface PairsUniversePresetPayload {
   preset_id: string;
   label: string;
@@ -703,6 +831,14 @@ export interface BenchmarkResult {
   metrics: StrategyMetrics;
 }
 
+export interface RunQualityIssue {
+  status: 'legacy_invalid' | string;
+  code: string;
+  title: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export interface BacktestRequest {
   config_path?: string;
   strategies?: string[];
@@ -785,6 +921,7 @@ export interface BacktestResponse {
   results: Record<string, StrategyResult>;
   buy_hold_equity: EquityPoint[];
   benchmarks?: Record<string, BenchmarkResult>;
+  run_quality?: RunQualityIssue | null;
   run_info?: {
     run_id: string;
     artifact_dir: string;
@@ -856,6 +993,7 @@ export interface RunSummary {
   config_snapshot_path: string;
   data_profile_path: string;
   data_fingerprint: string;
+  run_quality?: RunQualityIssue | null;
 }
 
 export interface ExperimentLineagePayload {

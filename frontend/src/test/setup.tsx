@@ -23,6 +23,8 @@ vi.mock('../lib/api', () => ({
   apiClient: {
     getConfigs: vi.fn(),
     getSystemStatus: vi.fn(),
+    getInvestmentCatalog: vi.fn(),
+    compareInvestments: vi.fn(),
     listPairsUniverses: vi.fn(),
     resolvePairsUniverse: vi.fn(),
     screenPairs: vi.fn(),

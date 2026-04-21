@@ -36,7 +36,8 @@ export default function OperateSection({
   error,
 }: OperateSectionProps) {
   const showJobsPanel =
-    jobsPanelProps.jobs.length > 0 || jobsPanelProps.activeJob !== null;
+    jobsPanelProps.jobs.some((job) => job.status !== 'completed') ||
+    (jobsPanelProps.activeJob !== null && jobsPanelProps.activeJob.status !== 'completed');
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

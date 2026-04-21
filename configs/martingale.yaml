@@ -11,6 +11,9 @@ backtest:
   output_dir: "reports"
   include_buy_hold_benchmark: true
   include_selic_benchmark: false
+  fee_rate: 0.001
+  buy_slippage: 0.0015
+  sell_slippage: 0.0015
 
   benchmarks:
     - ticker: "^BVSP"
@@ -20,64 +23,69 @@ backtest:
 # Estratégias Martingale - Buy & Handle removido para evitar duplicação com benchmark
 strategies:
   - name: "Fixed Martingale"
-    class_path: "strategies.martingale_fixed.MartingaleFixedStrategy"
+    class_path: "strategies.martingale_risk_cap.MartingaleRiskCapStrategy"
     parameters:
-      base_bet: 500.0
-      multiplier: 2.0
-      drop_step: 0.10
-      take_profit: 0.15
-      max_layers: 10
+      base_bet: 250.0
+      multiplier: 1.35
+      drop_step: 0.12
+      take_profit: 0.10
+      max_layers: 5
+      max_position_pct: 0.45
+      max_total_exposure: 4500.0
+      stop_loss_pct: 0.18
+      drawdown_threshold: 0.12
+      position_size_reduction: 0.5
 
   - name: "Volatility-Adjusted Martingale"
     class_path: "strategies.martingale_vol_adj.MartingaleVolatilityStrategy"
     parameters:
-      base_bet: 500.0
-      multiplier: 2.0
-      drop_step: 0.08
-      take_profit: 0.18
-      max_layers: 8
+      base_bet: 250.0
+      multiplier: 1.30
+      drop_step: 0.10
+      take_profit: 0.14
+      max_layers: 4
       volatility_period: 20
-      vol_multiplier: 1.0
+      vol_multiplier: 0.8
       atr_period: 14
 
   - name: "Trailing TP Martingale"
     class_path: "strategies.martingale_trailing_tp.MartingaleTrailingTPStrategy"
     parameters:
-      base_bet: 500.0
-      multiplier: 2.0
-      drop_step: 0.10
-      take_profit: 0.20
-      max_layers: 8
-      trailing_percent: 0.05
+      base_bet: 250.0
+      multiplier: 1.30
+      drop_step: 0.12
+      take_profit: 0.14
+      max_layers: 4
+      trailing_percent: 0.03
 
   - name: "ATR-Based Martingale"
     class_path: "strategies.martingale_atr.MartingaleATRStrategy"
     parameters:
-      base_bet: 500.0
-      multiplier: 2.0
-      drop_step: 0.10
-      take_profit: 0.18
-      max_layers: 8
+      base_bet: 250.0
+      multiplier: 1.30
+      drop_step: 0.12
+      take_profit: 0.14
+      max_layers: 4
       atr_period: 14
-      atr_multiplier: 2.0
+      atr_multiplier: 1.5
       min_drop_step: 0.05
-      max_drop_step: 0.20
+      max_drop_step: 0.18
 
   - name: "DCA Hybrid"
     class_path: "strategies.dca_hybrid.DCAHybridStrategy"
     parameters:
       # DCA settings
-      dca_amount: 500.0
+      dca_amount: 250.0
       dca_frequency: "weekly"
       dca_trigger_threshold: 0.05
       moving_average_period: 50
 
       # Martingale settings (mais conservador para hybrid)
-      base_bet: 500.0
-      multiplier: 1.5
-      drop_step: 0.15
-      take_profit: 0.20
-      max_martingale_layers: 3
+      base_bet: 250.0
+      multiplier: 1.2
+      drop_step: 0.18
+      take_profit: 0.16
+      max_martingale_layers: 2
 
 plotting:
   save_plots: true

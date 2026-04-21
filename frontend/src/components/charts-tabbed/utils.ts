@@ -9,11 +9,24 @@ const strategyColors = [
   '#f97316',
 ];
 
+const benchmarkColors = ['#9333ea', '#64748b', '#06b6d4', '#facc15', '#22c55e'];
+
 export function getStrategyColorFactory(strategyNames: string[]) {
   return (strategyName: string) => {
     const strategyIndex = strategyNames.indexOf(strategyName);
     const safeIndex = strategyIndex >= 0 ? strategyIndex : 0;
     return strategyColors[safeIndex % strategyColors.length];
+  };
+}
+
+export function getBenchmarkColorFactory(benchmarkNames: string[]) {
+  return (benchmarkName: string) => {
+    if (benchmarkName === 'Buy & Hold') {
+      return '#9333ea';
+    }
+    const benchmarkIndex = benchmarkNames.indexOf(benchmarkName);
+    const safeIndex = benchmarkIndex >= 0 ? benchmarkIndex : 0;
+    return benchmarkColors[safeIndex % benchmarkColors.length];
   };
 }
 

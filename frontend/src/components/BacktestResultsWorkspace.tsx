@@ -7,11 +7,13 @@ export default function BacktestResultsWorkspace({
   backtestResponse,
   exportContainerRef,
   isLoadingArtifacts,
+  latestValidRunId,
   onCopyLink,
   onCopySummary,
   onDownloadCSV,
   onDownloadHTML,
   onDownloadPNG,
+  onOpenLatestValidRun,
   onSaveProject,
   onSetActiveTab,
   onShareResults,
@@ -34,11 +36,13 @@ export default function BacktestResultsWorkspace({
         backtestRequest={backtestRequest}
         backtestResponse={backtestResponse}
         isLoadingArtifacts={isLoadingArtifacts}
+        latestValidRunId={latestValidRunId}
         onCopyLink={onCopyLink}
         onCopySummary={onCopySummary}
         onDownloadCSV={onDownloadCSV}
         onDownloadHTML={onDownloadHTML}
         onDownloadPNG={onDownloadPNG}
+        onOpenLatestValidRun={onOpenLatestValidRun}
         onSaveProject={onSaveProject}
         onShareResults={onShareResults}
         onToggleAllBenchmarks={onToggleAllBenchmarks}

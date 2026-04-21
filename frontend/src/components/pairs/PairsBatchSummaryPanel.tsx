@@ -1,3 +1,7 @@
+import { useMemo } from 'react';
+import InteractiveSeriesChart from '../charts/InteractiveSeriesChart';
+import { buildPairsEquityChart } from '../../lib/advancedCharts';
+import { formatDate } from '../../lib/utils';
 import { PairsBacktestResultsPayload, PairsScenarioPayload } from '../../types/api';
 import { formatCurrency, formatNumber, formatPercent } from './pairsFormat';
 
@@ -27,6 +31,7 @@ export function PairsBatchSummaryPanel({
   const robustnessDispersion = activeBacktest?.robustness_report.dispersion ?? {};
   const robustnessRankings = activeBacktest?.robustness_report.rankings ?? [];
   const reconstitutionPlan = activeBacktest?.universe.reconstitution_plan ?? [];
+  const pairsChart = useMemo(() => buildPairsEquityChart(activeBacktest), [activeBacktest]);
 
   return (
     <div className="card">
@@ -38,6 +43,23 @@ export function PairsBatchSummaryPanel({
       </p>
       {activeBacktest ? (
         <div className="mt-4 space-y-4">
+          {pairsChart && (
+            <InteractiveSeriesChart
+              title="Curvas de equity dos cenários"
+              description="Veja como cada cenário de pairs evoluiu contra os benchmarks do batch. Clique na legenda para destacar uma curva."
+              data={pairsChart.data}
+              xKey="date"
+              series={pairsChart.series}
+              referenceSeriesId={pairsChart.referenceSeriesId}
+              xTickFormatter={(value) => formatDate(String(value))}
+              yTickFormatter={(value) => formatCurrency(value, 0)}
+              tooltipLabelFormatter={(value) => formatDate(String(value))}
+              tooltipValueFormatter={(value) => formatCurrency(value, 0)}
+              emptyText="Sem curvas de equity suficientes para gerar a comparação visual dos cenários."
+              heightClassName="h-[22rem]"
+            />
+          )}
+
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
             <div className="space-y-4">
               {activeScenarios.map((scenario) => {

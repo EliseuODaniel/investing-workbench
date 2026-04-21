@@ -26,6 +26,7 @@ from src.data import get_data
 from src.engine import BacktestEngine
 
 from .dto import BacktestRunInput
+from .quality import inspect_run_quality
 from .request_adapter import to_backtest_run_input
 from .serializers import RunResponseSerializer, build_config_info
 
@@ -213,7 +214,23 @@ class RunBacktestService:
 
     def get_run_response(self, run_id: str) -> dict[str, object]:
         """Fetch a previously persisted run response payload."""
-        return self.runs_repository.get_response_payload(run_id)
+        payload = self.runs_repository.get_response_payload(run_id)
+        config_snapshot = self.runs_repository.get_config_snapshot(run_id)
+        run_quality = inspect_run_quality(
+            config_snapshot=config_snapshot,
+            response_payload=payload,
+        )
+        if run_quality is not None:
+            payload["run_quality"] = run_quality
+            raw_warnings = payload.get("warnings", [])
+            warnings = (
+                [str(item) for item in raw_warnings]
+                if isinstance(raw_warnings, list)
+                else []
+            )
+            if run_quality["message"] not in warnings:
+                payload["warnings"] = [run_quality["message"], *warnings]
+        return payload
 
     def get_run_config_snapshot(self, run_id: str) -> dict[str, object]:
         """Fetch the resolved config used by a persisted run."""
@@ -229,7 +246,28 @@ class RunBacktestService:
 
     def list_runs(self) -> list[dict[str, object]]:
         """List persisted runs for history views."""
-        return self.runs_repository.list_runs()
+        manifests = self.runs_repository.list_runs()
+        enriched: list[dict[str, object]] = []
+        for manifest in manifests:
+            run_id = manifest.get("run_id")
+            if not isinstance(run_id, str):
+                enriched.append(manifest)
+                continue
+            try:
+                config_snapshot = self.runs_repository.get_config_snapshot(run_id)
+                response_payload = self.runs_repository.get_response_payload(run_id)
+            except FileNotFoundError:
+                enriched.append(manifest)
+                continue
+            run_quality = inspect_run_quality(
+                config_snapshot=config_snapshot,
+                response_payload=response_payload,
+            )
+            if run_quality is None:
+                enriched.append(manifest)
+                continue
+            enriched.append({**manifest, "run_quality": run_quality})
+        return enriched
 
     def get_trades_csv(self, run_id: str, strategy_name: str) -> str:
         """Generate a trades CSV for a persisted run and strategy."""

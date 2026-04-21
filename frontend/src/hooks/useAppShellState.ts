@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ResearchWorkspacePayload } from '../types/api';
 
-export type PrimarySection = 'home' | 'simulate' | 'results' | 'advanced';
+export type PrimarySection = 'home' | 'investments' | 'simulate' | 'results' | 'advanced';
 export type SimulateTab = 'configure' | 'datasets';
 export type ResultsTab = 'history' | 'compare' | 'workspaces';
 export type AdvancedTool =
@@ -33,6 +33,7 @@ export function useAppShellState({
 
   const primaryTabs = [
     { id: 'home' as const, label: 'Inicio' },
+    { id: 'investments' as const, label: 'Investimentos' },
     { id: 'simulate' as const, label: 'Simular' },
     { id: 'results' as const, label: 'Resultados', badge: runsCount },
     { id: 'advanced' as const, label: 'Avancado' },

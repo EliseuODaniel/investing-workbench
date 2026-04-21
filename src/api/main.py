@@ -9,6 +9,7 @@ from ..bitcoin_martingale.infrastructure.logging import configure_logging
 from ..bitcoin_martingale.interfaces.api import services as api_services
 from ..bitcoin_martingale.interfaces.api.routers.allocations import router as allocations_router
 from ..bitcoin_martingale.interfaces.api.routers.datasets import router as datasets_router
+from ..bitcoin_martingale.interfaces.api.routers.investments import router as investments_router
 from ..bitcoin_martingale.interfaces.api.routers.pairs import router as pairs_router
 from ..bitcoin_martingale.interfaces.api.routers.research import router as research_router
 from ..bitcoin_martingale.interfaces.api.routers.runs import router as runs_router
@@ -53,6 +54,7 @@ app.add_middleware(
 for router in (
     system_router,
     datasets_router,
+    investments_router,
     runs_router,
     scenarios_router,
     research_router,
