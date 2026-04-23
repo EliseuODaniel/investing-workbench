@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   CartesianGrid,
   ResponsiveContainer,
@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import SeriesLegendButtons from '../charts/SeriesLegendButtons';
+import { useSeriesLegendState } from '../../hooks/useSeriesLegendState';
 import { TradesChartPanelProps } from './types';
 import { formatCurrency } from './utils';
 
@@ -18,7 +19,6 @@ export default function TradesChartPanel({
   tradesData,
   getStrategyColor,
 }: TradesChartPanelProps) {
-  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
   const legendItems = useMemo(
     () =>
       Object.keys(results)
@@ -30,6 +30,10 @@ export default function TradesChartPanel({
         })),
     [getStrategyColor, results, visibleStrategies]
   );
+  const { activeSeriesId, hiddenSeriesIds, toggleSeries } = useSeriesLegendState(
+    legendItems.map((item) => item.id)
+  );
+  const hiddenSeriesSet = useMemo(() => new Set(hiddenSeriesIds), [hiddenSeriesIds]);
 
   return (
     <div>
@@ -77,6 +81,7 @@ export default function TradesChartPanel({
                   key={strategyName}
                   name={strategyName}
                   data={tradesData.filter((trade) => trade.strategy === strategyName)}
+                  hide={hiddenSeriesSet.has(strategyName)}
                   fill={getStrategyColor(strategyName)}
                   fillOpacity={activeSeriesId === null || activeSeriesId === strategyName ? 1 : 0.18}
                 />
@@ -89,7 +94,8 @@ export default function TradesChartPanel({
       <SeriesLegendButtons
         items={legendItems}
         activeSeriesId={activeSeriesId}
-        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+        hiddenSeriesIds={hiddenSeriesIds}
+        onToggle={toggleSeries}
       />
     </div>
   );

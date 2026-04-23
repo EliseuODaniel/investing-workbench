@@ -1,9 +1,21 @@
-import { useMemo, useState } from 'react';
-import { BarChart3, Coins, Globe2, Landmark, ShieldCheck, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  BarChart3,
+  Coins,
+  Globe2,
+  Landmark,
+  ListChecks,
+  ShieldCheck,
+  SlidersHorizontal,
+  Wallet,
+} from 'lucide-react';
 import InteractiveSeriesChart from './charts/InteractiveSeriesChart';
+import SectionTabs from './app-shell/SectionTabs';
 import { useInvestmentsComparison } from '../hooks/useInvestmentsComparison';
 import { formatCurrency, formatDate, formatNumber, formatPercent } from '../lib/utils';
 import type {
+  InvestmentInstrumentPayload,
+  InvestmentPresetPayload,
   InvestmentFixedIncomeStudyPayload,
   InvestmentFixedIncomeWindowPayload,
 } from '../types/api';
@@ -12,8 +24,12 @@ interface InvestmentsWorkspaceProps {
   onError: (message: string | null) => void;
 }
 
+type InvestmentsEntryMode = 'guided' | 'manual';
+type InvestmentsWorkspaceTab = 'setup' | 'results';
+type InvestmentsSetupTab = 'start' | 'scenario' | 'review';
+
 function objectiveIcon(presetId: string) {
-  if (presetId === 'fixed_income_ipca_vs_cdi' || presetId === 'fixed_income_full_cycle') {
+  if (presetId.startsWith('fixed_income_')) {
     return <Landmark className="h-4 w-4" />;
   }
   if (presetId === 'income_focus' || presetId === 'pre_retirement') {
@@ -43,6 +59,60 @@ function groupRollingWindows(rows: InvestmentFixedIncomeWindowPayload[]) {
     }));
 }
 
+function compareStringArrays(left: string[] | null | undefined, right: string[] | null | undefined) {
+  const normalizedLeft = [...(left ?? [])].sort();
+  const normalizedRight = [...(right ?? [])].sort();
+  if (normalizedLeft.length !== normalizedRight.length) {
+    return false;
+  }
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
+function presetFamily(
+  preset: InvestmentPresetPayload,
+  instrumentLookup: Map<string, InvestmentInstrumentPayload>
+): { label: string; description: string } {
+  if (preset.preset_id.startsWith('fixed_income_')) {
+    return {
+      label: 'Renda fixa guiada',
+      description: 'Estudos com CDI, duration, Tesouro Direto e juros reais.',
+    };
+  }
+
+  const hasGuidedPortfolio = preset.asset_ids.some(
+    (assetId) => instrumentLookup.get(assetId)?.source_kind === 'model_portfolio'
+  );
+  if (hasGuidedPortfolio) {
+    return {
+      label: 'Carteiras guiadas',
+      description: 'Simulações prontas inspiradas em vídeos e alocações-modelo.',
+    };
+  }
+
+  if (preset.preset_id === 'global_b3') {
+    return {
+      label: 'Exterior e diversificação',
+      description: 'Comparações para quem quer sair do Brasil sem abrir conta fora.',
+    };
+  }
+
+  if (
+    preset.preset_id === 'income_focus' ||
+    preset.preset_id === 'pre_retirement' ||
+    preset.preset_id === 'real_return'
+  ) {
+    return {
+      label: 'Renda, proteção e aposentadoria',
+      description: 'Estudos voltados para renda, inflação e preservação do patrimônio.',
+    };
+  }
+
+  return {
+    label: 'Começo e comparações amplas',
+    description: 'Presets para aprender as grandes famílias de investimento sem complicação.',
+  };
+}
+
 export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspaceProps) {
   const {
     catalog,
@@ -68,6 +138,12 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
     compare,
   } = useInvestmentsComparison(onError);
   const [chartMode, setChartMode] = useState<'nominal' | 'real'>('nominal');
+  const [entryMode, setEntryMode] = useState<InvestmentsEntryMode>('guided');
+  const [isAssetEditorExpanded, setIsAssetEditorExpanded] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<InvestmentsWorkspaceTab>(
+    comparison ? 'results' : 'setup'
+  );
+  const [setupTab, setSetupTab] = useState<InvestmentsSetupTab>('start');
 
   const instrumentsByCategory = useMemo(() => {
     if (!catalog) {
@@ -101,6 +177,46 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
       (catalog?.instruments ?? []).map((instrument) => [instrument.instrument_id, instrument])
     );
   }, [catalog]);
+  const selectedAssets = useMemo(() => {
+    if (!catalog) {
+      return [];
+    }
+    const selectedIds = new Set(request.asset_ids ?? []);
+    return catalog.instruments.filter((instrument) => selectedIds.has(instrument.instrument_id));
+  }, [catalog, request.asset_ids]);
+  const selectedBenchmarkOptions = useMemo(() => {
+    if (!catalog) {
+      return [];
+    }
+    const selectedIds = new Set(request.benchmark_ids ?? []);
+    return catalog.benchmark_options.filter((benchmark) => selectedIds.has(benchmark.benchmark_id));
+  }, [catalog, request.benchmark_ids]);
+  const presetGroups = useMemo(() => {
+    if (!catalog) {
+      return [];
+    }
+
+    const groups = new Map<
+      string,
+      { label: string; description: string; presets: InvestmentPresetPayload[] }
+    >();
+
+    for (const preset of catalog.presets) {
+      const family = presetFamily(preset, instrumentLookup);
+      const current = groups.get(family.label);
+      if (current) {
+        current.presets.push(preset);
+        continue;
+      }
+      groups.set(family.label, {
+        label: family.label,
+        description: family.description,
+        presets: [preset],
+      });
+    }
+
+    return Array.from(groups.values());
+  }, [catalog, instrumentLookup]);
 
   const investedTotal = useMemo(() => {
     const endDate = request.end_date || comparison?.request.end_date;
@@ -141,6 +257,32 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
 
   const currentChart = chartMode === 'real' ? comparison?.real_chart : comparison?.chart;
   const portfolioResults = comparison?.results.filter((row) => row.component_breakdown.length > 0) ?? [];
+  const isAssetEditorVisible = entryMode === 'manual' || isAssetEditorExpanded;
+  const presetCustomized = useMemo(() => {
+    if (!selectedPreset) {
+      return false;
+    }
+
+    const benchmarkMatchesPreset =
+      selectedPreset.default_benchmark_ids === undefined ||
+      selectedPreset.default_benchmark_ids === null ||
+      compareStringArrays(request.benchmark_ids ?? [], selectedPreset.default_benchmark_ids);
+
+    return !(
+      compareStringArrays(request.asset_ids ?? [], selectedPreset.asset_ids) &&
+      benchmarkMatchesPreset &&
+      (selectedPreset.default_start_date === undefined ||
+        request.start_date === selectedPreset.default_start_date) &&
+      (selectedPreset.default_end_date === undefined ||
+        (request.end_date ?? '') === (selectedPreset.default_end_date ?? ''))
+    );
+  }, [
+    request.asset_ids,
+    request.benchmark_ids,
+    request.end_date,
+    request.start_date,
+    selectedPreset,
+  ]);
   const hasFixedIncomeSelection = useMemo(() => {
     if (!catalog) {
       return false;
@@ -153,10 +295,99 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
           instrument.source_kind === 'tesouro_direct_strategy')
     );
   }, [catalog, request.asset_ids]);
+  const selectedSimpleAssetCount = selectedAssets.filter(
+    (instrument) => instrument.source_kind !== 'model_portfolio'
+  ).length;
+
+  const handleApplyPreset = (presetId: string) => {
+    setEntryMode('guided');
+    setIsAssetEditorExpanded(false);
+    applyPreset(presetId);
+  };
+
+  const handleToggleAsset = (instrumentId: string) => {
+    if (entryMode === 'guided') {
+      setIsAssetEditorExpanded(true);
+    }
+    toggleAsset(instrumentId);
+  };
+
+  useEffect(() => {
+    if (comparison) {
+      setWorkspaceTab('results');
+    }
+  }, [comparison]);
+
+  const workspaceTabs = [
+    { id: 'setup' as const, label: 'Montagem do estudo' },
+    {
+      id: 'results' as const,
+      label: 'Resultado',
+      badge: comparison ? comparison.results.length : undefined,
+    },
+  ];
+  const setupTabs = [
+    { id: 'start' as const, label: '1. Começo' },
+    { id: 'scenario' as const, label: '2. Cenário' },
+    {
+      id: 'review' as const,
+      label: '3. Revisão',
+      badge: request.asset_ids?.length ?? 0,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_1.35fr]">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Navegação interna da análise
+            </div>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Vamos experimentar um fluxo menos carregado: primeiro você monta o estudo em etapas,
+              depois abre o resultado em uma aba separada.
+            </p>
+          </div>
+          {comparison ? (
+            <button
+              type="button"
+              onClick={() => setWorkspaceTab('results')}
+              className="rounded-full border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-800 transition hover:border-blue-400 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-200"
+            >
+              Abrir último resultado
+            </button>
+          ) : null}
+        </div>
+        <div className="mt-4">
+          <SectionTabs
+            tabs={workspaceTabs}
+            activeTab={workspaceTab}
+            onChange={setWorkspaceTab}
+          />
+        </div>
+      </div>
+
+      {workspaceTab === 'setup' ? (
+        <>
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Montagem do estudo em etapas
+            </div>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Só a etapa ativa fica aberta. Assim a tela fica mais leve enquanto você define como
+              quer começar, ajusta o cenário e revisa a comparação.
+            </p>
+            <div className="mt-4">
+              <SectionTabs tabs={setupTabs} activeTab={setupTab} onChange={setSetupTab} />
+            </div>
+          </div>
+
+          <div
+            className={`grid gap-6 ${
+              setupTab === 'review' ? 'xl:grid-cols-[0.95fr_1.35fr]' : 'xl:grid-cols-1'
+            }`}
+          >
         <div className="space-y-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
@@ -173,112 +404,165 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
             </p>
           </div>
 
+          {setupTab === 'start' ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
               <Landmark className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-              1. Escolha um objetivo simples
+              1. Escolha como quer começar
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {catalog?.presets.map((preset) => {
-                const active = preset.preset_id === selectedPresetId;
-                return (
-                  <button
-                    key={preset.preset_id}
-                    type="button"
-                    onClick={() => applyPreset(preset.preset_id)}
-                    className={`rounded-2xl border p-4 text-left transition ${
-                      active
-                        ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
-                        : 'border-gray-200 bg-gray-50 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {objectiveIcon(preset.preset_id)}
-                      {preset.label}
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {preset.description}
-                    </p>
-                    <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                      {preset.goal_label}
-                    </div>
-                    {preset.preset_id === 'sardinha_40_plus' ? (
-                      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200">
-                        Novo: compara a carteira 40+ inspirada no vídeo na versão original e na
-                        versão operacional pela B3.
-                      </div>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+              A principal diferença desta aba é esta: você pode começar por um{' '}
+              <strong>estudo pronto</strong>, que já traz uma pergunta e uma seleção inicial de
+              comparativos, ou pode <strong>montar do seu jeito</strong>.
+            </p>
 
-          {selectedGuidedPortfolios.length > 0 ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-              <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
-                Simulação guiada em foco
-              </div>
-              <p className="mt-2 text-sm leading-6 text-emerald-900/90 dark:text-emerald-100/90">
-                Estas carteiras foram montadas para reproduzir a ideia do vídeo e deixar claro o
-                que é fidelidade metodológica e o que é adaptação operacional para a B3.
-              </p>
-              <div className="mt-4 space-y-4">
-                {selectedGuidedPortfolios.map((instrument) => (
-                  <div
-                    key={instrument.instrument_id}
-                    className="rounded-2xl border border-emerald-200/80 bg-white/80 p-4 dark:border-emerald-900/50 dark:bg-gray-950/40"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {instrument.label}
-                      </div>
-                      {instrument.rebalance_frequency ? (
-                        <span className="rounded-full border border-emerald-300 px-2 py-1 text-[11px] font-medium text-emerald-800 dark:border-emerald-700 dark:text-emerald-200">
-                          rebalanceamento {instrument.rebalance_frequency}
-                        </span>
-                      ) : null}
-                      <span className="rounded-full border border-gray-300 px-2 py-1 text-[11px] font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">
-                        {instrument.listed_on_b3
-                          ? 'montada com ativos da B3'
-                          : 'usa ETFs originais do vídeo'}
-                      </span>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryMode('guided');
+                  setIsAssetEditorExpanded(false);
+                }}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  entryMode === 'guided'
+                    ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700'
+                }`}
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <ListChecks className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                  Quero um estudo pronto
+                </div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Melhor para começar rápido. O sistema já sugere quem comparar, qual período faz
+                  sentido e, em alguns casos, quais benchmarks usar.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryMode('manual');
+                  setIsAssetEditorExpanded(true);
+                }}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  entryMode === 'manual'
+                    ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700'
+                }`}
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <SlidersHorizontal className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                  Quero montar manualmente
+                </div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Melhor para quem já sabe os ativos que quer colocar lado a lado ou quer sair do
+                  roteiro sugerido e construir a comparação do zero.
+                </p>
+              </button>
+            </div>
+
+            {entryMode === 'guided' ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+                  <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                    Estudos prontos deixam o começo mais simples
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-blue-900/90 dark:text-blue-100/90">
+                    Primeiro você escolhe a pergunta que quer responder. Depois, à direita, você
+                    só revisa quem entrou no estudo e decide se quer manter o roteiro ou
+                    personalizar.
+                  </p>
+                </div>
+
+                {presetGroups.map((group) => (
+                  <div key={group.label}>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {group.label}
                     </div>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {instrument.description}
-                    </p>
-                    {instrument.implementation_note ? (
-                      <div className="mt-3 rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:bg-gray-900/70 dark:text-gray-200">
-                        {instrument.implementation_note}
-                      </div>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {instrument.components.map((component) => {
-                        const componentMeta = instrumentLookup.get(component.component_id);
+                    <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      {group.description}
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {group.presets.map((preset) => {
+                        const active = preset.preset_id === selectedPresetId;
                         return (
-                          <span
-                            key={`${instrument.instrument_id}-${component.component_id}`}
-                            className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200"
+                          <button
+                            key={preset.preset_id}
+                            type="button"
+                            onClick={() => handleApplyPreset(preset.preset_id)}
+                            className={`rounded-2xl border p-4 text-left transition ${
+                              active
+                                ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
+                                : 'border-gray-200 bg-gray-50 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-950/40 dark:hover:border-gray-700'
+                            }`}
                           >
-                            {componentMeta?.label ?? component.component_id}:{' '}
-                            {formatPercent(component.weight)}
-                          </span>
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {objectiveIcon(preset.preset_id)}
+                              {preset.label}
+                            </div>
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                              {preset.description}
+                            </p>
+                            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                              {preset.goal_label}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                              <span className="rounded-full border border-gray-300 px-2 py-1 dark:border-gray-700">
+                                {preset.asset_ids.length} comparativos
+                              </span>
+                              {preset.default_start_date ? (
+                                <span className="rounded-full border border-gray-300 px-2 py-1 dark:border-gray-700">
+                                  começa em {formatDate(preset.default_start_date)}
+                                </span>
+                              ) : null}
+                              {preset.default_benchmark_ids?.length ? (
+                                <span className="rounded-full border border-gray-300 px-2 py-1 dark:border-gray-700">
+                                  {preset.default_benchmark_ids.length} benchmark(s)
+                                </span>
+                              ) : null}
+                            </div>
+                          </button>
                         );
                       })}
                     </div>
-                    {instrument.notes.length > 0 ? (
-                      <ul className="mt-3 space-y-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                        {instrument.notes.map((note) => (
-                          <li key={note}>- {note}</li>
-                        ))}
-                      </ul>
-                    ) : null}
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+                  Você está montando a comparação manualmente
+                </div>
+                <p className="mt-2 text-sm leading-6 text-emerald-900/90 dark:text-emerald-100/90">
+                  Agora o fluxo fica assim: primeiro você define o dinheiro e o período. Depois,
+                  à direita, escolhe exatamente quem entra na comparação.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateRequest('asset_ids', []);
+                      setIsCustomPortfolioEnabled(false);
+                    }}
+                    className="rounded-full border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:border-emerald-400 dark:border-emerald-700 dark:bg-gray-950 dark:text-emerald-200"
+                  >
+                    Limpar seleção atual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryMode('guided')}
+                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                  >
+                    Voltar para estudos prontos
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           ) : null}
 
+          {setupTab === 'scenario' ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
               <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-300" />
@@ -341,8 +625,8 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
                   Configuração extra para renda fixa
                 </div>
                 <p className="mt-2 text-sm text-amber-900/80 dark:text-amber-100/80">
-                  Aqui a gente escolhe se quer olhar o vídeo como índice teórico, a experiência
-                  real de Tesouro Direto, ou os dois lados ao mesmo tempo.
+                  Este bloco só aparece quando a comparação inclui juros. É aqui que você decide
+                  se quer olhar índice teórico, produto real do Tesouro ou os dois juntos.
                 </p>
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                   <label className="space-y-2 text-sm">
@@ -397,93 +681,323 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               </div>
             ) : null}
           </div>
+          ) : null}
         </div>
 
+        {setupTab === 'review' ? (
         <div className="space-y-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
               <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-              3. Monte a comparacao
+              3. Revise quem entra na comparacao
             </div>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Selecione o que voce quer colocar lado a lado. O comparador ja traz listas prontas,
-              mas voce pode trocar ativos, benchmarks e tambem montar uma carteira propria.
+              {entryMode === 'guided'
+                ? 'O estudo pronto já trouxe uma seleção inicial. Aqui você entende o que entrou e decide se quer manter o roteiro ou personalizar.'
+                : 'Como você escolheu montar manualmente, este é o passo em que define exatamente quem será comparado.'}
             </p>
 
-            <div className="mt-5 space-y-5">
-              {instrumentsByCategory.map((category) => (
-                <div key={category.category_id}>
-                  <div className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {category.label}
+            <div className="mt-5 grid gap-4 xl:grid-cols-4">
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
+                  Comparativos
+                </div>
+                <div className="mt-2 text-xl font-semibold text-blue-900 dark:text-blue-100">
+                  {selectedAssets.length}
+                </div>
+                <div className="mt-1 text-sm text-blue-800 dark:text-blue-200">
+                  ativos, ETFs ou carteiras entram na disputa
+                </div>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+                  Benchmarks
+                </div>
+                <div className="mt-2 text-xl font-semibold text-emerald-900 dark:text-emerald-100">
+                  {selectedBenchmarkOptions.length}
+                </div>
+                <div className="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
+                  referências para dizer se o risco valeu a pena
+                </div>
+              </div>
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-900/50 dark:bg-violet-950/20">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700 dark:text-violet-300">
+                  Carteiras guiadas
+                </div>
+                <div className="mt-2 text-xl font-semibold text-violet-900 dark:text-violet-100">
+                  {selectedGuidedPortfolios.length}
+                </div>
+                <div className="mt-1 text-sm text-violet-800 dark:text-violet-200">
+                  seleções prontas com rebalanceamento embutido
+                </div>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                  Jeito de começar
+                </div>
+                <div className="mt-2 text-xl font-semibold text-amber-900 dark:text-amber-100">
+                  {entryMode === 'guided' ? 'Estudo pronto' : 'Manual'}
+                </div>
+                <div className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                  {entryMode === 'guided'
+                    ? 'você revisa primeiro, depois personaliza se quiser'
+                    : 'você define os comparativos diretamente'}
+                </div>
+              </div>
+            </div>
+
+            {entryMode === 'guided' && selectedPreset ? (
+              <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      Estudo ativo: {selectedPreset.label}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-blue-900/90 dark:text-blue-100/90">
+                      {selectedPreset.goal_label}
+                    </p>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {category.instruments.map((instrument) => {
-                      const checked = (request.asset_ids ?? []).includes(instrument.instrument_id);
-                      return (
-                        <label
-                          key={instrument.instrument_id}
-                          className={`flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${
-                            checked
-                              ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
-                              : 'border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/40'
-                          }`}
-                        >
-                          <input
-                            className="mt-1"
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleAsset(instrument.instrument_id)}
-                          />
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {instrument.label}
-                              <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">
-                                {instrument.risk_label}
-                              </span>
-                            </div>
-                            <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                              {instrument.description}
-                            </div>
-                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                              {instrument.rationale}
-                            </div>
-                            {instrument.source_kind === 'model_portfolio' ? (
-                              <div className="mt-3 space-y-2">
-                                <div className="flex flex-wrap gap-2 text-[11px]">
-                                  <span className="rounded-full border border-emerald-300 px-2 py-1 font-medium text-emerald-800 dark:border-emerald-700 dark:text-emerald-200">
-                                    Carteira guiada
-                                  </span>
-                                  {instrument.rebalance_frequency ? (
-                                    <span className="rounded-full border border-blue-300 px-2 py-1 font-medium text-blue-800 dark:border-blue-700 dark:text-blue-200">
-                                      rebalanceamento {instrument.rebalance_frequency}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                {instrument.implementation_note ? (
-                                  <div className="rounded-xl bg-white/70 px-3 py-2 text-xs text-gray-600 dark:bg-gray-900/70 dark:text-gray-300">
-                                    {instrument.implementation_note}
-                                  </div>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </div>
-                        </label>
-                      );
-                    })}
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full border border-blue-300 px-2 py-1 font-medium text-blue-800 dark:border-blue-700 dark:text-blue-200">
+                      {selectedPreset.asset_ids.length} comparativos sugeridos
+                    </span>
+                    {selectedPreset.default_start_date ? (
+                      <span className="rounded-full border border-blue-300 px-2 py-1 font-medium text-blue-800 dark:border-blue-700 dark:text-blue-200">
+                        início sugerido {formatDate(selectedPreset.default_start_date)}
+                      </span>
+                    ) : null}
+                    {presetCustomized ? (
+                      <span className="rounded-full border border-amber-300 bg-white/80 px-2 py-1 font-medium text-amber-800 dark:border-amber-700 dark:bg-gray-950/40 dark:text-amber-200">
+                        você personalizou o estudo
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-emerald-300 bg-white/80 px-2 py-1 font-medium text-emerald-800 dark:border-emerald-700 dark:bg-gray-950/40 dark:text-emerald-200">
+                        estudo ainda no formato sugerido
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+            ) : null}
+
+            <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-gray-950/30">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                O que está entrando agora na comparação
+              </div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                Este bloco existe para tirar a ambiguidade: aqui você vê claramente quem está na
+                disputa. Em estudo pronto, isso é uma revisão. Em modo manual, isso é a montagem
+                da seleção.
+              </p>
+
+              {selectedAssets.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                  Nenhum comparativo foi selecionado ainda. Escolha um estudo pronto ou abra a
+                  personalização para montar a lista manualmente.
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {selectedAssets.map((instrument) =>
+                    instrument.source_kind === 'model_portfolio' ? (
+                      <div
+                        key={instrument.instrument_id}
+                        className="rounded-2xl border border-emerald-200 bg-white p-4 dark:border-emerald-900/50 dark:bg-gray-950/40"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {instrument.label}
+                          </div>
+                          <span className="rounded-full border border-emerald-300 px-2 py-1 text-[11px] font-medium text-emerald-800 dark:border-emerald-700 dark:text-emerald-200">
+                            carteira guiada
+                          </span>
+                          {instrument.rebalance_frequency ? (
+                            <span className="rounded-full border border-blue-300 px-2 py-1 text-[11px] font-medium text-blue-800 dark:border-blue-700 dark:text-blue-200">
+                              rebalanceamento {instrument.rebalance_frequency}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                          {instrument.description}
+                        </p>
+                        {instrument.implementation_note ? (
+                          <div className="mt-3 rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:bg-gray-900/70 dark:text-gray-200">
+                            {instrument.implementation_note}
+                          </div>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {instrument.components.map((component) => {
+                            const componentMeta = instrumentLookup.get(component.component_id);
+                            return (
+                              <span
+                                key={`${instrument.instrument_id}-${component.component_id}`}
+                                className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200"
+                              >
+                                {componentMeta?.label ?? component.component_id}:{' '}
+                                {formatPercent(component.weight)}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={instrument.instrument_id}
+                        className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950/40"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {instrument.label}
+                          </div>
+                          <span className="rounded-full border border-gray-300 px-2 py-1 text-[11px] text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                            {instrument.category_label}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          {instrument.risk_label} • {instrument.region_label}
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                          {instrument.description}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedBenchmarkOptions.map((benchmark) => (
+                  <span
+                    key={benchmark.benchmark_id}
+                    className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  >
+                    benchmark: {benchmark.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {entryMode === 'guided' ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Quer manter o roteiro ou personalizar?
+                    </div>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                      Se o estudo já parece certo, você pode seguir direto. Se quiser trocar
+                      comparativos, abra o editor abaixo.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAssetEditorExpanded((current) => !current)}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                      isAssetEditorExpanded
+                        ? 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-200'
+                        : 'border-gray-300 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                    }`}
+                  >
+                    {isAssetEditorExpanded
+                      ? 'Fechar personalização'
+                      : 'Quero personalizar os comparativos'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {isAssetEditorVisible ? (
+              <div className="mt-5 space-y-5">
+                {instrumentsByCategory.map((category) => (
+                  <div key={category.category_id}>
+                    <div className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {category.label}
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {category.instruments.map((instrument) => {
+                        const checked = (request.asset_ids ?? []).includes(instrument.instrument_id);
+                        return (
+                          <label
+                            key={instrument.instrument_id}
+                            className={`flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${
+                              checked
+                                ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30'
+                                : 'border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/40'
+                            }`}
+                          >
+                            <input
+                              className="mt-1"
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleToggleAsset(instrument.instrument_id)}
+                            />
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {instrument.label}
+                                <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">
+                                  {instrument.risk_label}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                                {instrument.description}
+                              </div>
+                              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                {instrument.rationale}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+              4. Benchmarks e carteira pessoal
+            </div>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Depois de definir quem entra na disputa, você decide quais referências deixam a
+              leitura mais justa e se quer incluir uma carteira própria.
+            </p>
+
+            <div className="mt-5">
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Benchmarks sempre visíveis
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {catalog?.benchmark_options.map((benchmark) => {
+                  const checked = (request.benchmark_ids ?? []).includes(benchmark.benchmark_id);
+                  return (
+                    <button
+                      key={benchmark.benchmark_id}
+                      type="button"
+                      onClick={() => toggleBenchmark(benchmark.benchmark_id)}
+                      className={`rounded-full border px-4 py-2 text-sm transition ${
+                        checked
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'
+                          : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      }`}
+                    >
+                      {benchmark.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="mt-6 rounded-2xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    4. Monte uma carteira pessoal (opcional)
+                    Carteira pessoal (opcional)
                   </div>
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                    Use os ativos selecionados para comparar uma alocacao propria contra ativos
-                    avulsos e carteiras guiadas.
+                    Use os ativos simples já selecionados para comparar uma alocação sua contra
+                    ativos avulsos e carteiras guiadas.
                   </p>
                 </div>
                 <button
@@ -503,8 +1017,8 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
                 customPortfolioAssets.length < 2 ? (
                   <div className="mt-4 rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:bg-gray-900/60 dark:text-gray-300">
                     Selecione pelo menos dois ativos simples para montar uma carteira
-                    personalizada. Ativos que ja sao carteiras guiadas ficam fora desse bloco para
-                    evitar comparacoes circulares.
+                    personalizada. Carteiras guiadas não entram aqui para evitar comparação
+                    circular.
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
@@ -521,7 +1035,7 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
                       </label>
                       <label className="space-y-2 text-sm">
                         <span className="font-medium text-gray-700 dark:text-gray-200">
-                          Descricao curta
+                          Descrição curta
                         </span>
                         <input
                           className="input-field"
@@ -583,31 +1097,6 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               ) : null}
             </div>
 
-            <div className="mt-6 border-t border-gray-200 pt-5 dark:border-gray-800">
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Benchmarks sempre visiveis
-              </div>
-              <div className="mt-3 flex flex-wrap gap-3">
-                {catalog?.benchmark_options.map((benchmark) => {
-                  const checked = (request.benchmark_ids ?? []).includes(benchmark.benchmark_id);
-                  return (
-                    <button
-                      key={benchmark.benchmark_id}
-                      type="button"
-                      onClick={() => toggleBenchmark(benchmark.benchmark_id)}
-                      className={`rounded-full border px-4 py-2 text-sm transition ${
-                        checked
-                          ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200'
-                          : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                      }`}
-                    >
-                      {benchmark.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -615,13 +1104,25 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
                 disabled={isLoadingCatalog || isComparing || (request.asset_ids ?? []).length === 0}
                 className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isComparing ? 'Comparando...' : 'Comparar investimentos'}
+                {isComparing
+                  ? 'Comparando...'
+                  : entryMode === 'guided'
+                    ? 'Rodar estudo'
+                    : 'Comparar seleção manual'}
               </button>
-              {selectedPreset ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Sugestao ativa: <strong>{selectedPreset.label}</strong>
-                </div>
-              ) : null}
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {entryMode === 'guided' && selectedPreset ? (
+                  <>
+                    Você está partindo de <strong>{selectedPreset.label}</strong> com{' '}
+                    <strong>{selectedAssets.length}</strong> comparativos.
+                  </>
+                ) : (
+                  <>
+                    Você está montando uma comparação com <strong>{selectedAssets.length}</strong>{' '}
+                    comparativos e <strong>{selectedSimpleAssetCount}</strong> ativos simples.
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -636,9 +1137,33 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
             </ul>
           </div>
         </div>
-      </div>
+        ) : null}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Resultado em uma aba separada
+                </div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  A leitura do estudo fica isolada aqui para você não precisar olhar formulário,
+                  configuração e análise tudo ao mesmo tempo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab('setup')}
+                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              >
+                Voltar para montagem
+              </button>
+            </div>
+          </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900/60">
         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Resultado didatico
         </div>
@@ -757,6 +1282,8 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               tooltipLabelFormatter={(value) => formatDate(String(value))}
               tooltipValueFormatter={(value) => formatCurrency(value)}
               heightClassName="h-[28rem]"
+              enableDateFilter
+              rebaseOnDateFilter
             />
 
             {fixedIncomeBacktest ? (
@@ -1285,7 +1812,9 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
             </div>
           </div>
         )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

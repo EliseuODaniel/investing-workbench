@@ -42,8 +42,16 @@ def _candidate_symbols(data_source: str) -> list[str]:
     if base_source in _DATA_SOURCE_ALIASES:
         return list(dict.fromkeys(_DATA_SOURCE_ALIASES[base_source]))
 
-    is_b3_cash_ticker = bool(re.fullmatch(r"[A-Z]{4,5}\d{1,2}", base_source.upper()))
-    if not base_source.endswith(".SA") and (base_source.isalpha() or is_b3_cash_ticker):
+    normalized_source = base_source.upper()
+    is_b3_cash_ticker = bool(re.fullmatch(r"[A-Z]{4,5}\d{1,2}", normalized_source))
+    is_b3_embedded_digit_fund_ticker = bool(re.fullmatch(r"[A-Z0-9]{5,6}", normalized_source)) and (
+        normalized_source.endswith("11")
+        and any(char.isalpha() for char in normalized_source)
+        and any(char.isdigit() for char in normalized_source[:-2])
+    )
+    if not base_source.endswith(".SA") and (
+        base_source.isalpha() or is_b3_cash_ticker or is_b3_embedded_digit_fund_ticker
+    ):
         return [f"{base_source}.SA", base_source]
 
     return [base_source]
@@ -352,8 +360,7 @@ def get_data(
                 downloaded = pd.DataFrame()
             else:
                 print(
-                    "Using BTC-BRL synthetic fallback through "
-                    f"{downloaded.index.max().date()}"
+                    "Using BTC-BRL synthetic fallback through " f"{downloaded.index.max().date()}"
                 )
         if downloaded.empty and synthetic_error is not None:
             last_error = synthetic_error

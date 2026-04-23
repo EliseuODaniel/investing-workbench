@@ -71,4 +71,51 @@
   .tab-button.inactive {
     @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600;
   }
+
+  .range-slider {
+    @apply pointer-events-none absolute inset-x-0 top-1/2 h-10 w-full -translate-y-1/2 appearance-none bg-transparent;
+  }
+
+  .range-slider::-webkit-slider-thumb {
+    appearance: none;
+    pointer-events: auto;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background: rgb(37 99 235);
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+  }
+
+  .dark .range-slider::-webkit-slider-thumb {
+    background: rgb(96 165 250);
+    border-color: rgb(15 23 42);
+  }
+
+  .range-slider::-moz-range-thumb {
+    pointer-events: auto;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background: rgb(37 99 235);
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+  }
+
+  .dark .range-slider::-moz-range-thumb {
+    background: rgb(96 165 250);
+    border-color: rgb(15 23 42);
+  }
+
+  .range-slider::-webkit-slider-runnable-track {
+    appearance: none;
+    background: transparent;
+  }
+
+  .range-slider::-moz-range-track {
+    background: transparent;
+    border: 0;
+  }
 }

@@ -78,6 +78,8 @@ export default function Wege3ComparisonChart({ chart }: Wege3ComparisonChartProp
       tooltipLabelFormatter={(value) => formatDate(String(value))}
       tooltipValueFormatter={(value) => formatCurrency(value)}
       emptyText="Sem dados suficientes para gerar a comparacao das estrategias WEGE3."
+      enableDateFilter
+      rebaseOnDateFilter
     />
   );
 }

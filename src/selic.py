@@ -73,6 +73,50 @@ def _download_bcb_series(
     return payload
 
 
+def _normalize_requested_range(
+    start_date: str | None,
+    end_date: str | None,
+) -> tuple[pd.Timestamp, pd.Timestamp]:
+    start_ts = pd.Timestamp(start_date or "2020-01-01").normalize()
+    end_ts = pd.Timestamp(end_date or pd.Timestamp.utcnow().strftime("%Y-%m-%d")).normalize()
+    if end_ts < start_ts:
+        raise ValueError(f"Invalid SELIC range: {start_ts.date()} > {end_ts.date()}")
+    return start_ts, end_ts
+
+
+def _build_daily_download_ranges(
+    start_date: str | None,
+    end_date: str | None,
+) -> list[tuple[str, str]]:
+    start_ts, end_ts = _normalize_requested_range(start_date, end_date)
+    ranges: list[tuple[str, str]] = []
+    cursor = start_ts
+    while cursor <= end_ts:
+        window_end = min(
+            end_ts,
+            (cursor + pd.DateOffset(years=10) - pd.Timedelta(days=1)).normalize(),
+        )
+        ranges.append((str(cursor.date()), str(window_end.date())))
+        cursor = window_end + pd.Timedelta(days=1)
+    return ranges
+
+
+def _merge_daily_frames(*frames: pd.DataFrame | None) -> pd.DataFrame | None:
+    valid_frames = [frame for frame in frames if frame is not None and not frame.empty]
+    if not valid_frames:
+        return None
+    merged = pd.concat(valid_frames, ignore_index=True)
+    merged["date"] = pd.to_datetime(merged["date"], errors="coerce").dt.normalize()
+    merged["rate"] = pd.to_numeric(merged["rate"], errors="coerce")
+    merged = (
+        merged.dropna(subset=["date", "rate"])
+        .drop_duplicates(subset=["date"], keep="last")
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+    return merged
+
+
 def download_selic_data(
     start_date: str | None = None,
     end_date: str | None = None,
@@ -178,18 +222,23 @@ def download_daily_selic_data(
 ) -> Optional[pd.DataFrame]:
     """Download official daily SELIC (% a.d.) from Banco Central do Brasil."""
     try:
-        raw_rows = _download_bcb_series(
-            sgs_code=DAILY_SELIC_SGS_CODE,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        if not raw_rows:
+        frames: list[pd.DataFrame] = []
+        ranges = _build_daily_download_ranges(start_date, end_date)
+        for chunk_start, chunk_end in ranges:
+            raw_rows = _download_bcb_series(
+                sgs_code=DAILY_SELIC_SGS_CODE,
+                start_date=chunk_start,
+                end_date=chunk_end,
+            )
+            if not raw_rows:
+                continue
+            df = pd.DataFrame(raw_rows)
+            df["date"] = pd.to_datetime(df["data"], format="%d/%m/%Y").dt.normalize()
+            df["rate"] = pd.to_numeric(df["valor"], errors="coerce") / 100.0
+            frames.append(df[["date", "rate"]])
+        daily = _merge_daily_frames(*frames)
+        if daily is None or daily.empty:
             return None
-
-        df = pd.DataFrame(raw_rows)
-        df["date"] = pd.to_datetime(df["data"], format="%d/%m/%Y")
-        df["rate"] = pd.to_numeric(df["valor"], errors="coerce") / 100.0
-        daily = df[["date", "rate"]].dropna().sort_values("date").reset_index(drop=True)
         logger.info("Downloaded %s daily SELIC rates from BCB", len(daily))
         return daily
     except Exception as exc:
@@ -324,20 +373,31 @@ def get_daily_rate(
     if target_date.tzinfo is not None:
         target_date = target_date.tz_localize(None)
     target_date = target_date.normalize()
-    normalized = selic_data.copy()
-    normalized["date"] = pd.to_datetime(normalized["date"]).dt.normalize()
-
-    exact = normalized[normalized["date"] == target_date]
-    if not exact.empty:
-        return float(exact.iloc[0]["rate"])
-
-    previous = normalized[normalized["date"] <= target_date]
-    if not previous.empty:
-        rate = float(previous.iloc[-1]["rate"])
-        logger.debug(
-            "Daily SELIC rate not found for %s, using previous business-day value %.6f",
+    dates = selic_data["date"]
+    if not pd.api.types.is_datetime64_any_dtype(dates):
+        dates = pd.to_datetime(dates, errors="coerce")
+    dates = pd.DatetimeIndex(dates).normalize()
+    rates = pd.to_numeric(selic_data["rate"], errors="coerce")
+    if len(dates) != len(rates):
+        daily_fallback = (1 + fallback_rate_annual) ** (1 / 252) - 1
+        logger.warning(
+            "Daily SELIC data is malformed for %s, using fallback daily rate %.6f",
             target_date.date(),
+            daily_fallback,
+        )
+        return daily_fallback
+    if not dates.is_monotonic_increasing:
+        order = dates.argsort()
+        dates = dates.take(order)
+        rates = rates.iloc[order].reset_index(drop=True)
+
+    position = dates.searchsorted(target_date, side="right") - 1
+    if position >= 0:
+        rate = float(rates.iloc[position])
+        logger.debug(
+            "Using daily SELIC value %.6f for %s",
             rate,
+            target_date.date(),
         )
         return rate
 
@@ -437,11 +497,12 @@ def get_or_create_daily_selic_data(
 
     if use_download:
         logger.info("Attempting to download official daily SELIC data...")
-        selic_data = download_daily_selic_data(start_date, end_date)
-        if selic_data is not None and not selic_data.empty:
-            save_daily_selic_data(selic_data, path)
-            _DAILY_CACHE[cache_key] = selic_data.copy()
-            return selic_data
+        downloaded = download_daily_selic_data(start_date, end_date)
+        merged = _merge_daily_frames(selic_data, downloaded)
+        if merged is not None and not merged.empty:
+            save_daily_selic_data(merged, path)
+            _DAILY_CACHE[cache_key] = merged.copy()
+            return merged
 
     if selic_data is not None and not selic_data.empty:
         _DAILY_CACHE[cache_key] = selic_data.copy()

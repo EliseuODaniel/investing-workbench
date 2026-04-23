@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Activity, BarChart3, DollarSign, TrendingDown } from 'lucide-react';
+import ChartDateRangeControls from './charts/ChartDateRangeControls';
 import CashChartPanel from './charts-tabbed/CashChartPanel';
 import ChartControlsFooter from './charts-tabbed/ChartControlsFooter';
 import ChartTabsNav from './charts-tabbed/ChartTabsNav';
 import DrawdownChartPanel from './charts-tabbed/DrawdownChartPanel';
 import EquityChartPanel from './charts-tabbed/EquityChartPanel';
 import TradesChartPanel from './charts-tabbed/TradesChartPanel';
-import { ChartTabDefinition, ChartTabId, ChartsTabbedProps } from './charts-tabbed/types';
+import { ChartTabDefinition, ChartTabId, ChartsTabbedProps, DrawdownChartPoint } from './charts-tabbed/types';
 import { getBenchmarkColorFactory, getStrategyColorFactory } from './charts-tabbed/utils';
 import { useChartsTabbedData } from '../hooks/useChartsTabbedData';
+import { filterRowsByDateRange, useChartDateRange } from '../hooks/useChartDateRange';
+import { buildDrawdownSeriesFromEquity, rebaseLineSeriesData } from '../lib/chartSeries';
 
 const tabs: ChartTabDefinition[] = [
   {
@@ -45,13 +48,55 @@ export default function ChartsTabbed({
   benchmarks,
 }: ChartsTabbedProps) {
   const [activeTab, setActiveTab] = useState<ChartTabId>('equity');
-  const { equityData, drawdownData, tradesData } = useChartsTabbedData({
+  const { equityData, tradesData } = useChartsTabbedData({
     results,
     buyHoldEquity,
     benchmarks,
     visibleStrategies,
     visibleBenchmarks,
   });
+  const dateRange = useChartDateRange(equityData, 'timestamp');
+  const shouldRebase = Boolean(dateRange.minDate) && dateRange.startDate !== dateRange.minDate;
+  const equitySeriesIds = useMemo(
+    () => [
+      ...visibleStrategies,
+      ...(visibleBenchmarks.includes('Buy & Hold') ? ['Buy & Hold'] : []),
+      ...Object.keys(benchmarks ?? {}).filter((name) => visibleBenchmarks.includes(name)),
+    ],
+    [benchmarks, visibleBenchmarks, visibleStrategies]
+  );
+  const filteredEquityData = useMemo(
+    () =>
+      shouldRebase
+        ? rebaseLineSeriesData(
+            dateRange.filteredData,
+            equitySeriesIds,
+            visibleBenchmarks.includes('Buy & Hold') ? 'Buy & Hold' : equitySeriesIds[0] ?? null
+          )
+        : dateRange.filteredData,
+    [dateRange.filteredData, equitySeriesIds, shouldRebase, visibleBenchmarks]
+  );
+  const filteredCashData = useMemo(
+    () =>
+      shouldRebase
+        ? rebaseLineSeriesData(
+            dateRange.filteredData,
+            visibleStrategies.map((strategyName) => `${strategyName}_cash`),
+            visibleStrategies.length > 0 ? `${visibleStrategies[0]}_cash` : null
+          )
+        : dateRange.filteredData,
+    [dateRange.filteredData, shouldRebase, visibleStrategies]
+  );
+  const filteredDrawdownData = useMemo(
+    () =>
+      buildDrawdownSeriesFromEquity(dateRange.filteredData, visibleStrategies) as DrawdownChartPoint[],
+    [dateRange.filteredData, visibleStrategies]
+  );
+  const filteredTradesData = useMemo(
+    () =>
+      filterRowsByDateRange(tradesData, 'timestamp', dateRange.startDate, dateRange.endDate),
+    [dateRange.endDate, dateRange.startDate, tradesData]
+  );
 
   const getStrategyColor = useMemo(
     () => getStrategyColorFactory(Object.keys(results)),
@@ -76,7 +121,7 @@ export default function ChartsTabbed({
             benchmarks={benchmarks}
             visibleStrategies={visibleStrategies}
             visibleBenchmarks={visibleBenchmarks}
-            equityData={equityData}
+            equityData={filteredEquityData}
             getStrategyColor={getStrategyColor}
             getBenchmarkColor={getBenchmarkColor}
           />
@@ -86,7 +131,7 @@ export default function ChartsTabbed({
           <DrawdownChartPanel
             results={results}
             visibleStrategies={visibleStrategies}
-            drawdownData={drawdownData}
+            drawdownData={filteredDrawdownData}
             getStrategyColor={getStrategyColor}
           />
         );
@@ -95,7 +140,7 @@ export default function ChartsTabbed({
           <CashChartPanel
             results={results}
             visibleStrategies={visibleStrategies}
-            equityData={equityData}
+            equityData={filteredCashData}
             getStrategyColor={getStrategyColor}
           />
         );
@@ -104,7 +149,7 @@ export default function ChartsTabbed({
           <TradesChartPanel
             results={results}
             visibleStrategies={visibleStrategies}
-            tradesData={tradesData}
+            tradesData={filteredTradesData}
             getStrategyColor={getStrategyColor}
           />
         );
@@ -124,6 +169,21 @@ export default function ChartsTabbed({
       </div>
 
       <div className="mt-6">{tabContent}</div>
+
+      {dateRange.hasDateRange ? (
+        <ChartDateRangeControls
+          startDate={dateRange.startDate}
+          endDate={dateRange.endDate}
+          minDate={dateRange.minDate ?? dateRange.startDate}
+          maxDate={dateRange.maxDate ?? dateRange.endDate}
+          startIndex={dateRange.startIndex}
+          endIndex={dateRange.endIndex}
+          maxIndex={dateRange.maxIndex}
+          onStartIndexChange={dateRange.setStartIndex}
+          onEndIndexChange={dateRange.setEndIndex}
+          onReset={dateRange.resetRange}
+        />
+      ) : null}
 
       <ChartControlsFooter description="Configure a visibilidade dos elementos no painel de controles" />
     </div>

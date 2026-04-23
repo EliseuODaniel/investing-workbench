@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import SeriesLegendButtons from '../charts/SeriesLegendButtons';
+import { useSeriesLegendState } from '../../hooks/useSeriesLegendState';
 import { DrawdownChartPanelProps } from './types';
 import { toNumber } from './utils';
 
@@ -18,7 +19,6 @@ export default function DrawdownChartPanel({
   drawdownData,
   getStrategyColor,
 }: DrawdownChartPanelProps) {
-  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
   const legendItems = useMemo(
     () =>
       Object.keys(results)
@@ -30,6 +30,10 @@ export default function DrawdownChartPanel({
         })),
     [getStrategyColor, results, visibleStrategies]
   );
+  const { activeSeriesId, hiddenSeriesIds, toggleSeries } = useSeriesLegendState(
+    legendItems.map((item) => item.id)
+  );
+  const hiddenSeriesSet = useMemo(() => new Set(hiddenSeriesIds), [hiddenSeriesIds]);
 
   return (
     <div>
@@ -54,6 +58,7 @@ export default function DrawdownChartPanel({
                   key={`${strategyName}_drawdown`}
                   type="monotone"
                   dataKey={`${strategyName}_drawdown`}
+                  hide={hiddenSeriesSet.has(`${strategyName}_drawdown`)}
                   stroke={getStrategyColor(strategyName)}
                   strokeWidth={activeSeriesId === `${strategyName}_drawdown` ? 4 : 2}
                   opacity={
@@ -75,7 +80,8 @@ export default function DrawdownChartPanel({
       <SeriesLegendButtons
         items={legendItems}
         activeSeriesId={activeSeriesId}
-        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+        hiddenSeriesIds={hiddenSeriesIds}
+        onToggle={toggleSeries}
       />
     </div>
   );

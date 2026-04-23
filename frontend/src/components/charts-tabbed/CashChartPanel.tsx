@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import SeriesLegendButtons from '../charts/SeriesLegendButtons';
+import { useSeriesLegendState } from '../../hooks/useSeriesLegendState';
 import { CashChartPanelProps } from './types';
 import { formatCurrency, toNumber } from './utils';
 
@@ -18,7 +19,6 @@ export default function CashChartPanel({
   equityData,
   getStrategyColor,
 }: CashChartPanelProps) {
-  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
   const legendItems = useMemo(
     () =>
       Object.keys(results)
@@ -30,6 +30,10 @@ export default function CashChartPanel({
         })),
     [getStrategyColor, results, visibleStrategies]
   );
+  const { activeSeriesId, hiddenSeriesIds, toggleSeries } = useSeriesLegendState(
+    legendItems.map((item) => item.id)
+  );
+  const hiddenSeriesSet = useMemo(() => new Set(hiddenSeriesIds), [hiddenSeriesIds]);
 
   return (
     <div>
@@ -50,6 +54,7 @@ export default function CashChartPanel({
                   key={`${strategyName}_cash`}
                   type="monotone"
                   dataKey={`${strategyName}_cash`}
+                  hide={hiddenSeriesSet.has(`${strategyName}_cash`)}
                   stroke={getStrategyColor(strategyName)}
                   strokeWidth={activeSeriesId === `${strategyName}_cash` ? 4 : 2}
                   opacity={activeSeriesId === null || activeSeriesId === `${strategyName}_cash` ? 1 : 0.18}
@@ -67,7 +72,8 @@ export default function CashChartPanel({
       <SeriesLegendButtons
         items={legendItems}
         activeSeriesId={activeSeriesId}
-        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+        hiddenSeriesIds={hiddenSeriesIds}
+        onToggle={toggleSeries}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import SeriesLegendButtons from '../charts/SeriesLegendButtons';
+import { useSeriesLegendState } from '../../hooks/useSeriesLegendState';
 import { EquityChartPanelProps } from './types';
 import { formatCurrency, toNumber } from './utils';
 
@@ -21,7 +22,6 @@ export default function EquityChartPanel({
   getStrategyColor,
   getBenchmarkColor,
 }: EquityChartPanelProps) {
-  const [activeSeriesId, setActiveSeriesId] = useState<string | null>(null);
   const legendItems = useMemo(() => {
     const strategyItems = Object.entries(results)
       .filter(([strategyName]) => visibleStrategies.includes(strategyName))
@@ -46,6 +46,10 @@ export default function EquityChartPanel({
 
     return [...strategyItems, ...benchmarkItems];
   }, [benchmarks, getBenchmarkColor, getStrategyColor, results, visibleBenchmarks, visibleStrategies]);
+  const { activeSeriesId, hiddenSeriesIds, toggleSeries } = useSeriesLegendState(
+    legendItems.map((item) => item.id)
+  );
+  const hiddenSeriesSet = useMemo(() => new Set(hiddenSeriesIds), [hiddenSeriesIds]);
 
   return (
     <div>
@@ -66,6 +70,7 @@ export default function EquityChartPanel({
                   key={strategyName}
                   type="monotone"
                   dataKey={strategyName}
+                  hide={hiddenSeriesSet.has(strategyName)}
                   stroke={getStrategyColor(strategyName)}
                   strokeWidth={activeSeriesId === strategyName ? 4 : 2}
                   opacity={activeSeriesId === null || activeSeriesId === strategyName ? 1 : 0.18}
@@ -80,6 +85,7 @@ export default function EquityChartPanel({
               <Line
                 type="monotone"
                 dataKey="Buy & Hold"
+                hide={hiddenSeriesSet.has('Buy & Hold')}
                 stroke={getBenchmarkColor('Buy & Hold')}
                 strokeWidth={activeSeriesId === 'Buy & Hold' ? 4 : 2}
                 opacity={activeSeriesId === null || activeSeriesId === 'Buy & Hold' ? 1 : 0.18}
@@ -97,6 +103,7 @@ export default function EquityChartPanel({
                     key={name}
                     type="monotone"
                     dataKey={name}
+                    hide={hiddenSeriesSet.has(name)}
                     stroke={getBenchmarkColor(name)}
                     strokeWidth={activeSeriesId === name ? 4 : 2}
                     opacity={activeSeriesId === null || activeSeriesId === name ? 1 : 0.18}
@@ -114,7 +121,8 @@ export default function EquityChartPanel({
       <SeriesLegendButtons
         items={legendItems}
         activeSeriesId={activeSeriesId}
-        onToggle={(seriesId) => setActiveSeriesId((current) => (current === seriesId ? null : seriesId))}
+        hiddenSeriesIds={hiddenSeriesIds}
+        onToggle={toggleSeries}
       />
     </div>
   );

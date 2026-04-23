@@ -57,6 +57,8 @@ export function PairsBatchSummaryPanel({
               tooltipValueFormatter={(value) => formatCurrency(value, 0)}
               emptyText="Sem curvas de equity suficientes para gerar a comparação visual dos cenários."
               heightClassName="h-[22rem]"
+              enableDateFilter
+              rebaseOnDateFilter
             />
           )}
 

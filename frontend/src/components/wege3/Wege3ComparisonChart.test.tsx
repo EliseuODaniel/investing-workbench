@@ -31,13 +31,28 @@ describe('Wege3ComparisonChart', () => {
       />
     );
 
+    const startSlider = screen.getByLabelText('Início do intervalo do gráfico') as HTMLInputElement;
+    const endSlider = screen.getByLabelText('Fim do intervalo do gráfico') as HTMLInputElement;
+    expect(startSlider.value).toBe('0');
+    expect(endSlider.value).toBe('1');
+
     const buyHoldButton = screen.getByRole('button', { name: 'Buy and hold WEGE3' });
     expect(buyHoldButton.getAttribute('aria-pressed')).toBe('false');
+    expect(buyHoldButton.getAttribute('data-visibility-state')).toBe('visible');
+
+    fireEvent.change(startSlider, { target: { value: '1' } });
+    expect(screen.getByText(/Exibindo de/i).textContent).toContain('05/01/2021');
 
     fireEvent.click(buyHoldButton);
     expect(buyHoldButton.getAttribute('aria-pressed')).toBe('true');
+    expect(buyHoldButton.getAttribute('data-visibility-state')).toBe('focused');
 
     fireEvent.click(buyHoldButton);
     expect(buyHoldButton.getAttribute('aria-pressed')).toBe('false');
+    expect(buyHoldButton.getAttribute('data-visibility-state')).toBe('hidden');
+    expect(screen.getByText('oculto')).toBeTruthy();
+
+    fireEvent.click(buyHoldButton);
+    expect(buyHoldButton.getAttribute('data-visibility-state')).toBe('visible');
   });
 });

@@ -272,6 +272,21 @@ def test_compare_supports_guided_model_portfolios(monkeypatch: Any, tmp_path: An
     assert payload["chart"]["reference_series_id"] == "selic_cash"
 
 
+def test_catalog_exposes_ntnb_etfs_preset(tmp_path: Any) -> None:
+    service = InvestmentComparisonService(data_dir=tmp_path / "investments")
+
+    payload = service.list_catalog()
+    visible_ids = {item["instrument_id"] for item in payload["instruments"]}
+    preset = next(
+        item for item in payload["presets"] if item["preset_id"] == "fixed_income_ntnb_etfs"
+    )
+
+    assert {"IMAB11", "IMBB11", "B5P211", "B5MB11"} <= visible_ids
+    assert preset["asset_ids"] == ["IMAB11", "IMBB11", "B5P211", "B5MB11"]
+    assert preset["default_benchmark_ids"] == ["selic_cash"]
+    assert preset["default_start_date"] == "2020-11-16"
+
+
 def test_compare_allows_guided_portfolio_components_with_late_history(
     monkeypatch: Any,
     tmp_path: Any,

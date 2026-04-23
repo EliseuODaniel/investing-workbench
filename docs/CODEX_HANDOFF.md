@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Last updated: `2026-04-23T01:05:00-03:00`
+Last updated: `2026-04-23T01:51:48-03:00`
 
 ## Read This First
 
@@ -83,12 +83,21 @@ The active direction is to keep making the app:
   - `IPCA+ vs CDI (video)`
   - `Renda fixa por duration`
   - `Tesouro Direto real`
+  - `ETFs NTN-B historicos`
 
 ### Fixed-Income Study Layer
 
 - The fixed-income engine now supports two explicit study modes:
   - `index_duration`: CDI + ANBIMA IDkA style duration studies for reproducing the video thesis
   - `retail_treasury`: official Tesouro Direto price history with retail buy/sell prices and estimated taxes
+- The listed fixed-income catalog now also exposes investable NTN-B ETFs:
+  - `IMAB11`
+  - `IMBB11`
+  - `B5P211`
+  - `B5MB11`
+- The Yahoo/B3 loader in `/home/edann/projects/investing-workbench/src/data.py` now recognizes
+  fixed-income ETF tickers with embedded digits, such as `B5P211` and `B5MB11`, and resolves
+  them correctly with the `.SA` suffix.
 - `POST /investments/compare` now accepts:
   - `fixed_income_study_mode`
   - `fixed_income_tax_treatment`
@@ -185,8 +194,16 @@ If a new Codex session continues from here, the highest-value next items are:
 The latest fixed-income cycle passed with:
 
 - `uv run pytest -q tests/test_investment_compare_service.py tests/test_api_investments.py`
+- `uv run pytest -q tests/test_data_b3_tickers.py tests/test_investment_compare_service.py tests/test_api_investments.py`
 - `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs test -- --run src/hooks/useInvestmentsComparison.test.tsx`
 - `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs lint`
+- `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs build`
+
+Latest smoke checks also confirmed the new NTN-B ETF preset:
+
+- `GET http://127.0.0.1:18001/investments/catalog` returned the preset `fixed_income_ntnb_etfs`
+- `POST http://127.0.0.1:18001/investments/compare` with `IMAB11`, `IMBB11`, `B5P211`, `B5MB11`
+  returned `200 OK` with no warnings
 
 The previous namespace-migration validation also remained green with:
 

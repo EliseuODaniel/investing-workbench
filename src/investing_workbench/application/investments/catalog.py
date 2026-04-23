@@ -475,6 +475,58 @@ INSTRUMENTS: tuple[InvestmentInstrument, ...] = (
         region_label="Brasil",
     ),
     InvestmentInstrument(
+        instrument_id="IMBB11",
+        label="IMBB11",
+        ticker="IMBB11",
+        category_id="fixed_income_b3",
+        category_label=CATEGORY_LABELS["fixed_income_b3"],
+        description="ETF de renda fixa listado que replica o IMA-B amplo com titulos NTN-B.",
+        rationale=(
+            "Ajuda a comparar uma versao investivel de juros reais amplos "
+            "contra indices e Tesouro."
+        ),
+        risk_label="Baixa a media",
+        region_label="Brasil",
+        notes=(
+            "Replica o IMA-B amplo, com NTN-Bs de diferentes vencimentos.",
+            "Pode divergir do indice teorico por taxa, spread e tracking error do ETF.",
+        ),
+    ),
+    InvestmentInstrument(
+        instrument_id="B5P211",
+        label="B5P211",
+        ticker="B5P211",
+        category_id="fixed_income_b3",
+        category_label=CATEGORY_LABELS["fixed_income_b3"],
+        description="ETF listado ligado ao IMA-B5 P2, concentrado em NTN-Bs mais curtas.",
+        rationale="Aproxima uma aposta compravel em IPCA+ curto para comparar retorno real.",
+        risk_label="Baixa a media",
+        region_label="Brasil",
+        available_since="2020-11-16",
+        notes=(
+            "Representa uma cesta listada de juros reais mais curtos do que o IMA-B amplo.",
+            "Permite comparar uma exposicao IPCA+ compravel contra Tesouro e indices sinteticos.",
+        ),
+    ),
+    InvestmentInstrument(
+        instrument_id="B5MB11",
+        label="B5MB11",
+        ticker="B5MB11",
+        category_id="fixed_income_b3",
+        category_label=CATEGORY_LABELS["fixed_income_b3"],
+        description="ETF listado ligado ao IMA-B5+, com NTN-Bs longas e mais duration.",
+        rationale=(
+            "Mostra uma forma investivel de alongar juros reais e sentir "
+            "mais marcacao a mercado."
+        ),
+        risk_label="Media a alta",
+        region_label="Brasil",
+        notes=(
+            "Replica o IMA-B5+, concentrado em NTN-Bs com prazo superior a 5 anos.",
+            "Tende a oscilar mais quando a taxa real abre ou fecha do que exposicoes mais curtas.",
+        ),
+    ),
+    InvestmentInstrument(
         instrument_id="IRFM11",
         label="IRFM11",
         ticker="IRFM11",
@@ -1005,6 +1057,23 @@ PRESETS: tuple[InvestmentPreset, ...] = (
         default_fixed_income_window_frequency="monthly",
     ),
     InvestmentPreset(
+        preset_id="fixed_income_ntnb_etfs",
+        label="ETFs NTN-B historicos",
+        description=(
+            "Coloca lado a lado ETFs compraveis de NTN-B na B3 para comparar retorno nominal "
+            "e retorno real."
+        ),
+        asset_ids=("IMAB11", "IMBB11", "B5P211", "B5MB11"),
+        goal_label=(
+            "Descobrir como juros reais amplos, curtos e longos teriam rendido via ETFs listados."
+        ),
+        default_start_date="2020-11-16",
+        default_end_date="2026-03-31",
+        default_initial_capital=1000.0,
+        default_monthly_contribution=0.0,
+        default_benchmark_ids=("selic_cash",),
+    ),
+    InvestmentPreset(
         preset_id="first_steps",
         label="Primeiros passos",
         description="Mistura simples entre caixa, bolsa local, exterior e renda imobiliaria.",
@@ -1132,6 +1201,11 @@ def build_catalog_payload() -> dict[str, Any]:
             (
                 "As estrategias oficiais de Tesouro Direto usam o historico diario de "
                 "precos e taxas do Tesouro Transparente para aproximar a experiencia de varejo."
+            ),
+            (
+                "ETFs de NTN-B listados mostram uma experiencia investivel em bolsa, mas tem "
+                "historico mais curto e podem divergir do indice ANBIMA por "
+                "custos e tracking error."
             ),
             (
                 "As carteiras guiadas usam rebalanceamento mensal e podem ter um "

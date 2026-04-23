@@ -28,3 +28,16 @@ coverage/
 htmlcov/
 
 *.log
+
+# Local runtime artifacts and downloaded datasets
+.tools/
+=0.14.0
+frontend/.env.local
+pairs_backtests/
+research_workspaces/
+data/fixed_income_indexes/
+data/investments/
+data/tesouro_direto/
+data/ipca_monthly.csv
+data/selic_daily.csv
+data/pairs_borrow__*.csv
