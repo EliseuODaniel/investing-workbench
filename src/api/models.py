@@ -593,15 +593,39 @@ class InvestmentCatalogRequestModel(BaseModel):
     include_presets: bool = Field(default=True)
 
 
+class InvestmentPortfolioComponentRequestModel(BaseModel):
+    """One weighted sleeve inside a custom portfolio request."""
+
+    component_id: str = Field(min_length=1)
+    weight: float = Field(gt=0.0)
+
+
+class InvestmentCustomPortfolioRequestModel(BaseModel):
+    """User-defined portfolio to compare against guided presets and single assets."""
+
+    portfolio_id: Optional[str] = None
+    label: str = Field(min_length=1)
+    description: Optional[str] = None
+    rebalance_frequency: str = Field(default="monthly")
+    components: List[InvestmentPortfolioComponentRequestModel] = Field(
+        default_factory=list,
+        min_length=1,
+    )
+
+
 class InvestmentCompareRequestModel(BaseModel):
     """Request model for comparing historical B3 investment alternatives."""
 
-    asset_ids: List[str] = Field(default_factory=list, min_length=1)
+    asset_ids: List[str] = Field(default_factory=list)
+    custom_portfolios: List[InvestmentCustomPortfolioRequestModel] = Field(default_factory=list)
     start_date: str = Field(default="2021-01-01")
     end_date: Optional[str] = Field(default=None)
     initial_capital: float = Field(default=10000.0, gt=0.0)
     monthly_contribution: float = Field(default=0.0, ge=0.0)
     benchmark_ids: List[str] = Field(default_factory=list)
+    fixed_income_study_mode: str = Field(default="auto")
+    fixed_income_tax_treatment: str = Field(default="gross")
+    fixed_income_window_frequency: str = Field(default="monthly")
     force_download: bool = Field(default=False)
 
 
@@ -627,8 +651,11 @@ class InvestmentCompareResponseModel(BaseModel):
     results: List[Dict[str, Any]] = Field(default_factory=list)
     benchmarks: List[Dict[str, Any]] = Field(default_factory=list)
     chart: Dict[str, Any] = Field(default_factory=dict)
+    real_chart: Dict[str, Any] = Field(default_factory=dict)
+    inflation: Dict[str, Any] = Field(default_factory=dict)
     class_summary: List[Dict[str, Any]] = Field(default_factory=list)
     highlights: Dict[str, Any] = Field(default_factory=dict)
+    fixed_income_backtest: Optional[Dict[str, Any]] = Field(default=None)
     warnings: List[str] = Field(default_factory=list)
 
 

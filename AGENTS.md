@@ -7,7 +7,7 @@
 
 ## Repo Layout
 - `src/`: current Python application code and API.
-- `src/bitcoin_martingale/`: new architecture for application, domain, infrastructure, and interfaces.
+- `src/investing_workbench/`: new architecture for application, domain, infrastructure, and interfaces.
 - `frontend/`: React + TypeScript + Vite application.
 - `configs/`: YAML backtest presets.
 - `tests/`: backend tests.
@@ -16,11 +16,11 @@
 - `.codex/`: Codex project configuration.
 
 ## Canonical Commands
-- Backend setup: `python -m venv .venv && source .venv/bin/activate && pip install -e .[dev]`
-- Backend tests: `./.venv/bin/pytest -q`
-- Backend lint: `./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py`
-- Backend format check: `./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py`
-- Backend type check: `./.venv/bin/mypy src/bitcoin_martingale`
+- Backend setup: `uv sync --extra dev`
+- Backend tests: `uv run pytest -q`
+- Backend lint: `uv run ruff check src/api src/investing_workbench tests/test_api.py`
+- Backend format check: `uv run python -m black --check src/api src/investing_workbench tests/test_api.py`
+- Backend type check: `uv run mypy src/investing_workbench`
 - Frontend install: `cd frontend && npm install`
 - Frontend lint: `cd frontend && npm run lint`
 - Frontend tests: `cd frontend && npm test -- --run`
@@ -30,7 +30,7 @@
 - Use `rg` for search and `rg --files` for file discovery.
 - Use `apply_patch` for manual file edits.
 - Do not rewrite the whole engine in one pass.
-- New backend work should go into `src/bitcoin_martingale/` unless the task is explicitly a legacy fix.
+- New backend work should go into `src/investing_workbench/` unless the task is explicitly a legacy fix.
 - Keep the API thin: business logic belongs in application services, not route handlers.
 - Prefer structured logging over `print` for new code.
 - Add or update tests when changing behavior.
@@ -50,5 +50,7 @@
 ## Codex Workflow
 - Start broad tasks with a short plan and update it as the work progresses.
 - Use repo-local skills in `.agents/skills/` when they match the task.
+- Reach for `.agents/skills/software-engineering-guardrails/` on implementation/refactor work.
+- Reach for `.agents/skills/git-hygiene/` before staging, committing, or pushing.
 - Check `docs/code_review.md` before asking for or performing review-style work.
 - Check `PLANS.md` for active migration phases before editing architecture-heavy files.

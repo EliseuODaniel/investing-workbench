@@ -4,15 +4,20 @@ import {
   InvestmentCatalogPayload,
   InvestmentCompareRequestPayload,
   InvestmentComparisonResponsePayload,
+  InvestmentCustomPortfolioRequestPayload,
 } from '../types/api';
 
 const DEFAULT_REQUEST: InvestmentCompareRequestPayload = {
   asset_ids: [],
+  custom_portfolios: [],
   start_date: '2021-01-01',
   end_date: '',
   initial_capital: 10000,
   monthly_contribution: 500,
   benchmark_ids: ['selic_cash', 'bova11'],
+  fixed_income_study_mode: 'auto',
+  fixed_income_tax_treatment: 'gross',
+  fixed_income_window_frequency: 'monthly',
   force_download: false,
 };
 
@@ -20,14 +25,33 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
   const [catalog, setCatalog] = useState<InvestmentCatalogPayload | null>(null);
   const [request, setRequest] = useState<InvestmentCompareRequestPayload>(DEFAULT_REQUEST);
   const [comparison, setComparison] = useState<InvestmentComparisonResponsePayload | null>(null);
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('balanced_b3');
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('sardinha_40_plus');
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
+  const [isCustomPortfolioEnabled, setIsCustomPortfolioEnabled] = useState(false);
+  const [customPortfolioName, setCustomPortfolioName] = useState('Minha carteira');
+  const [customPortfolioDescription, setCustomPortfolioDescription] = useState(
+    'Carteira personalizada para comparar a alocacao contra ativos e carteiras guiadas.'
+  );
+  const [customPortfolioWeights, setCustomPortfolioWeights] = useState<Record<string, number>>({});
 
   const selectedPreset = useMemo(
     () => catalog?.presets.find((preset) => preset.preset_id === selectedPresetId) ?? null,
     [catalog, selectedPresetId]
   );
+
+  const customPortfolioAssets = useMemo(() => {
+    if (!catalog) {
+      return [];
+    }
+    const selectedIds = new Set(request.asset_ids ?? []);
+    return catalog.instruments.filter(
+      (instrument) =>
+        selectedIds.has(instrument.instrument_id) &&
+        instrument.source_kind !== 'model_portfolio' &&
+        instrument.source_kind !== 'custom_portfolio'
+    );
+  }, [catalog, request.asset_ids]);
 
   const applyPreset = useCallback(
     (presetId: string) => {
@@ -39,7 +63,26 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
         return;
       }
       setSelectedPresetId(presetId);
-      setRequest((current) => ({ ...current, asset_ids: preset.asset_ids }));
+      setRequest((current) => ({
+        ...current,
+        asset_ids: preset.asset_ids,
+        custom_portfolios: [],
+        start_date: preset.default_start_date ?? current.start_date,
+        end_date: preset.default_end_date ?? '',
+        initial_capital: preset.default_initial_capital ?? current.initial_capital,
+        monthly_contribution:
+          preset.default_monthly_contribution ?? current.monthly_contribution,
+        benchmark_ids:
+          preset.default_benchmark_ids !== undefined && preset.default_benchmark_ids !== null
+            ? preset.default_benchmark_ids
+            : current.benchmark_ids,
+        fixed_income_study_mode:
+          preset.default_fixed_income_study_mode ?? current.fixed_income_study_mode,
+        fixed_income_tax_treatment:
+          preset.default_fixed_income_tax_treatment ?? current.fixed_income_tax_treatment,
+        fixed_income_window_frequency:
+          preset.default_fixed_income_window_frequency ?? current.fixed_income_window_frequency,
+      }));
     },
     [catalog]
   );
@@ -50,12 +93,35 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
       const response = await apiClient.getInvestmentCatalog();
       setCatalog(response);
       const defaultPreset =
+        response.presets.find((preset) => preset.preset_id === 'sardinha_40_plus') ??
         response.presets.find((preset) => preset.preset_id === 'balanced_b3') ??
         response.presets[0] ??
         null;
       if (defaultPreset) {
         setSelectedPresetId(defaultPreset.preset_id);
-        setRequest((current) => ({ ...current, asset_ids: defaultPreset.asset_ids }));
+        setRequest((current) => ({
+          ...current,
+          asset_ids: defaultPreset.asset_ids,
+          custom_portfolios: [],
+          start_date: defaultPreset.default_start_date ?? current.start_date,
+          end_date: defaultPreset.default_end_date ?? '',
+          initial_capital: defaultPreset.default_initial_capital ?? current.initial_capital,
+          monthly_contribution:
+            defaultPreset.default_monthly_contribution ?? current.monthly_contribution,
+          benchmark_ids:
+            defaultPreset.default_benchmark_ids !== undefined &&
+            defaultPreset.default_benchmark_ids !== null
+              ? defaultPreset.default_benchmark_ids
+              : current.benchmark_ids,
+          fixed_income_study_mode:
+            defaultPreset.default_fixed_income_study_mode ?? current.fixed_income_study_mode,
+          fixed_income_tax_treatment:
+            defaultPreset.default_fixed_income_tax_treatment ??
+            current.fixed_income_tax_treatment,
+          fixed_income_window_frequency:
+            defaultPreset.default_fixed_income_window_frequency ??
+            current.fixed_income_window_frequency,
+        }));
       }
     } catch (error: any) {
       onError(error.response?.data?.detail || 'Failed to load investment catalog');
@@ -77,6 +143,7 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
       const alreadySelected = currentIds.includes(instrumentId);
       return {
         ...current,
+        custom_portfolios: [],
         asset_ids: alreadySelected
           ? currentIds.filter((item) => item !== instrumentId)
           : [...currentIds, instrumentId],
@@ -97,13 +164,65 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     });
   };
 
+  useEffect(() => {
+    setCustomPortfolioWeights((current) => {
+      const next: Record<string, number> = {};
+      for (const instrument of customPortfolioAssets) {
+        next[instrument.instrument_id] =
+          current[instrument.instrument_id] ?? Math.max(1, 100 / customPortfolioAssets.length);
+      }
+      return next;
+    });
+  }, [customPortfolioAssets]);
+
+  const buildCustomPortfolios = useCallback((): InvestmentCustomPortfolioRequestPayload[] => {
+    if (!isCustomPortfolioEnabled) {
+      return [];
+    }
+    const components = customPortfolioAssets
+      .map((instrument) => ({
+        component_id: instrument.instrument_id,
+        weight: Math.max(0, customPortfolioWeights[instrument.instrument_id] ?? 0),
+      }))
+      .filter((component) => component.weight > 0);
+    if (components.length < 2) {
+      return [];
+    }
+    return [
+      {
+        portfolio_id: 'CUSTOM_PORTFOLIO_MINHA_CARTEIRA',
+        label: customPortfolioName.trim() || 'Minha carteira',
+        description:
+          customPortfolioDescription.trim() ||
+          'Carteira personalizada para comparar alocacoes no mesmo fluxo de aportes.',
+        rebalance_frequency: 'monthly',
+        components,
+      },
+    ];
+  }, [
+    customPortfolioAssets,
+    customPortfolioDescription,
+    customPortfolioName,
+    customPortfolioWeights,
+    isCustomPortfolioEnabled,
+  ]);
+
+  const updateCustomPortfolioWeight = (instrumentId: string, value: number) => {
+    setCustomPortfolioWeights((current) => ({
+      ...current,
+      [instrumentId]: Math.max(0, value),
+    }));
+  };
+
   const compare = async () => {
     setIsComparing(true);
     onError(null);
     try {
+      const customPortfolios = buildCustomPortfolios();
       const payload: InvestmentCompareRequestPayload = {
         ...request,
         end_date: request.end_date || null,
+        custom_portfolios: customPortfolios,
       };
       const response = await apiClient.compareInvestments(payload);
       setComparison(response);
@@ -126,10 +245,19 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     selectedPresetId,
     isLoadingCatalog,
     isComparing,
+    isCustomPortfolioEnabled,
+    customPortfolioName,
+    customPortfolioDescription,
+    customPortfolioWeights,
+    customPortfolioAssets,
     applyPreset,
     updateRequest,
     toggleAsset,
     toggleBenchmark,
+    setIsCustomPortfolioEnabled,
+    setCustomPortfolioName,
+    setCustomPortfolioDescription,
+    updateCustomPortfolioWeight,
     compare,
     reloadCatalog: loadCatalog,
   };

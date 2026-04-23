@@ -1,184 +1,237 @@
 # Codex Handoff
 
-Last updated: `2026-03-25T00:25:00-03:00`
+Last updated: `2026-04-23T01:05:00-03:00`
 
 ## Read This First
 
-This file is the canonical resume point for the current uncommitted worktree.
+This file is the canonical resume point for the current repository state.
 
 If a future Codex session needs to continue from where this session stopped, read this file first, then open:
 
-1. `docs/MASTER_PLAN.md`
-2. `docs/UI_SIMPLIFICATION_PLAN.md`
-3. `frontend/src/App.tsx`
-4. `frontend/src/components/backtest-results/ResultsTabsPanel.tsx`
-5. `frontend/src/hooks/useBacktestWorkspace.ts`
+1. `/home/edann/projects/investing-workbench/README.md`
+2. `/home/edann/projects/investing-workbench/docs/ARCHITECTURE.md`
+3. `/home/edann/projects/investing-workbench/docs/API_REFERENCE.md`
+4. `/home/edann/projects/investing-workbench/frontend/src/App.tsx`
+5. `/home/edann/projects/investing-workbench/frontend/src/components/InvestmentsWorkspace.tsx`
+6. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
 
-## What Was Delivered In This Cycle
+## Current Identity And Location
 
-### Product and Architecture
+- Public product name: **Investing Workbench**
+- GitHub repository: `EliseuODaniel/investing-workbench`
+- Repository visibility: **private**
+- Current local path: `/home/edann/projects/investing-workbench`
+- Old local path: `/home/edann/vscode_projects/bitcoin-martingale` (no longer valid)
 
-- Documentation was synchronized with the actual repository state.
-- The backend API was decomposed into domain routers under `src/bitcoin_martingale/interfaces/api/routers/`.
-- The CLI was moved into `src/bitcoin_martingale/interfaces/cli/` and `src/cli.py` became a thin compatibility adapter.
-- A unified experiment registry was introduced for `run`, `optimization`, `walkforward`, and `montecarlo`.
-- Saved research workspaces were added with persistence, lineage context, report generation, API support, CLI support, and frontend support.
-- Research workspace reports now share one contract across API, CLI, and frontend, including `json`, `markdown`, and `html`.
+## What Changed Recently
 
-### Frontend Refactor
+### Naming and Structure
 
-- `frontend/src/App.tsx` was reshaped into a simpler shell with three primary spaces:
-  - `Operacao`
-  - `Explorar`
-  - `Labs`
-- Large frontend hotspots were decomposed into feature folders and hooks:
-  - `backtest-form/`
-  - `backtest-results/`
-  - `charts-tabbed/`
-  - `dataset-manager/`
-  - `metrics-cards/`
-  - `optimization-workspace/`
-  - `walkforward-workspace/`
-  - `montecarlo-workspace/`
-- The backtest setup flow was simplified and gained strategy help:
-  - per-strategy `(i)` help
-  - quick glossary
-  - benchmarks collapsed by default
-- Saved research workspaces gained:
-  - dedicated list view
-  - editing
-  - import/export
-  - executive snapshot
-  - report view
-  - server-backed export actions
+- The repository was renamed from `bitcoin-martingale` to `investing-workbench`.
+- The internal application package was moved from `src/bitcoin_martingale/` to `src/investing_workbench/`.
+- A compatibility shim remains in `/home/edann/projects/investing-workbench/src/bitcoin_martingale/__init__.py` so legacy imports still resolve.
+- Public docs, API title, frontend title, and package metadata were updated to use **Investing Workbench**.
+
+### Product Direction
+
+The app is no longer just a Bitcoin martingale backtester.
+
+It now acts as a broader **investment comparison and backtesting platform**, with four product spaces:
+
+- `Inicio`
+- `Investimentos`
+- `Simular`
+- `Resultados`
+- `Avancado`
+
+The active direction is to keep making the app:
+
+- simpler for non-technical investors
+- more didactic about real-world returns
+- broader across B3 asset classes
+- still powerful enough for advanced quantitative research in the advanced area
+
+## What Is Implemented
+
+### Core Platform
+
+- FastAPI backend with thin API routers under `/home/edann/projects/investing-workbench/src/investing_workbench/interfaces/api/routers/`
+- React + Vite frontend under `/home/edann/projects/investing-workbench/frontend/`
+- Persisted runs, optimizations, walk-forward validations, Monte Carlo runs, pairs backtests, and saved workspaces
+- Compatibility entrypoints still present in `/home/edann/projects/investing-workbench/src/`
+
+### Investment Platform Layer
+
+- New `Investimentos` area in the UI
+- Investment comparison API:
+  - `GET /investments/catalog`
+  - `POST /investments/compare`
+- Curated catalog covering:
+  - Brazilian stocks
+  - Brazilian ETFs
+  - international exposure via B3
+  - FIIs
+  - rate/fixed-income proxies such as Selic
+  - historical CDI and IDkA indices for fixed-income duration studies
+  - official Tesouro Direto rolling strategies for Tesouro Selic, Prefixado, and IPCA+
+- Guided portfolio presets including:
+  - `Primeiros passos`
+  - `Balanceado B3`
+  - `Renda e defensividade`
+  - `Global pela B3`
+  - `Carteira 40+ (video)`
+  - `IPCA+ vs CDI (video)`
+  - `Renda fixa por duration`
+  - `Tesouro Direto real`
+
+### Fixed-Income Study Layer
+
+- The fixed-income engine now supports two explicit study modes:
+  - `index_duration`: CDI + ANBIMA IDkA style duration studies for reproducing the video thesis
+  - `retail_treasury`: official Tesouro Direto price history with retail buy/sell prices and estimated taxes
+- `POST /investments/compare` now accepts:
+  - `fixed_income_study_mode`
+  - `fixed_income_tax_treatment`
+  - `fixed_income_window_frequency`
+- The response payload now exposes:
+  - top-level fixed-income summary
+  - `studies[]` with one block per methodology
+  - gross, net, and real metrics for fixed-income rows
+  - rolling-window consistency by horizon
+- New backend entry points involved in this layer:
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/fixed_income.py`
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/tesouro_direto.py`
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
+
+### Advanced Simulations
+
+- Dedicated WEGE3 comparative scenario in the advanced area
+- Long-only strategy comparison with charting, benchmarks, and trade audit
+- Pairs trading workspace with guided and research controls
+- Optimization, walk-forward, and Monte Carlo visual summaries with interactive charts
 
 ## Current Active Focus
 
-The original master-plan scope is largely implemented. The active work moved to **UI simplification and usability**.
+The main product direction has shifted from “backtest a strategy” to:
 
-The most recent user direction was:
+**“show what the investor would really have earned, comparing strategies and real B3 investment alternatives in a didactic way.”**
 
-- make the first backtest-result experience about the chart, not numbers
-- keep advanced interpretation behind secondary tabs or deeper navigation
-- reduce text density and cognitive load
+That means the most relevant ongoing work is:
+
+1. making comparisons across B3 asset classes more complete
+2. improving realism of taxes, fees, and income treatment
+3. simplifying the UI for a leigo first, while keeping advanced tooling accessible
 
 ## Exact Resume Point
 
-The latest in-progress change is the **chart-first inversion** of the backtest results workspace.
+If resuming work, the best next-entry files are:
 
-This was already coded in:
+- `/home/edann/projects/investing-workbench/frontend/src/components/InvestmentsWorkspace.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/hooks/useInvestmentsComparison.ts`
+- `/home/edann/projects/investing-workbench/frontend/src/lib/api.ts`
+- `/home/edann/projects/investing-workbench/frontend/src/types/api.ts`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/catalog.py`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/interfaces/api/routers/investments.py`
 
-- `frontend/src/hooks/useBacktestWorkspace.ts`
-- `frontend/src/components/BacktestResultsWorkspace.tsx`
-- `frontend/src/components/backtest-results/ResultsTabsPanel.tsx`
-- `frontend/src/components/backtest-results/ResultsSummaryHero.tsx`
-- `frontend/src/components/backtest-results/ResultsTabsPanel.test.tsx`
-- `frontend/src/hooks/useBacktestWorkspace.test.tsx`
+The current product architecture already supports comparison, but the next valuable layer is:
 
-What changed in that last step:
+- broader fixed-income coverage beyond Tesouro Direto:
+  - LCI/LCA
+  - CDBs %CDI
+  - debentures incentivadas
+- portfolio-level comparison for retirement and income scenarios
+- richer didactic explanation of taxes, inflation, and income treatment
+- performance optimization for long-window Tesouro Direto studies on cold cache
 
-- result tabs now place `Graficos` before `Resumo`
-- the workspace copy now tells the user to start with charts
-- the summary hero was moved inside the `Resumo` tab instead of always sitting above the result
-- new backtests and loaded runs now reset to `charts` as the active result tab
-- the summary hero was simplified to feel more like context and less like a wall of numbers
+## Recommended Next Backlog
 
-## Validation Status
+If a new Codex session continues from here, the highest-value next items are:
 
-### Verified Earlier In This Cycle
+1. Expand retail fixed-income coverage:
+   - LCI/LCA
+   - CDB `% do CDI`
+   - debentures incentivadas
+   - explicit fee / tax toggles where applicable
 
-Backend was green before the final UI-only step:
+2. Improve performance and UX for fixed income:
+   - faster cold-start Tesouro Direto preparation
+   - clearer side-by-side explanation of `indice` vs `produto real`
+   - richer fixed-income charts and leader cards
 
-- `./.venv/bin/pytest -q` passed, last known result: `145 passed`
-- `./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py tests/test_research_workspace_reporting.py tests/test_cli_research.py` passed
-- `./.venv/bin/mypy src/bitcoin_martingale` passed
+3. Add portfolio comparison flows:
+   - compare one selected asset vs a multi-asset allocation
+   - compare user-defined mixes against guided portfolios
+   - show contribution by sleeve/class
 
-Frontend was also green before the final chart-first step:
+4. Improve didactic storytelling:
+   - “what beat Selic”
+   - “what had lower drawdown”
+   - “what delivered better real return”
+   - “what generated more income”
 
-- `cd frontend && npm run lint` passed
-- `cd frontend && npm test -- --run` passed
-- `cd frontend && npm run build` passed
+5. Add scenario presets for investor profiles:
+   - conservative
+   - balanced
+   - growth
+   - pre-retirement / retirement
 
-### Verified After The Final Chart-First Step
+6. Expand B3 comparison coverage:
+   - broader FII and ETF catalog
+   - clearer treatment of BDRs and international exposure
 
-These commands were run after the latest result-UX inversion:
+## Validation Snapshot
 
-- `cd frontend && npm run lint` passed
-- `cd frontend && npm run build` passed
+The latest fixed-income cycle passed with:
 
-Test status after the last UI step:
+- `uv run pytest -q tests/test_investment_compare_service.py tests/test_api_investments.py`
+- `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs test -- --run src/hooks/useInvestmentsComparison.test.tsx`
+- `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs lint`
 
-- full `vitest` was attempted twice and hit local runner instability
-- one run failed with Node/V8 out-of-memory
-- a rerun with larger heap did not produce a clean completion in this environment
-- targeted tests were added for the chart-first change, but the local test runner still needs a clean rerun
+The previous namespace-migration validation also remained green with:
 
-So the **remaining validation gap** is:
+- `uv run ruff check src/api src/investing_workbench tests/test_api.py tests/test_api_investments.py tests/test_investment_compare_service.py tests/test_dataset_service.py`
+- `uv run mypy src/investing_workbench`
+- `uv run pytest -q tests/test_api.py tests/test_api_investments.py tests/test_investment_compare_service.py tests/test_dataset_service.py`
+- `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs build`
 
-- rerun frontend tests cleanly after the chart-first inversion
+Smoke checks also passed:
 
-## What Still Needs To Be Done Next
-
-### Immediate Next Step
-
-1. Reopen the UI in localhost and manually verify the backtest-result flow:
-   - run a backtest or reopen a persisted run
-   - confirm `Graficos` is the default result tab
-   - confirm the summary block only appears inside `Resumo`
-   - confirm the chart renders correctly and does not get stuck in a loading state
-
-### After Manual Verification
-
-2. Stabilize and rerun frontend tests:
-   - `cd frontend && npm test -- --run`
-   - if memory still fails, rerun with `NODE_OPTIONS=--max-old-space-size=8192`
-   - if the suite still hangs, narrow down which file or mock is holding the process open
-
-### Then Continue The UI Track
-
-3. Keep simplifying the result reading experience:
-   - reduce visual noise in charts and metric sections
-   - keep numbers secondary to the main visual story
-   - move dense expert detail deeper when possible
-
-## Useful Local Artifacts
-
-Demo persisted run used during this cycle:
-
-- `runs/run_20260325T021512Z_57382ae3/manifest.json`
-- `runs/run_20260325T021512Z_57382ae3/response.json`
-- `runs/run_20260325T021512Z_57382ae3/report.html`
-
-Demo saved research workspace:
-
-- `research_workspaces/research_ws_20260325T021512Z_466ab5e1/manifest.json`
+- `GET http://127.0.0.1:18001/` returned `Investing Workbench API`
+- `GET http://127.0.0.1:18001/system/status` returned `status: ok`
+- `GET http://127.0.0.1:18001/investments/catalog` returned `200 OK`
+- frontend served on `http://127.0.0.1:5173/`
 
 ## Suggested Local Startup Commands
 
 Backend:
 
 ```bash
-./.venv/bin/uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8765
+cd /home/edann/projects/investing-workbench
+uv run uvicorn src.api.main:app --reload --host 127.0.0.1 --port 18001
 ```
 
 Frontend:
 
 ```bash
-cd frontend && npm run dev -- --host 127.0.0.1 --port 5173
+cd /home/edann/projects/investing-workbench/frontend
+/tmp/node-v22.22.2-linux-x64/bin/node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173
 ```
 
 ## Worktree Caution
 
-- The repository has a large **uncommitted** refactor and UI simplification worktree.
-- Do **not** discard or reset the worktree casually.
-- Resume from the existing files instead of recreating the work.
+- There is active, unstaged local work in the repository.
+- The move from the old path to the new path already happened.
+- Do not use the old `vscode_projects/bitcoin-martingale` location.
+- Prefer continuing from the current worktree instead of recreating or copying files manually.
 
 ## Practical Summary
 
-If the next session only needs the short version:
+If the next session only needs the shortest possible handoff:
 
-- the research-platform master plan was mostly implemented
-- the active focus moved to UI simplification
-- the latest code change made the result experience chart-first
-- lint and build passed after that change
-- frontend tests still need a clean rerun because the local runner became unstable
+- the project is now **Investing Workbench**
+- local path is `/home/edann/projects/investing-workbench`
+- GitHub repo is `EliseuODaniel/investing-workbench`
+- internal package is now `src/investing_workbench`
+- legacy imports still work through a shim
+- the active product focus is a didactic investment platform that compares B3 investment alternatives and strategy results

@@ -69,6 +69,9 @@ export interface InvestmentInstrumentPayload {
   listed_on_b3: boolean;
   uses_adjusted_close: boolean;
   available_since?: string | null;
+  rebalance_frequency?: string | null;
+  implementation_note?: string | null;
+  components: Array<{ component_id: string; weight: number }>;
   notes: string[];
 }
 
@@ -78,12 +81,43 @@ export interface InvestmentPresetPayload {
   description: string;
   asset_ids: string[];
   goal_label: string;
+  default_start_date?: string | null;
+  default_end_date?: string | null;
+  default_initial_capital?: number | null;
+  default_monthly_contribution?: number | null;
+  default_benchmark_ids?: string[] | null;
+  default_fixed_income_study_mode?: string | null;
+  default_fixed_income_tax_treatment?: string | null;
+  default_fixed_income_window_frequency?: string | null;
 }
 
 export interface InvestmentBenchmarkOptionPayload {
   benchmark_id: string;
   label: string;
   description: string;
+}
+
+export interface InvestmentPortfolioComponentPayload {
+  component_id: string;
+  weight: number;
+}
+
+export interface InvestmentCustomPortfolioRequestPayload {
+  portfolio_id?: string | null;
+  label: string;
+  description?: string | null;
+  rebalance_frequency?: string | null;
+  components: InvestmentPortfolioComponentPayload[];
+}
+
+export interface InvestmentPortfolioContributionPayload {
+  component_id?: string;
+  label?: string;
+  category_id?: string;
+  category_label: string;
+  target_weight: number;
+  ending_weight: number;
+  final_value: number;
 }
 
 export interface InvestmentCatalogPayload {
@@ -98,11 +132,15 @@ export interface InvestmentCatalogPayload {
 
 export interface InvestmentCompareRequestPayload {
   asset_ids: string[];
+  custom_portfolios?: InvestmentCustomPortfolioRequestPayload[];
   start_date?: string;
   end_date?: string | null;
   initial_capital?: number;
   monthly_contribution?: number;
   benchmark_ids?: string[];
+  fixed_income_study_mode?: string;
+  fixed_income_tax_treatment?: string;
+  fixed_income_window_frequency?: string;
   force_download?: boolean;
 }
 
@@ -127,6 +165,24 @@ export interface InvestmentComparisonResultPayload {
   max_drawdown: number;
   availability_start: string;
   availability_end: string;
+  taxes_paid_total?: number;
+  realized_taxes_paid?: number;
+  estimated_exit_taxes?: number;
+  strategy_metadata?: Record<string, unknown>;
+  invested_total_real: number;
+  final_value_real: number;
+  net_profit_real: number;
+  real_total_return_on_invested: number;
+  real_time_weighted_return: number;
+  real_cagr: number;
+  final_value_net: number;
+  net_profit_net: number;
+  cagr_net: number;
+  final_value_real_net: number;
+  net_profit_real_net: number;
+  real_cagr_net: number;
+  component_breakdown: InvestmentPortfolioContributionPayload[];
+  category_breakdown: InvestmentPortfolioContributionPayload[];
 }
 
 export interface InvestmentComparisonBenchmarkPayload
@@ -143,12 +199,106 @@ export interface InvestmentComparisonChartPayload {
 
 export interface InvestmentComparisonRequestSnapshotPayload {
   asset_ids: string[];
+  custom_portfolios: InvestmentCustomPortfolioRequestPayload[];
   start_date: string;
   end_date?: string | null;
   initial_capital: number;
   monthly_contribution: number;
   benchmark_ids: string[];
+  fixed_income_study_mode: string;
+  fixed_income_tax_treatment: string;
+  fixed_income_window_frequency: string;
   force_download: boolean;
+}
+
+export interface InvestmentFixedIncomeResultPayload
+  extends InvestmentComparisonResultPayload {
+  family_id: string;
+  family_label: string;
+  duration_years?: number | null;
+  title_type?: string;
+  selection_rule?: string;
+  source_method_label?: string;
+  display_value: number;
+  display_profit: number;
+  display_cagr: number;
+  display_value_real: number;
+  display_profit_real: number;
+  display_real_cagr: number;
+  comparison_metric_label: string;
+  relative_gap_vs_benchmark: number;
+  value_gap_vs_benchmark: number;
+  relative_gap_vs_benchmark_real: number;
+  value_gap_vs_benchmark_real: number;
+  is_benchmark: boolean;
+}
+
+export interface InvestmentFixedIncomeWindowPayload {
+  study_id: string;
+  instrument_id: string;
+  label: string;
+  source_kind: string;
+  family_id: string;
+  family_label: string;
+  duration_years?: number | null;
+  window_years: number;
+  window_frequency: string;
+  window_frequency_requested?: string;
+  windows_count: number;
+  win_rate: number;
+  average_excess_return: number;
+  median_excess_return: number;
+  best_excess_return: number;
+  worst_excess_return: number;
+  best_window_start?: string | null;
+  best_window_end?: string | null;
+  worst_window_start?: string | null;
+  worst_window_end?: string | null;
+}
+
+export interface InvestmentFixedIncomeStudyPayload {
+  study_id: string;
+  study_label: string;
+  methodology: {
+    study_id: string;
+    study_label: string;
+    benchmark_instrument_id: string;
+    benchmark_label: string;
+    series_source_label: string;
+    series_source_url?: string;
+    index_methodology_label: string;
+    study_scope_label?: string;
+    what_it_measures?: string;
+    what_it_does_not_measure?: string;
+    rolling_window_note: string;
+    full_period_note: string;
+    comparison_metric_label?: string;
+    tax_treatment?: string;
+    window_frequency_requested?: string;
+    window_frequency_effective?: string;
+    selected_fixed_income_ids: string[];
+    video_reference_match: boolean;
+    cache?: Record<string, unknown>;
+    benchmark_cache?: Record<string, unknown>;
+  };
+  full_period: {
+    start_date: string;
+    end_date: string;
+    initial_capital: number;
+    monthly_contribution: number;
+    benchmark: InvestmentFixedIncomeResultPayload;
+    results: InvestmentFixedIncomeResultPayload[];
+    leaders: {
+      overall?: InvestmentFixedIncomeResultPayload;
+      best_real_cagr?: InvestmentFixedIncomeResultPayload;
+      post_fixed?: InvestmentFixedIncomeResultPayload;
+      prefixado?: InvestmentFixedIncomeResultPayload;
+      ipca_plus?: InvestmentFixedIncomeResultPayload;
+      most_consistent?: InvestmentFixedIncomeWindowPayload;
+    };
+  };
+  rolling_windows: InvestmentFixedIncomeWindowPayload[];
+  takeaways: string[];
 }
 
 export interface InvestmentComparisonResponsePayload {
@@ -159,21 +309,86 @@ export interface InvestmentComparisonResponsePayload {
   results: InvestmentComparisonResultPayload[];
   benchmarks: InvestmentComparisonBenchmarkPayload[];
   chart: InvestmentComparisonChartPayload;
+  real_chart: InvestmentComparisonChartPayload;
+  inflation: {
+    label: string;
+    accumulated_rate: number;
+    purchasing_power_loss: number;
+    availability_start: string;
+    availability_end: string;
+    source_label: string;
+  };
   class_summary: Array<{
     category_label: string;
     asset_count: number;
     average_final_value: number;
     average_cagr: number;
+    average_real_cagr: number;
     average_max_drawdown: number;
     leader_label: string;
   }>;
   highlights: {
     best_final_value?: InvestmentComparisonResultPayload;
+    best_real_cagr?: InvestmentComparisonResultPayload;
     most_defensive?: InvestmentComparisonResultPayload;
     beats_selic_count?: number | null;
     beats_bova11_count?: number | null;
+    beats_inflation_count?: number | null;
     insights?: string[];
   };
+  fixed_income_backtest?: {
+    requested_study_mode?: string;
+    tax_treatment?: string;
+    window_frequency?: string;
+    selected_study_id?: string;
+    selected_study_label?: string;
+    study_count?: number;
+    studies?: InvestmentFixedIncomeStudyPayload[];
+    summary?: {
+      available_study_ids: string[];
+      takeaways: string[];
+    };
+    methodology: {
+      benchmark_instrument_id: string;
+      benchmark_label: string;
+      series_source_label: string;
+      series_source_url?: string;
+      index_methodology_label: string;
+      study_id?: string;
+      study_label?: string;
+      study_scope_label?: string;
+      what_it_measures?: string;
+      what_it_does_not_measure?: string;
+      rolling_window_note: string;
+      full_period_note: string;
+      comparison_metric_label?: string;
+      tax_treatment?: string;
+      window_frequency_requested?: string;
+      window_frequency_effective?: string;
+      selected_fixed_income_ids: string[];
+      video_reference_match: boolean;
+      cache?: Record<string, unknown>;
+      benchmark_cache?: Record<string, unknown>;
+    };
+    full_period: {
+      start_date: string;
+      end_date: string;
+      initial_capital: number;
+      monthly_contribution: number;
+      benchmark: InvestmentFixedIncomeResultPayload;
+      results: InvestmentFixedIncomeResultPayload[];
+      leaders: {
+        overall?: InvestmentFixedIncomeResultPayload;
+        best_real_cagr?: InvestmentFixedIncomeResultPayload;
+        post_fixed?: InvestmentFixedIncomeResultPayload;
+        prefixado?: InvestmentFixedIncomeResultPayload;
+        ipca_plus?: InvestmentFixedIncomeResultPayload;
+        most_consistent?: InvestmentFixedIncomeWindowPayload;
+      };
+    };
+    rolling_windows: InvestmentFixedIncomeWindowPayload[];
+    takeaways: string[];
+  } | null;
   warnings: string[];
 }
 
