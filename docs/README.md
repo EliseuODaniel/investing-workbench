@@ -1,6 +1,6 @@
-# Bitcoin Martingale Backtesting Framework Documentation
+# Investing Workbench Documentation
 
-Welcome to the comprehensive documentation for the Bitcoin Martingale Backtesting Framework. This documentation provides everything you need to understand, use, and contribute to the framework.
+Welcome to the documentation for Investing Workbench. This material covers the product, API, architecture, and developer workflows for the broader investment comparison and research platform.
 
 ## 📚 Documentation Structure
 

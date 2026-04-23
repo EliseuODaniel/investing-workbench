@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from src.bitcoin_martingale.application.pairs_trading.ibov_history import (
+from src.investing_workbench.application.pairs_trading.ibov_history import (
     B3IbovUniverseHistoryService,
     parse_ibov_snapshot_from_page_texts,
 )
-from src.bitcoin_martingale.infrastructure.persistence import LocalIndexUniverseRepository
+from src.investing_workbench.infrastructure.persistence import LocalIndexUniverseRepository
 
 
 def test_parse_ibov_snapshot_from_page_texts_extracts_constituents() -> None:
@@ -81,7 +81,7 @@ def test_ibov_history_service_falls_back_to_prior_cached_business_date(
         }
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.ibov_history.parse_ibov_snapshot_from_bdi_pdf",
+        "src.investing_workbench.application.pairs_trading.ibov_history.parse_ibov_snapshot_from_bdi_pdf",
         fake_parse,
     )
 

@@ -4,14 +4,14 @@ from datetime import datetime
 
 import pandas as pd
 
-from src.bitcoin_martingale.domain.execution import (
+from src.investing_workbench.domain.execution import (
     OrderFill,
     OrderRequest,
     OrderSide,
     OrderType,
 )
-from src.bitcoin_martingale.domain.market_data import MarketBar
-from src.bitcoin_martingale.domain.portfolio import PortfolioSnapshot, Position
+from src.investing_workbench.domain.market_data import MarketBar
+from src.investing_workbench.domain.portfolio import PortfolioSnapshot, Position
 
 
 def test_market_bar_from_series() -> None:
@@ -88,8 +88,8 @@ def test_order_request_to_dict() -> None:
 
 
 def test_domain_package_exports_resolve_without_circular_imports() -> None:
-    from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine
-    from src.bitcoin_martingale.domain.portfolio import PortfolioLedger
+    from src.investing_workbench.domain.backtest import BacktestCoreEngine
+    from src.investing_workbench.domain.portfolio import PortfolioLedger
 
     assert BacktestCoreEngine.__name__ == "BacktestCoreEngine"
     assert PortfolioLedger.__name__ == "PortfolioLedger"

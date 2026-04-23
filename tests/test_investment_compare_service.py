@@ -61,7 +61,9 @@ def _tesouro_history_fixture(start: str, end: str) -> pd.DataFrame:
                 else:
                     real_rate = max(0.03, 0.065 - offset * 0.0007)
                     inflation_factor = (1.0 + 0.004) ** offset
-                    base_price = 1000.0 * inflation_factor / ((1.0 + real_rate) ** years_to_maturity)
+                    base_price = (
+                        1000.0 * inflation_factor / ((1.0 + real_rate) ** years_to_maturity)
+                    )
                     sell_rate = real_rate
                     buy_rate = real_rate + 0.002
 

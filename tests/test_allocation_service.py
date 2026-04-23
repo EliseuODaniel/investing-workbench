@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.bitcoin_martingale.application.allocations import AllocationPlanningService
-from src.bitcoin_martingale.domain.allocations import RebalancePlanRequest
+from src.investing_workbench.application.allocations import AllocationPlanningService
+from src.investing_workbench.domain.allocations import RebalancePlanRequest
 
 
 def test_allocation_planner_builds_rebalance_plan() -> None:

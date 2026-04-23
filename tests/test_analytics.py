@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.bitcoin_martingale.analytics import MetricsService
+from src.investing_workbench.analytics import MetricsService
 
 
 def test_metrics_service_composes_analyzers() -> None:

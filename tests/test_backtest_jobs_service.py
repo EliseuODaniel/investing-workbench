@@ -6,12 +6,12 @@ import time
 from pathlib import Path
 
 from src.api.models import BacktestResponse
-from src.bitcoin_martingale.application.backtest_jobs import (
+from src.investing_workbench.application.backtest_jobs import (
     BacktestJobCancelledError,
     BacktestJobService,
 )
-from src.bitcoin_martingale.application.runs import RunBacktestService
-from src.bitcoin_martingale.infrastructure.persistence import (
+from src.investing_workbench.application.runs import RunBacktestService
+from src.investing_workbench.infrastructure.persistence import (
     LocalBacktestJobsRepository,
     LocalRunsRepository,
 )

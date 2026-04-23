@@ -2,7 +2,7 @@
 
 ## Overview
 
-The repository currently runs on a legacy `src/` implementation while the refactor introduces a service-oriented architecture in `src/bitcoin_martingale/`. The short-term goal is to keep the current product working while moving orchestration, logging, and future domain code into clearer layers.
+The repository currently runs on a legacy `src/` implementation while the refactor introduces a service-oriented architecture in `src/investing_workbench/`. The short-term goal is to keep the current product working while moving orchestration, logging, and future domain code into clearer layers.
 
 ## Current vs Target
 
@@ -13,10 +13,10 @@ The repository currently runs on a legacy `src/` implementation while the refact
 - `src/strategies/`: current strategy implementations
 
 ### Target Runtime
-- `src/bitcoin_martingale/application/`: use cases and orchestration
-- `src/bitcoin_martingale/domain/`: future domain models and services
-- `src/bitcoin_martingale/infrastructure/`: logging, persistence, and providers
-- `src/bitcoin_martingale/interfaces/`: HTTP and CLI adapters
+- `src/investing_workbench/application/`: use cases and orchestration
+- `src/investing_workbench/domain/`: future domain models and services
+- `src/investing_workbench/infrastructure/`: logging, persistence, and providers
+- `src/investing_workbench/interfaces/`: HTTP and CLI adapters
 
 ## System Architecture
 
@@ -58,8 +58,8 @@ The repository currently runs on a legacy `src/` implementation while the refact
 **FastAPI Application (`main.py`)**
 ```python
 app = FastAPI(
-    title="Bitcoin Martingale Backtest API",
-    description="Interactive backtesting API for Bitcoin Martingale strategies",
+    title="Investing Workbench API",
+    description="Interactive investment comparison, backtesting, and research API",
     version="1.0.0"
 )
 

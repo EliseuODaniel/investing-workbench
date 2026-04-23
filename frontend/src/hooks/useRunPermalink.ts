@@ -49,7 +49,7 @@ export function useRunPermalink({
       const url = buildRunUrl(runId);
       if (navigator.share) {
         await navigator.share({
-          title: 'Bitcoin Martingale Backtest',
+          title: 'Investing Workbench',
           text: `Confira este run persistido: ${runId}`,
           url,
         });

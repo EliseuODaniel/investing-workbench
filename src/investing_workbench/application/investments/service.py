@@ -665,10 +665,7 @@ class InvestmentComparisonService:
             "candidate_cache": {},
         }
         prepared["quotes_by_title"] = {
-            timestamp: {
-                str(row["title_key"]): row
-                for _, row in frame.iterrows()
-            }
+            timestamp: {str(row["title_key"]): row for _, row in frame.iterrows()}
             for timestamp, frame in prepared["grouped_quotes"].items()
         }
         prepared["dates"] = pd.DatetimeIndex(sorted(prepared["grouped_quotes"].keys()))
@@ -769,9 +766,7 @@ class InvestmentComparisonService:
                     timestamp=timestamp,
                 )
                 active_title_key = (
-                    str(candidate_quote["title_key"])
-                    if candidate_quote is not None
-                    else None
+                    str(candidate_quote["title_key"]) if candidate_quote is not None else None
                 )
                 if candidate_quote is not None:
                     gross_cash, gross_lots = self._buy_tesouro_with_cash(
@@ -967,11 +962,15 @@ class InvestmentComparisonService:
         taxes_paid = 0.0
         for lot in lots:
             gross_proceeds = float(lot.quantity * sell_price)
-            taxes = self._fixed_income_exit_taxes(
-                cost_basis=float(lot.quantity * lot.buy_price),
-                sale_value=gross_proceeds,
-                holding_days=max(1, int((sell_date - lot.buy_date).days)),
-            ) if apply_taxes else 0.0
+            taxes = (
+                self._fixed_income_exit_taxes(
+                    cost_basis=float(lot.quantity * lot.buy_price),
+                    sale_value=gross_proceeds,
+                    holding_days=max(1, int((sell_date - lot.buy_date).days)),
+                )
+                if apply_taxes
+                else 0.0
+            )
             proceeds += gross_proceeds - taxes
             taxes_paid += taxes
         return proceeds, taxes_paid
@@ -1508,9 +1507,7 @@ class InvestmentComparisonService:
         real_metrics = self._summarize_curves(real_equity_curve, real_flow_curve)
         net_curve = result.net_liquidation_curve
         net_metrics = (
-            self._summarize_curves(net_curve, result.flow_curve)
-            if net_curve is not None
-            else None
+            self._summarize_curves(net_curve, result.flow_curve) if net_curve is not None else None
         )
         real_net_metrics = (
             self._summarize_curves(
@@ -1848,9 +1845,7 @@ class InvestmentComparisonService:
                 "O acumulado principal respeita o capital e os aportes do comparativo atual, "
                 "mas a camada de indices continua sendo uma simplificacao didatica."
             ),
-            "comparison_metric_label": self._fixed_income_metric_label(
-                fixed_income_tax_treatment
-            ),
+            "comparison_metric_label": self._fixed_income_metric_label(fixed_income_tax_treatment),
             "tax_treatment": fixed_income_tax_treatment,
             "window_frequency_requested": fixed_income_window_frequency,
             "window_frequency_effective": fixed_income_window_frequency,
@@ -2025,9 +2020,7 @@ class InvestmentComparisonService:
                 "O acumulado principal usa precos oficiais do Tesouro Direto, com visao bruta "
                 "e liquidacao liquida estimada via IR regressivo e IOF inferior a 30 dias."
             ),
-            "comparison_metric_label": self._fixed_income_metric_label(
-                fixed_income_tax_treatment
-            ),
+            "comparison_metric_label": self._fixed_income_metric_label(fixed_income_tax_treatment),
             "tax_treatment": fixed_income_tax_treatment,
             "window_frequency_requested": fixed_income_window_frequency,
             "window_frequency_effective": effective_window_frequency,
@@ -2092,9 +2085,7 @@ class InvestmentComparisonService:
             "display_value_real": display_real_value,
             "display_profit_real": float(payload[metric_fields["net_profit_real"]]),
             "display_real_cagr": float(payload[metric_fields["real_cagr"]]),
-            "comparison_metric_label": self._fixed_income_metric_label(
-                fixed_income_tax_treatment
-            ),
+            "comparison_metric_label": self._fixed_income_metric_label(fixed_income_tax_treatment),
             "relative_gap_vs_benchmark": (
                 float(display_value / benchmark_value - 1.0) if benchmark_value > 0 else 0.0
             ),
@@ -2106,8 +2097,7 @@ class InvestmentComparisonService:
             ),
             "value_gap_vs_benchmark_real": float(display_real_value - benchmark_real_value),
             "is_benchmark": (
-                result.instrument.instrument_id
-                == benchmark_result.instrument.instrument_id
+                result.instrument.instrument_id == benchmark_result.instrument.instrument_id
             ),
         }
         return row
@@ -2383,9 +2373,7 @@ class InvestmentComparisonService:
             "median_excess_return": float(np.median(excess_array)),
             "best_excess_return": float(excess_array.max()),
             "worst_excess_return": float(excess_array.min()),
-            "best_window_start": (
-                str(best_window[1].date()) if best_window is not None else None
-            ),
+            "best_window_start": (str(best_window[1].date()) if best_window is not None else None),
             "best_window_end": str(best_window[2].date()) if best_window is not None else None,
             "worst_window_start": (
                 str(worst_window[1].date()) if worst_window is not None else None
@@ -2497,9 +2485,7 @@ class InvestmentComparisonService:
             "median_excess_return": float(np.median(excess_array)),
             "best_excess_return": float(excess_array.max()),
             "worst_excess_return": float(excess_array.min()),
-            "best_window_start": (
-                str(best_window[1].date()) if best_window is not None else None
-            ),
+            "best_window_start": (str(best_window[1].date()) if best_window is not None else None),
             "best_window_end": str(best_window[2].date()) if best_window is not None else None,
             "worst_window_start": (
                 str(worst_window[1].date()) if worst_window is not None else None

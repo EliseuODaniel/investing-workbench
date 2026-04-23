@@ -16,7 +16,7 @@ The repository is already in a strong delivery state:
 
 - backend tests, lint, type checks, frontend tests, frontend lint, frontend build, and frontend audit are passing
 - persisted runs, optimizations, walk-forward validations, Monte Carlo analyses, and dataset workflows already exist
-- the repository has a usable application service layer in `src/bitcoin_martingale/`
+- the repository has a usable application service layer in `src/investing_workbench/`
 - the legacy runtime in `src/` still carries part of the operational surface
 - the frontend provides a functional research workspace but still relies on a large application shell
 
@@ -56,7 +56,7 @@ The differentiators should be:
 
 - Preserve current user-visible behavior unless intentionally changing it.
 - Prefer incremental refactors over large rewrites.
-- Route new behavior through `src/bitcoin_martingale/`, not deeper into legacy entrypoints.
+- Route new behavior through `src/investing_workbench/`, not deeper into legacy entrypoints.
 - Treat datasets, runs, and research jobs as first-class persisted entities.
 - Prefer explicit contracts and artifact schemas over implicit conventions.
 - Keep API, CLI, and frontend thin. Business logic belongs in application and domain layers.
@@ -66,7 +66,7 @@ The differentiators should be:
 
 ### 1. Architecture Consolidation
 
-Reduce dependence on legacy runtime modules and complete the migration path into `src/bitcoin_martingale/`.
+Reduce dependence on legacy runtime modules and complete the migration path into `src/investing_workbench/`.
 
 ### 2. Research Kernel
 
@@ -144,7 +144,7 @@ These files are not broken, but they are carrying too much orchestration weight.
 
 - split FastAPI routes into domain routers
 - move API request-to-service translation closer to interface adapters
-- replace the placeholder next-generation CLI with a real command surface in `src/bitcoin_martingale/interfaces/cli/`
+- replace the placeholder next-generation CLI with a real command surface in `src/investing_workbench/interfaces/cli/`
 - reduce `src/cli.py` to compatibility delegation or remove it once safe
 - split frontend app orchestration into feature-specific shells and route-like sections
 - define a clear frontend module boundary for:
@@ -342,7 +342,7 @@ Advance only when the following gates hold:
 
 Track the following repository and product health metrics:
 
-- number of workflows routed through `src/bitcoin_martingale/` instead of legacy orchestration
+- number of workflows routed through `src/investing_workbench/` instead of legacy orchestration
 - size reduction in `src/cli.py`, `src/api/main.py`, and `frontend/src/App.tsx`
 - time to reproduce a past run from persisted artifacts
 - percentage of experiment types with normalized manifests and lineage

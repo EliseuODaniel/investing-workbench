@@ -4,7 +4,7 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.bitcoin_martingale.interfaces.cli.main import main
+from src.investing_workbench.interfaces.cli.main import main
 
 STATUS_PAYLOAD = {
     "status": "degraded",
@@ -50,7 +50,7 @@ def _services() -> SimpleNamespace:
 
 def test_system_status_cli_prints_text_summary(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services", return_value=_services()
+        "src.investing_workbench.interfaces.cli.main.build_services", return_value=_services()
     ):
         main(["system-status"])
 
@@ -64,7 +64,7 @@ def test_system_status_cli_prints_text_summary(capsys) -> None:
 
 def test_system_status_cli_prints_json(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services", return_value=_services()
+        "src.investing_workbench.interfaces.cli.main.build_services", return_value=_services()
     ):
         main(["system-status", "--format", "json"])
 

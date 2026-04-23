@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from src.api.models import BacktestRequest
-from src.bitcoin_martingale.application.runs.dto import BacktestRunInput
-from src.bitcoin_martingale.application.runs.request_adapter import to_backtest_run_input
+from src.investing_workbench.application.runs.dto import BacktestRunInput
+from src.investing_workbench.application.runs.request_adapter import to_backtest_run_input
 
 
 def test_request_adapter_normalizes_api_model_payload() -> None:

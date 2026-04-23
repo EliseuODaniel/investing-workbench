@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.bitcoin_martingale.application.optimizations import OptimizationExecutionService
-from src.bitcoin_martingale.application.runs import RunBacktestService
-from src.bitcoin_martingale.domain.optimizations import (
+from src.investing_workbench.application.optimizations import OptimizationExecutionService
+from src.investing_workbench.application.runs import RunBacktestService
+from src.investing_workbench.domain.optimizations import (
     OptimizationDirection,
     OptimizationMode,
     OptimizationRequest,
 )
-from src.bitcoin_martingale.infrastructure.persistence import (
+from src.investing_workbench.infrastructure.persistence import (
     LocalOptimizationsRepository,
     LocalRunsRepository,
 )

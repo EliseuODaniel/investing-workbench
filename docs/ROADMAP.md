@@ -6,7 +6,7 @@
 - Completed: service layer and logging baseline.
 
 ## Phase 2
-- Completed: new domain and application spine in `src/bitcoin_martingale/`.
+- Completed: new domain and application spine in `src/investing_workbench/`.
 - Completed: backtest engine migrated behind compatibility adapters.
 - Completed: reproducible run manifests and richer analytics.
 

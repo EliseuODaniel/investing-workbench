@@ -163,16 +163,12 @@ def _normalize_tesouro_direto_frame(frame: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
     normalized["years_to_maturity"] = (
-        (normalized["maturity_date"] - normalized["date"]).dt.days.astype(float) / 365.25
-    )
+        normalized["maturity_date"] - normalized["date"]
+    ).dt.days.astype(float) / 365.25
     normalized["title_key"] = (
-        normalized["title_type"]
-        + "::"
-        + normalized["maturity_date"].dt.strftime("%Y-%m-%d")
+        normalized["title_type"] + "::" + normalized["maturity_date"].dt.strftime("%Y-%m-%d")
     )
-    return normalized[
-        normalized["years_to_maturity"] > 0
-    ].reset_index(drop=True)
+    return normalized[normalized["years_to_maturity"] > 0].reset_index(drop=True)
 
 
 def download_tesouro_direto_history() -> pd.DataFrame | None:
@@ -252,8 +248,8 @@ def save_tesouro_direto_history(df: pd.DataFrame, path: str | Path) -> None:
     file_path.parent.mkdir(parents=True, exist_ok=True)
     normalized = df.copy()
     normalized["date"] = pd.to_datetime(normalized["date"]).dt.strftime("%Y-%m-%d")
-    normalized["maturity_date"] = (
-        pd.to_datetime(normalized["maturity_date"]).dt.strftime("%Y-%m-%d")
+    normalized["maturity_date"] = pd.to_datetime(normalized["maturity_date"]).dt.strftime(
+        "%Y-%m-%d"
     )
     normalized.to_csv(file_path, index=False)
     _TESOURO_DIRETO_CACHE.pop(str(file_path.resolve()), None)

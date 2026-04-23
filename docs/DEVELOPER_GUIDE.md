@@ -2,13 +2,13 @@
 
 ## Getting Started as a Developer
 
-This guide provides comprehensive information for developers contributing to the Bitcoin Martingale Backtesting Framework.
+This guide provides comprehensive information for developers contributing to Investing Workbench.
 
 ## Development Environment Setup
 
 ### Prerequisites
 
-- **Python 3.12+** with pip
+- **Python 3.12+** with `uv`
 - **Node.js 22.x** with npm
 - **Git** for version control
 - **IDE** (VS Code recommended with extensions)
@@ -18,15 +18,12 @@ This guide provides comprehensive information for developers contributing to the
 1. **Clone the Repository**
 ```bash
 git clone <repository-url>
-cd bitcoin-martingale
+cd investing-workbench
 ```
 
 2. **Python Environment**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or .venv\Scripts\activate on Windows
-pip install -e .[dev]
+uv sync --extra dev
 ```
 
 3. **Frontend Setup**
@@ -39,8 +36,7 @@ npm install
 
 **Pre-commit Hooks (Optional but Recommended)**
 ```bash
-pip install pre-commit
-pre-commit install
+uv run pre-commit install
 ```
 
 **VS Code Extensions**
@@ -78,7 +74,7 @@ src/
 ├── api/                        # FastAPI entrypoint and API models
 ├── cli.py                      # Legacy-compatible CLI surface
 ├── strategies/                 # Current strategy implementations
-└── bitcoin_martingale/         # New application/domain/infrastructure layers
+└── investing_workbench/         # New application/domain/infrastructure layers
     ├── application/            # Use cases and orchestration
     ├── domain/                 # Domain models and engine logic
     ├── infrastructure/         # Persistence, logging, reporting
@@ -104,10 +100,10 @@ frontend/src/
 
 **Backend Changes**
 ```bash
-./.venv/bin/pytest -q
-./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/mypy src/bitcoin_martingale
+uv run pytest -q
+uv run ruff check src/api src/investing_workbench tests/test_api.py
+uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+uv run mypy src/investing_workbench
 ```
 
 **Frontend Changes**
@@ -329,7 +325,7 @@ The framework now models execution with explicit costs and liquidity assumptions
 - `min_fill_quantity`: lower bound for a valid partial fill
 
 ```python
-from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine
+from src.investing_workbench.domain.backtest import BacktestCoreEngine
 
 engine = BacktestCoreEngine(
     initial_cash=30_000.0,
@@ -659,9 +655,9 @@ test('ApiClient handles backtest request', async () => {
 
 **Formatting and Linting**
 ```bash
-./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/mypy src/bitcoin_martingale
+uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+uv run ruff check src/api src/investing_workbench tests/test_api.py
+uv run mypy src/investing_workbench
 ```
 
 **Naming Conventions**

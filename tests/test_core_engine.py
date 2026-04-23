@@ -5,9 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine
-from src.bitcoin_martingale.domain.execution import OrderFill, OrderSide
-from src.bitcoin_martingale.domain.portfolio import PortfolioLedger
+from src.investing_workbench.domain.backtest import BacktestCoreEngine
+from src.investing_workbench.domain.execution import OrderFill, OrderSide
+from src.investing_workbench.domain.portfolio import PortfolioLedger
 
 
 def test_portfolio_ledger_builds_aggregated_position() -> None:

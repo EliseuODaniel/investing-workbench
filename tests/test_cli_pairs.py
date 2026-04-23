@@ -4,7 +4,7 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.bitcoin_martingale.interfaces.cli.main import main
+from src.investing_workbench.interfaces.cli.main import main
 
 
 class _StubPairsService:
@@ -80,7 +80,7 @@ def _services() -> SimpleNamespace:
 
 def test_pairs_universes_cli_prints_text_summary(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=_services(),
     ):
         main(["pairs-universes"])
@@ -92,7 +92,7 @@ def test_pairs_universes_cli_prints_text_summary(capsys) -> None:
 
 def test_pairs_screen_cli_prints_json(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=_services(),
     ):
         main(["pairs-screen", "--tickers", "PETR4", "PETR3"])
@@ -104,7 +104,7 @@ def test_pairs_screen_cli_prints_json(capsys) -> None:
 
 def test_pairs_ibov_snapshots_cli_prints_summary(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=_services(),
     ):
         main(["pairs-ibov-snapshots"])
@@ -117,7 +117,7 @@ def test_pairs_ibov_snapshots_cli_prints_summary(capsys) -> None:
 def test_pairs_backtest_cli_forwards_portfolio_controls(capsys) -> None:
     stub_service = _StubPairsService()
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=SimpleNamespace(
             pairs_trading_service=stub_service,
             pairs_backtest_job_service=_StubPairsJobService(),
@@ -160,7 +160,7 @@ def test_pairs_backtest_job_cli_forwards_payload(capsys) -> None:
     stub_service = _StubPairsService()
     stub_job_service = _StubPairsJobService()
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=SimpleNamespace(
             pairs_trading_service=stub_service,
             pairs_backtest_job_service=stub_job_service,

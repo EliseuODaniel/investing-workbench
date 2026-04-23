@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from src.bitcoin_martingale.application.runs.service import RunBacktestService
-from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
+from src.investing_workbench.application.runs.service import RunBacktestService
+from src.investing_workbench.infrastructure.persistence import LocalRunsRepository
 
 
 def _write_run(

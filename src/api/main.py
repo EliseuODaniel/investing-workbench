@@ -5,16 +5,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..bitcoin_martingale.infrastructure.logging import configure_logging
-from ..bitcoin_martingale.interfaces.api import services as api_services
-from ..bitcoin_martingale.interfaces.api.routers.allocations import router as allocations_router
-from ..bitcoin_martingale.interfaces.api.routers.datasets import router as datasets_router
-from ..bitcoin_martingale.interfaces.api.routers.investments import router as investments_router
-from ..bitcoin_martingale.interfaces.api.routers.pairs import router as pairs_router
-from ..bitcoin_martingale.interfaces.api.routers.research import router as research_router
-from ..bitcoin_martingale.interfaces.api.routers.runs import router as runs_router
-from ..bitcoin_martingale.interfaces.api.routers.scenarios import router as scenarios_router
-from ..bitcoin_martingale.interfaces.api.routers.system import router as system_router
+from ..investing_workbench.infrastructure.logging import configure_logging
+from ..investing_workbench.interfaces.api import services as api_services
+from ..investing_workbench.interfaces.api.routers.allocations import router as allocations_router
+from ..investing_workbench.interfaces.api.routers.datasets import router as datasets_router
+from ..investing_workbench.interfaces.api.routers.investments import router as investments_router
+from ..investing_workbench.interfaces.api.routers.pairs import router as pairs_router
+from ..investing_workbench.interfaces.api.routers.research import router as research_router
+from ..investing_workbench.interfaces.api.routers.runs import router as runs_router
+from ..investing_workbench.interfaces.api.routers.scenarios import router as scenarios_router
+from ..investing_workbench.interfaces.api.routers.system import router as system_router
 
 configure_logging()
 
@@ -31,8 +31,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Bitcoin Martingale Backtest API",
-    description="Interactive backtesting API for Bitcoin Martingale strategies",
+    title="Investing Workbench API",
+    description="Interactive investment comparison, backtesting, and research API",
     version="1.0.0",
     lifespan=lifespan,
 )

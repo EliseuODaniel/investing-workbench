@@ -1,4 +1,4 @@
-"""FastAPI backend for Bitcoin Martingale backtesting UI."""
+"""FastAPI backend for the Investing Workbench UI."""
 
 from typing import Any
 

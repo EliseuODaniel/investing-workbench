@@ -1,4 +1,4 @@
-from src.bitcoin_martingale.application.research_workspaces import build_workspace_report
+from src.investing_workbench.application.research_workspaces import build_workspace_report
 
 
 def test_build_workspace_report_includes_key_sections():

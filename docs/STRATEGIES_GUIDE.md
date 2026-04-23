@@ -1,6 +1,6 @@
 # Trading Strategies Guide
 
-This guide provides comprehensive documentation of all available trading strategies in the Bitcoin Martingale Backtesting Framework, including their theoretical foundations, parameters, and optimal use cases.
+This guide provides comprehensive documentation of the available trading strategies inside Investing Workbench, including their theoretical foundations, parameters, and optimal use cases.
 
 ## Overview
 
@@ -915,4 +915,4 @@ Based on historical Bitcoin data (2020-2023):
 3. **Market Regime Detection**: Identify when strategies may underperform
 4. **Tax Considerations**: Account for tax implications of frequent trading
 
-This comprehensive guide provides the foundation for understanding, selecting, and implementing trading strategies within the Bitcoin Martingale Backtesting Framework. Remember that all strategies carry risk, and past performance does not guarantee future results.
+This comprehensive guide provides the foundation for understanding, selecting, and implementing trading strategies within Investing Workbench. Remember that all strategies carry risk, and past performance does not guarantee future results.

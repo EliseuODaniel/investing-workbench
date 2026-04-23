@@ -3,8 +3,8 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.bitcoin_martingale.application.allocation_workspaces import AllocationWorkspaceService
-from src.bitcoin_martingale.infrastructure.persistence import LocalAllocationWorkspacesRepository
+from src.investing_workbench.application.allocation_workspaces import AllocationWorkspaceService
+from src.investing_workbench.infrastructure.persistence import LocalAllocationWorkspacesRepository
 from tests.support import override_api_services
 
 client = TestClient(app)

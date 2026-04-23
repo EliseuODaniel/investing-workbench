@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.bitcoin_martingale.application.walkforward import WalkForwardValidationService
-from src.bitcoin_martingale.domain.walkforward import WalkForwardRequest
-from src.bitcoin_martingale.infrastructure.persistence import LocalWalkForwardRepository
+from src.investing_workbench.application.walkforward import WalkForwardValidationService
+from src.investing_workbench.domain.walkforward import WalkForwardRequest
+from src.investing_workbench.infrastructure.persistence import LocalWalkForwardRepository
 
 
 def test_walkforward_execution_persists_results(tmp_path: Path) -> None:

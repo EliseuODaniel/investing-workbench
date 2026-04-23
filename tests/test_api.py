@@ -10,18 +10,18 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.models import BacktestRequest
-from src.bitcoin_martingale.application.backtest_jobs import BacktestJobService
-from src.bitcoin_martingale.application.datasets import DatasetCatalogService
-from src.bitcoin_martingale.application.experiments import ExperimentRegistryService
-from src.bitcoin_martingale.application.montecarlo import MonteCarloSimulationService
-from src.bitcoin_martingale.application.optimizations import (
+from src.investing_workbench.application.backtest_jobs import BacktestJobService
+from src.investing_workbench.application.datasets import DatasetCatalogService
+from src.investing_workbench.application.experiments import ExperimentRegistryService
+from src.investing_workbench.application.montecarlo import MonteCarloSimulationService
+from src.investing_workbench.application.optimizations import (
     OptimizationExecutionService,
     OptimizationPlanningService,
 )
-from src.bitcoin_martingale.application.research_workspaces import ResearchWorkspaceService
-from src.bitcoin_martingale.application.runs import RunBacktestService
-from src.bitcoin_martingale.application.walkforward import WalkForwardValidationService
-from src.bitcoin_martingale.infrastructure.persistence import (
+from src.investing_workbench.application.research_workspaces import ResearchWorkspaceService
+from src.investing_workbench.application.runs import RunBacktestService
+from src.investing_workbench.application.walkforward import WalkForwardValidationService
+from src.investing_workbench.infrastructure.persistence import (
     LocalBacktestJobsRepository,
     LocalMonteCarloRepository,
     LocalOptimizationsRepository,
@@ -148,7 +148,7 @@ class TestDatasetsEndpoint:
         with (
             override_api_services(dataset_service=patched_dataset_service),
             patch(
-                "src.bitcoin_martingale.application.datasets.service.get_data",
+                "src.investing_workbench.application.datasets.service.get_data",
                 return_value=pd.DataFrame({"Close": [1.0]}),
             ),
         ):
@@ -298,7 +298,7 @@ class TestRootEndpoint:
         data = response.json()
         assert "message" in data
         assert "version" in data
-        assert "Bitcoin Martingale Backtest API" in data["message"]
+        assert "Investing Workbench API" in data["message"]
         assert data["version"] == "1.0.0"
 
 

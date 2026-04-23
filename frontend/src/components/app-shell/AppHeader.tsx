@@ -34,11 +34,11 @@ export default function AppHeader() {
     <div className="mb-8 flex items-start justify-between gap-6">
       <div className="max-w-3xl">
         <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Bitcoin Martingale Backtest
+          Investing Workbench
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Uma interface mais direta para testar ideias, entender resultados e so entrar
-          em estudos quantitativos quando realmente fizer sentido.
+          Uma plataforma mais direta para comparar investimentos, testar ideias e so
+          entrar em estudos quantitativos quando realmente fizer sentido.
         </p>
       </div>
 

@@ -7,7 +7,7 @@ from dataclasses import replace
 from typing import Iterator
 
 from src.api.main import app
-from src.bitcoin_martingale.interfaces.api import services as api_services
+from src.investing_workbench.interfaces.api import services as api_services
 
 
 @contextmanager

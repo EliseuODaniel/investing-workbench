@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.bitcoin_martingale.application.optimizations import OptimizationPlanningService
-from src.bitcoin_martingale.domain.optimizations import (
+from src.investing_workbench.application.optimizations import OptimizationPlanningService
+from src.investing_workbench.domain.optimizations import (
     OptimizationMode,
     OptimizationRequest,
     OptimizationSearchSpace,

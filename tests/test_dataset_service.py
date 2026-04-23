@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from src.bitcoin_martingale.application.datasets import DatasetCatalogService
+from src.investing_workbench.application.datasets import DatasetCatalogService
 
 
 def test_dataset_catalog_lists_local_datasets() -> None:
@@ -195,7 +195,7 @@ def test_refresh_due_datasets_executes_due_entries(tmp_path: Path) -> None:
 
     with patch.object(service, "refresh_dataset", wraps=service.refresh_dataset) as refresh_mock:
         with patch(
-            "src.bitcoin_martingale.application.datasets.service.get_data",
+            "src.investing_workbench.application.datasets.service.get_data",
             return_value=pd.DataFrame({"Close": [1.0]}),
         ):
             refreshed = service.refresh_due_datasets()

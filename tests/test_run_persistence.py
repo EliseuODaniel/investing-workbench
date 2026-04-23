@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from src.api.models import BacktestRequest
-from src.bitcoin_martingale.application.runs import RunBacktestService
-from src.bitcoin_martingale.infrastructure.persistence import LocalRunsRepository
+from src.investing_workbench.application.runs import RunBacktestService
+from src.investing_workbench.infrastructure.persistence import LocalRunsRepository
 
 
 def test_run_service_persists_manifest_and_response(tmp_path: Path) -> None:

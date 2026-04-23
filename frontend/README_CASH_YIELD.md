@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the cash yield SELIC functionality implemented in the Bitcoin Martingale frontend. This feature allows users to enable SELIC-based interest on uninvested cash during backtesting, providing more realistic returns for Brazilian investors.
+This document describes the cash yield SELIC functionality implemented in the Investing Workbench frontend. This feature allows users to enable SELIC-based interest on uninvested cash during backtesting, providing more realistic returns for Brazilian investors.
 
 For the `SELIC real mensal` mode, the backend derives an effective monthly rate
 from the official daily SELIC series before applying it to cash. This prevents

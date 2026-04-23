@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from src.bitcoin_martingale.application.system import PlatformStatusService
+from src.investing_workbench.application.system import PlatformStatusService
 
 
 class _StubRunService:

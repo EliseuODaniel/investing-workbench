@@ -59,7 +59,7 @@ class _StubWege3ScenarioService:
                 "comparison_trades_output_path": "reports/wege3_comparison_trades.csv",
                 "search_output_path": "reports/wege3_search.csv",
             },
-            "reproduction_command": "./.venv/bin/python -m src.bitcoin_martingale.application.scenarios.wege3_regra_a",
+            "reproduction_command": "./.venv/bin/python -m src.investing_workbench.application.scenarios.wege3_regra_a",
         }
 
 

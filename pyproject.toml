@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bitcoin-martingale"
+name = "investing-workbench"
 version = "0.1.0"
-description = "Backtesting and research platform for Bitcoin and benchmark strategies."
+description = "Investment comparison, backtesting, and research platform for B3 and global assets."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -56,7 +56,7 @@ select = ["E", "F", "I", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["E501"]
-"src/bitcoin_martingale/application/scenarios/b3_cointegration_pairs.py" = ["E501"]
+"src/investing_workbench/application/scenarios/b3_cointegration_pairs.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,4 +73,4 @@ warn_unused_ignores = true
 check_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "skip"
-files = ["src/bitcoin_martingale"]
+files = ["src/investing_workbench"]

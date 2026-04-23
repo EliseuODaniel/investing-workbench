@@ -1,15 +1,13 @@
 """Tests for trading strategies."""
 
-import pytest
-import pandas as pd
-import numpy as np
 from unittest.mock import Mock
 
-from src.strategies.base import MartingaleStrategy
-from src.strategies.martingale_fixed import MartingaleFixedStrategy
-from src.strategies.martingale_vol_adj import MartingaleVolatilityStrategy
+import pandas as pd
+import pytest
+
+from src.engine import BacktestEngine, Layer, State
 from src.strategies.dca_hybrid import DCAHybridStrategy
-from src.engine import State, Layer, BacktestEngine
+from src.strategies.martingale_fixed import MartingaleFixedStrategy
 
 
 def create_mock_engine(cash=30000.0):
@@ -27,7 +25,6 @@ class TestMartingaleStrategy:
     def test_bet_size_calculation(self):
         """Test bet size calculation."""
         # Use concrete implementation for testing base methods
-        from src.strategies.martingale_fixed import MartingaleFixedStrategy
         strategy = MartingaleFixedStrategy(
             base_bet=100.0,
             multiplier=2.0,
@@ -39,7 +36,6 @@ class TestMartingaleStrategy:
 
     def test_price_targets(self):
         """Test price target calculations."""
-        from src.strategies.martingale_fixed import MartingaleFixedStrategy
         strategy = MartingaleFixedStrategy(
             drop_step=0.10,
             take_profit=0.15,
@@ -55,7 +51,6 @@ class TestMartingaleStrategy:
 
     def test_position_size(self):
         """Test position size calculation."""
-        from src.strategies.martingale_fixed import MartingaleFixedStrategy
         strategy = MartingaleFixedStrategy()
 
         # $1000 at $50 price = 20 units
@@ -66,12 +61,11 @@ class TestMartingaleStrategy:
 
     def test_layer_limits(self):
         """Test layer addition limits."""
-        from src.strategies.martingale_fixed import MartingaleFixedStrategy
         strategy = MartingaleFixedStrategy(max_layers=3)
         engine = create_mock_engine(10000.0)
 
         # Should be able to add layers up to max
-        assert strategy.can_add_layer(engine) == True
+        assert strategy.can_add_layer(engine)
 
         # Add mock layers
         for i in range(3):
@@ -86,7 +80,7 @@ class TestMartingaleStrategy:
             )
 
         # Should not be able to add more layers
-        assert strategy.can_add_layer(engine) == False
+        assert not strategy.can_add_layer(engine)
 
 
 class TestMartingaleFixedStrategy:

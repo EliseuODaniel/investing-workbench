@@ -1,6 +1,6 @@
 # API Reference
 
-This document provides comprehensive information about the Bitcoin Martingale Backtesting Framework REST API.
+This document provides comprehensive information about the Investing Workbench REST API.
 
 ## Base URL
 
@@ -221,7 +221,8 @@ POST /investments/compare
 **Highlights**
 
 - `GET /investments/catalog`: returns the curated catalog used by the Investments workspace, grouped by families such as Brazilian stocks, ETFs, FIIs, international exposure via B3, and fixed-income proxies
-- `GET /investments/catalog`: also returns beginner-friendly presets like `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, and `Global pela B3`
+- `GET /investments/catalog`: also returns beginner-friendly presets like `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, `Global pela B3`, and `Carteira 40+ (video)`
+- `GET /investments/catalog`: guided portfolios expose `components`, `rebalance_frequency`, `implementation_note`, and explanatory `notes` so the UI can show how the allocation was approximated
 - `POST /investments/compare`: compares the same initial capital and monthly contribution schedule across the selected assets
 - `POST /investments/compare`: returns ranked results, benchmark curves, class summaries, and simple highlights such as how many chosen assets beat SELIC or BOVA11
 - Market assets use adjusted close to approximate total return, while `SELIC_PROXY` compounds by daily SELIC rate as a didactic cash / Tesouro Selic reference
@@ -1333,4 +1334,4 @@ const BacktestComponent = () => {
 };
 ```
 
-This API reference provides comprehensive information for integrating with the Bitcoin Martingale Backtesting Framework. All examples are production-ready and follow best practices for error handling and type safety.
+This API reference provides comprehensive information for integrating with Investing Workbench. All examples are production-ready and follow best practices for error handling and type safety.

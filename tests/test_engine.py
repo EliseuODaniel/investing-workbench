@@ -1,10 +1,9 @@
 """Tests for backtest engine."""
 
-import pytest
 import pandas as pd
-from unittest.mock import Mock
+import pytest
 
-from src.engine import BacktestEngine, State, Trade, Layer
+from src.engine import BacktestEngine, Layer, State, Trade
 
 
 class TestBacktestEngine:
@@ -28,7 +27,7 @@ class TestBacktestEngine:
         # Successful buy
         result = engine.buy(timestamp, 50000.0, 0.1)  # 0.1 BTC at $50k = $5k
 
-        assert result == True
+        assert result
         assert len(engine.state.layers) == 1
         assert len(engine.state.trades) == 1
         assert engine.state.cash == 25000.0  # 30k - 5k
@@ -50,7 +49,7 @@ class TestBacktestEngine:
         # Should fail due to insufficient funds
         result = engine.buy(timestamp, 50000.0, 1.0)  # 1 BTC at $50k = $50k
 
-        assert result == False
+        assert not result
         assert len(engine.state.layers) == 0
         assert len(engine.state.trades) == 0
         assert engine.state.cash == 1000.0
@@ -67,7 +66,7 @@ class TestBacktestEngine:
         # Sell the layer
         result = engine.sell(timestamp, 55000.0, 0.1, layer_id)
 
-        assert result == True
+        assert result
         assert len(engine.state.layers) == 0  # Layer should be removed
         assert len(engine.state.trades) == 2  # Buy + Sell
         assert engine.state.cash > 30000.0  # Should have profit
@@ -91,7 +90,7 @@ class TestBacktestEngine:
         # Sell half (0.1 BTC)
         result = engine.sell(timestamp, 55000.0, 0.1, layer_id)
 
-        assert result == True
+        assert result
         assert len(engine.state.layers) == 1  # Layer should remain with reduced quantity
         assert len(engine.state.trades) == 2
 
@@ -109,13 +108,14 @@ class TestBacktestEngine:
         # Try to sell non-existent layer
         result = engine.sell(timestamp, 55000.0, 0.1, 999)
 
-        assert result == False
+        assert not result
         assert len(engine.state.layers) == 0
         assert len(engine.state.trades) == 0
 
     def test_equity_tracking(self):
         """Test equity value tracking."""
         engine = BacktestEngine(initial_cash=30000.0)
+
         # Strategy that buys once on the first bar
         class BuyOnceStrategy:
             def __init__(self):
@@ -131,8 +131,20 @@ class TestBacktestEngine:
         # Two bars so equity captures the open position on the second bar
         data = pd.DataFrame(
             [
-                {"Open": 50000.0, "High": 52000.0, "Low": 48000.0, "Close": 50000.0, "Volume": 1000.0},
-                {"Open": 50500.0, "High": 52000.0, "Low": 50000.0, "Close": 51000.0, "Volume": 1000.0},
+                {
+                    "Open": 50000.0,
+                    "High": 52000.0,
+                    "Low": 48000.0,
+                    "Close": 50000.0,
+                    "Volume": 1000.0,
+                },
+                {
+                    "Open": 50500.0,
+                    "High": 52000.0,
+                    "Low": 50000.0,
+                    "Close": 51000.0,
+                    "Volume": 1000.0,
+                },
             ],
             index=[pd.Timestamp("2023-01-01"), pd.Timestamp("2023-01-02")],
         )
@@ -212,10 +224,10 @@ class TestStateManagement:
             initial_cash=10000.0,
             apply_cash_yield=True,
             selic_rate_annual=0.12,
-            yield_frequency="monthly"
+            yield_frequency="monthly",
         )
 
-        assert engine.apply_cash_yield == True
+        assert engine.apply_cash_yield
         assert engine.selic_rate_annual == 0.12
         assert engine.yield_frequency == "monthly"
         assert engine._last_yield_month is None
@@ -224,19 +236,17 @@ class TestStateManagement:
         """Test that cash yield is disabled by default."""
         engine = BacktestEngine(initial_cash=10000.0)
 
-        assert engine.apply_cash_yield == False
+        assert not engine.apply_cash_yield
         assert engine.selic_rate_annual == 0.13  # Default value
         assert engine.yield_frequency == "monthly"
 
     def test_apply_cash_yield_monthly(self):
         """Test monthly cash yield application."""
-        from datetime import datetime
-
         engine = BacktestEngine(
             initial_cash=10000.0,
             apply_cash_yield=True,
             selic_rate_annual=0.12,  # 12% annual = 1% monthly
-            yield_frequency="monthly"
+            yield_frequency="monthly",
         )
 
         # Initial cash
@@ -272,7 +282,7 @@ class TestStateManagement:
         engine = BacktestEngine(
             initial_cash=10000.0,
             apply_cash_yield=False,
-            selic_rate_annual=0.12
+            selic_rate_annual=0.12,
         )
 
         initial_cash = engine.state.cash
@@ -293,7 +303,7 @@ class TestStateManagement:
             initial_cash=10000.0,
             apply_cash_yield=True,
             selic_rate_annual=0.12,
-            yield_frequency="monthly"
+            yield_frequency="monthly",
         )
 
         # Apply yield twice in January
@@ -317,13 +327,16 @@ class TestStateManagement:
         dates = pd.date_range("2023-01-01", "2023-03-31", freq="D")
         prices = [50000.0 + i * 10 for i in range(len(dates))]  # Slight uptrend
 
-        data = pd.DataFrame({
-            "Open": prices,
-            "High": [p * 1.02 for p in prices],
-            "Low": [p * 0.98 for p in prices],
-            "Close": prices,
-            "Volume": [1000] * len(dates)
-        }, index=dates)
+        data = pd.DataFrame(
+            {
+                "Open": prices,
+                "High": [p * 1.02 for p in prices],
+                "Low": [p * 0.98 for p in prices],
+                "Close": prices,
+                "Volume": [1000] * len(dates),
+            },
+            index=dates,
+        )
 
         # Mock strategy that does nothing (no trades)
         class MockStrategy:
@@ -335,7 +348,7 @@ class TestStateManagement:
             initial_cash=10000.0,
             apply_cash_yield=True,
             selic_rate_annual=0.12,  # 12% annual
-            yield_frequency="monthly"
+            yield_frequency="monthly",
         )
 
         strategy = MockStrategy()
@@ -343,11 +356,10 @@ class TestStateManagement:
 
         # Check that interest was earned (should be > 0 after 3 months)
         assert result["total_interest_earned"] > 0.0
-        assert result["cash_yield_enabled"] == True
+        assert result["cash_yield_enabled"]
         assert result["selic_rate_annual"] == 0.12
 
         # Check that final cash includes interest
-        expected_interest = 10000.0 * (0.12 / 12) * 3  # Rough estimate for 3 months
         assert result["final_cash"] > 10000.0
 
     def test_cash_yield_results_without_trades(self):
@@ -356,13 +368,16 @@ class TestStateManagement:
         dates = pd.date_range("2023-01-01", "2023-02-28", freq="D")
         prices = [50000.0] * len(dates)
 
-        data = pd.DataFrame({
-            "Open": prices,
-            "High": prices,
-            "Low": prices,
-            "Close": prices,
-            "Volume": [1000] * len(dates)
-        }, index=dates)
+        data = pd.DataFrame(
+            {
+                "Open": prices,
+                "High": prices,
+                "Low": prices,
+                "Close": prices,
+                "Volume": [1000] * len(dates),
+            },
+            index=dates,
+        )
 
         # Mock strategy that does nothing
         class MockStrategy:
@@ -374,7 +389,7 @@ class TestStateManagement:
             initial_cash=10000.0,
             apply_cash_yield=True,
             selic_rate_annual=0.12,
-            yield_frequency="monthly"
+            yield_frequency="monthly",
         )
 
         strategy = MockStrategy()

@@ -143,7 +143,7 @@ def test_engine_refreshes_daily_selic_for_the_run_window(monkeypatch, tmp_path: 
         )
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.domain.backtest.engine.get_or_create_daily_selic_data",
+        "src.investing_workbench.domain.backtest.engine.get_or_create_daily_selic_data",
         fake_get_or_create_daily_selic_data,
     )
 

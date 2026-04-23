@@ -1,6 +1,6 @@
 """Compatibility facade for the refactored backtest engine."""
 
-from src.bitcoin_martingale.domain.backtest import BacktestCoreEngine, Layer, State, Trade
+from src.investing_workbench.domain.backtest import BacktestCoreEngine, Layer, State, Trade
 
 
 class BacktestEngine(BacktestCoreEngine):

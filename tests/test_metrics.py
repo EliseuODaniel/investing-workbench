@@ -1,8 +1,8 @@
 """Tests for performance metrics calculation."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
 from src.metrics import calculate_metrics, compare_strategies
 
@@ -62,11 +62,33 @@ class TestMetricsCalculation:
         """Test trade statistics calculation."""
         dates = pd.date_range("2023-01-01", periods=3, freq="D")
         equity = pd.Series([30000.0, 32000.0, 34000.0], index=dates)
-        trades = pd.DataFrame([
-            {"action": "BUY", "price": 100.0, "quantity": 10.0, "cost": 1000.0, "timestamp": dates[0]},
-            {"action": "SELL", "price": 110.0, "quantity": 10.0, "cost": 1000.0, "pnl": 100.0, "timestamp": dates[1]},
-            {"action": "SELL", "price": 95.0, "quantity": 5.0, "cost": 500.0, "pnl": -25.0, "timestamp": dates[2]},
-        ])
+        trades = pd.DataFrame(
+            [
+                {
+                    "action": "BUY",
+                    "price": 100.0,
+                    "quantity": 10.0,
+                    "cost": 1000.0,
+                    "timestamp": dates[0],
+                },
+                {
+                    "action": "SELL",
+                    "price": 110.0,
+                    "quantity": 10.0,
+                    "cost": 1000.0,
+                    "pnl": 100.0,
+                    "timestamp": dates[1],
+                },
+                {
+                    "action": "SELL",
+                    "price": 95.0,
+                    "quantity": 5.0,
+                    "cost": 500.0,
+                    "pnl": -25.0,
+                    "timestamp": dates[2],
+                },
+            ]
+        )
         initial_capital = 30000.0
 
         metrics = calculate_metrics(equity, trades, initial_capital)
@@ -92,11 +114,37 @@ class TestMetricsCalculation:
         """Test PnL calculation by layer."""
         dates = pd.date_range("2023-01-01", periods=2, freq="D")
         equity = pd.Series([30000.0, 31000.0], index=dates)
-        trades = pd.DataFrame([
-            {"action": "SELL", "price": 110.0, "quantity": 10.0, "cost": 1000.0, "pnl": 100.0, "layer": 1, "timestamp": dates[0]},
-            {"action": "SELL", "price": 105.0, "quantity": 8.0, "cost": 800.0, "pnl": 40.0, "layer": 1, "timestamp": dates[0]},
-            {"action": "SELL", "price": 95.0, "quantity": 5.0, "cost": 500.0, "pnl": -25.0, "layer": 2, "timestamp": dates[1]},
-        ])
+        trades = pd.DataFrame(
+            [
+                {
+                    "action": "SELL",
+                    "price": 110.0,
+                    "quantity": 10.0,
+                    "cost": 1000.0,
+                    "pnl": 100.0,
+                    "layer": 1,
+                    "timestamp": dates[0],
+                },
+                {
+                    "action": "SELL",
+                    "price": 105.0,
+                    "quantity": 8.0,
+                    "cost": 800.0,
+                    "pnl": 40.0,
+                    "layer": 1,
+                    "timestamp": dates[0],
+                },
+                {
+                    "action": "SELL",
+                    "price": 95.0,
+                    "quantity": 5.0,
+                    "cost": 500.0,
+                    "pnl": -25.0,
+                    "layer": 2,
+                    "timestamp": dates[1],
+                },
+            ]
+        )
         initial_capital = 30000.0
 
         metrics = calculate_metrics(equity, trades, initial_capital)

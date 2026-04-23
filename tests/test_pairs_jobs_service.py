@@ -5,11 +5,11 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from src.bitcoin_martingale.application.pairs_jobs import (
+from src.investing_workbench.application.pairs_jobs import (
     PairsBacktestJobCancelledError,
     PairsBacktestJobService,
 )
-from src.bitcoin_martingale.infrastructure.persistence import LocalPairsBacktestJobsRepository
+from src.investing_workbench.infrastructure.persistence import LocalPairsBacktestJobsRepository
 
 
 def _wait_for_job_status(

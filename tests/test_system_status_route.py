@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from src.bitcoin_martingale.interfaces.api.routers.system import get_system_status
+from src.investing_workbench.interfaces.api.routers.system import get_system_status
 from tests.support import override_api_services
 
 

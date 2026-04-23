@@ -1,16 +1,19 @@
-.PHONY: backend-test backend-lint backend-format backend-type frontend-lint frontend-test frontend-build
+.PHONY: backend-sync backend-test backend-lint backend-format backend-type frontend-lint frontend-test frontend-build
+
+backend-sync:
+	uv sync --extra dev
 
 backend-test:
-	./.venv/bin/pytest -q
+	uv run pytest -q
 
 backend-lint:
-	./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
+	uv run ruff check src/api src/investing_workbench tests/test_api.py
 
 backend-format:
-	./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
+	uv run python -m black --check src/api src/investing_workbench tests/test_api.py
 
 backend-type:
-	./.venv/bin/mypy src/bitcoin_martingale
+	uv run mypy src/investing_workbench
 
 frontend-lint:
 	cd frontend && npm run lint

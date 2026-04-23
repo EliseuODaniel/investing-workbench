@@ -4,8 +4,8 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.bitcoin_martingale.application.allocations import AllocationPlanningService
-from src.bitcoin_martingale.interfaces.cli.main import main
+from src.investing_workbench.application.allocations import AllocationPlanningService
+from src.investing_workbench.interfaces.cli.main import main
 
 
 def test_allocations_plan_cli_prints_plan(capsys, tmp_path):
@@ -35,7 +35,7 @@ def test_allocations_plan_cli_prints_plan(capsys, tmp_path):
 
     services = SimpleNamespace(allocation_service=AllocationPlanningService())
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=services,
     ):
         main(["allocations-plan", "--input", str(input_path)])
@@ -63,7 +63,7 @@ def test_allocations_plan_cli_writes_output_file(tmp_path):
 
     services = SimpleNamespace(allocation_service=AllocationPlanningService())
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=services,
     ):
         main(

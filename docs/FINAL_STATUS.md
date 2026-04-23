@@ -1,15 +1,17 @@
 # Final Status
 
-Last updated: `2026-03-24T19:30:00-03:00`
-Reference point: repository state validated locally on `2026-03-24`
+Last updated: `2026-04-22T22:35:00-03:00`
+Reference point: repository state validated locally on `2026-04-22`
 
 ## Project State
 
-The project is in a strong handoff state and effectively complete for the refactor and product goals defined in this cycle.
+The project is in a strong handoff state for the current cycle and is no longer scoped only as a Bitcoin martingale backtester.
+
+It is now positioned as **Investing Workbench**, a broader investment comparison and backtesting platform.
 
 Delivered areas:
 - Codex-ready repository foundation with `AGENTS.md`, skills, project docs, and CI.
-- Incremental architecture migration into `src/bitcoin_martingale/`.
+- Incremental architecture migration into `src/investing_workbench/`.
 - Service-layer backed API with persisted run artifacts.
 - Reproducible run manifests, config snapshots, data profiles, and HTML reports.
 - New domain-backed engine behind compatibility adapters.
@@ -21,12 +23,15 @@ Delivered areas:
 - Shared report contract for research workspaces across API, CLI, and frontend.
 - Frontend performance hardening with lazy loading and manual chunking.
 - Frontend dependency and security hardening with `npm audit` clean.
+- Guided investment comparison flows across B3 asset classes.
+- New `Investimentos` area with curated portfolios, asset catalogs, and simple comparison UX.
+- Public rename to **Investing Workbench** and internal namespace migration to `src/investing_workbench/`.
 
 ## Current Architecture
 
 Primary code paths:
 - Backend compatibility entrypoints remain in `src/`.
-- New backend/domain/application code lives in `src/bitcoin_martingale/`.
+- New backend/domain/application code lives in `src/investing_workbench/`.
 - FastAPI entrypoint: `src/api/main.py`
 - CLI entrypoint: `src/cli.py`
 - Frontend entrypoint: `frontend/src/main.tsx`
@@ -38,13 +43,14 @@ Important supporting areas:
 - Tests: `tests/`
 - Docs: `docs/`
 - Codex repo guidance: `AGENTS.md`, `.agents/skills/`, `.codex/config.toml`
+- Legacy import compatibility shim: `src/bitcoin_martingale/__init__.py`
 
 ## Validation Snapshot
 
 Backend:
-- `./.venv/bin/pytest -q`
-- `./.venv/bin/ruff check ...`
-- `./.venv/bin/mypy ...`
+- `uv run pytest -q`
+- `uv run ruff check ...`
+- `uv run mypy ...`
 
 Frontend:
 - `cd frontend && npm audit --json`
@@ -59,14 +65,12 @@ Status at handoff:
 - Frontend production build passing.
 - Frontend `npm audit` reporting `0 vulnerabilities`.
 
-Local verification on `2026-03-24`:
-- `./.venv/bin/pytest -q` passing
-- `./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py` passing
-- `./.venv/bin/mypy src/bitcoin_martingale` passing
-- `cd frontend && npm run lint` passing
-- `cd frontend && npm test -- --run` passing
-- `cd frontend && npm run build` passing
-- `cd frontend && npm audit --json` reporting `0 vulnerabilities`
+Local verification on `2026-04-22`:
+- `uv run pytest -q tests/test_api.py tests/test_api_investments.py tests/test_investment_compare_service.py tests/test_dataset_service.py` passing
+- `uv run ruff check src/api src/investing_workbench tests/test_api.py tests/test_api_investments.py tests/test_investment_compare_service.py tests/test_dataset_service.py` passing
+- `uv run mypy src/investing_workbench` passing
+- `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs build` passing
+- smoke checks for `/`, `/system/status`, and `/investments/catalog` passing
 
 ## Key User-Facing Capabilities
 
@@ -82,6 +86,9 @@ Local verification on `2026-03-24`:
 - Export persisted trades as CSV.
 - Download persisted HTML reports.
 - Export the current frontend results workspace as PNG.
+- Compare investment alternatives across B3-oriented asset classes.
+- Use curated investment presets such as `Primeiros passos`, `Balanceado B3`, and `Carteira 40+ (video)`.
+- Compare assets and guided portfolios against Selic and equity proxies in a didactic flow.
 
 ## Known Intentional Limits
 
@@ -94,15 +101,16 @@ Local verification on `2026-03-24`:
 - The frontend quick actions now export a complete JSON project bundle for the current run.
 - The frontend now includes saved research workspaces, executive snapshots, report exports, and a server-backed report view.
 - The legacy compatibility layer in `src/` still exists to preserve current contracts.
-- The frontend is functional and modularized further than before, but not fully replatformed into a page-based app shell.
+- The legacy package name `src.bitcoin_martingale` still exists only as a compatibility shim.
+- The frontend is much simpler than before, but the `Investimentos` area is still early relative to the long-term platform ambition.
+- Fixed-income comparisons still rely partly on proxies rather than full retail bond instrumentation.
 
 ## Suggested Next Backlog
 
 If the project continues, the highest-value optional items are:
-- Parameter optimization with Optuna.
-- Monte Carlo robustness storytelling and warnings inside the UI.
-- Optional background refresh workers and notifications.
-- A fuller user guide focused on interpreting strategy results.
-- Visual polish and deeper dashboard storytelling.
-- Architectural consolidation of legacy entrypoints into thinner adapters.
-- Frontend decomposition beyond the current single-shell composition.
+- richer investment comparison across B3 asset classes and real-return views
+- tax/inflation-aware comparison and income-oriented scenarios
+- portfolio-level comparison instead of only single-asset or preset comparison
+- clearer retirement / pre-retirement planning flows
+- visual polish and deeper didactic storytelling for non-technical users
+- further thinning of compatibility layers once downstream imports are fully migrated

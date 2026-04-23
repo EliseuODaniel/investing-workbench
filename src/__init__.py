@@ -1,1 +1,1 @@
-"""Bitcoin Martingale Backtest Framework"""
+"""Investing Workbench."""

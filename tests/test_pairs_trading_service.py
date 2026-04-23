@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.bitcoin_martingale.application.pairs_trading import PairsTradingService
-from src.bitcoin_martingale.application.pairs_trading.ibov_history import SnapshotResolution
-from src.bitcoin_martingale.infrastructure.persistence.pairs_repo import (
+from src.investing_workbench.application.pairs_trading import PairsTradingService
+from src.investing_workbench.application.pairs_trading.ibov_history import SnapshotResolution
+from src.investing_workbench.infrastructure.persistence.pairs_repo import (
     LocalPairsBacktestsRepository,
 )
 
@@ -52,7 +52,7 @@ def test_pairs_service_resolves_custom_universe_with_quality_report(monkeypatch,
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -80,7 +80,7 @@ def test_pairs_service_screen_returns_ranked_candidates(monkeypatch, tmp_path) -
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -123,7 +123,7 @@ def test_pairs_service_applies_borrow_snapshot_overrides(monkeypatch, tmp_path) 
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -174,7 +174,7 @@ def test_pairs_service_run_batch_persists_manifest_and_results(monkeypatch, tmp_
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -241,7 +241,7 @@ def test_pairs_service_portfolio_constraints_shape_results(monkeypatch, tmp_path
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -343,7 +343,7 @@ def test_pairs_service_resolves_official_ibov_snapshot_from_history_service(
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -426,7 +426,7 @@ def test_pairs_service_reconstitutes_official_ibov_universe_across_segments(
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -478,7 +478,7 @@ def test_pairs_service_screen_includes_rejection_diagnostics(monkeypatch, tmp_pa
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 
@@ -520,7 +520,7 @@ def test_pairs_service_run_batch_exposes_alpha_decomposition(monkeypatch, tmp_pa
         return frames[data_source]
 
     monkeypatch.setattr(
-        "src.bitcoin_martingale.application.pairs_trading.service.get_data",
+        "src.investing_workbench.application.pairs_trading.service.get_data",
         fake_get_data,
     )
 

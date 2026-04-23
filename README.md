@@ -1,16 +1,17 @@
-# Bitcoin Martingale Backtesting Framework
+# Investing Workbench
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
 [![React](https://img.shields.io/badge/React-18.2+-61dafb.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2+-blue.svg)](https://typescriptlang.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
 
-A comprehensive, production-ready Python framework for backtesting Martingale-based trading strategies on Bitcoin (BTC-BRL). This framework provides multiple strategy implementations with realistic execution modeling, detailed performance metrics, interactive web UI, and extensible visualization tools.
+A broader investment and research platform for comparing B3 alternatives, running backtests, and exploring quantitative studies. The product now covers didactic investment comparisons, benchmark-aware backtests, B3 research labs, and reusable analytics workflows.
 
 ## Development Status
 
 - The legacy runtime still lives in `src/`.
-- The incremental refactor now starts in `src/bitcoin_martingale/`.
+- The incremental refactor now starts in `src/investing_workbench/`.
+- The public product name is now **Investing Workbench**. The primary package path is `src/investing_workbench/`, while legacy imports through `src/bitcoin_martingale/` still work via a compatibility shim.
 - Repository-level agent guidance lives in `AGENTS.md`.
 - Codex workflows, skills, and review conventions live in `docs/codex_workflows.md`, `docs/code_review.md`, and `.agents/skills/`.
 - Final handoff status and remaining optional backlog live in `docs/FINAL_STATUS.md`.
@@ -52,6 +53,7 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 - **Cross-asset comparison on B3**: Side-by-side comparisons across Brazilian stocks, ETFs, FIIs, international exposure via BDR/ETF on B3, and a SELIC cash proxy
 - **Same cash-flow schedule**: Apply the same initial capital and monthly contribution plan to every alternative for a fair comparison
 - **Curated starter presets**: Built-in presets such as `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, and `Global pela B3`
+- **Guided model portfolios**: Includes `Carteira 40+ (video)` in both the original interpretation and an operational B3-proxy version inspired by Raul Sena's “investir depois dos 40” allocation
 - **Didactic summaries**: Show class leaders, beat-the-SELIC counts, benchmark gaps, and simple insights instead of only raw quant metrics
 - **Interactive charts**: Clickable legends let the user isolate one asset or benchmark visually
 
@@ -75,13 +77,13 @@ A comprehensive, production-ready Python framework for backtesting Martingale-ba
 ## 🏗️ Architecture Overview
 
 ```
-bitcoin-martingale/
+investing-workbench/
 ├── src/                              # Legacy-compatible Python runtime and entrypoints
 │   ├── api/                          # FastAPI web backend
 │   ├── strategies/                   # Current strategy implementations
 │   ├── engine.py                     # Legacy-compatible engine entrypoint
 │   └── cli.py                        # Legacy-compatible CLI entrypoint
-├── src/bitcoin_martingale/           # New application/domain/infrastructure architecture
+├── src/investing_workbench/           # New application/domain/infrastructure architecture
 ├── frontend/                         # React + TypeScript research workspace
 ├── configs/                          # Strategy and optimization presets
 ├── tests/                            # Backend test suite
@@ -104,13 +106,11 @@ bitcoin-martingale/
 ```bash
 # Clone and setup
 git clone <repository-url>
-cd bitcoin-martingale
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-pip install -e .[dev]
+cd investing-workbench
+uv sync --extra dev
 
 # Start FastAPI server
-uvicorn src.api.main:app --reload --port 8001
+uv run uvicorn src.api.main:app --reload --port 8001
 ```
 
 2. **Start Frontend**
@@ -127,18 +127,19 @@ run a dedicated worker:
 
 ```bash
 export BITCOIN_MARTINGALE_BACKTEST_JOB_EXECUTION_MODE=detached
-uvicorn src.api.main:app --reload --port 8001
+uv run uvicorn src.api.main:app --reload --port 8001
 
 # Open another terminal
-python -m src backtest-jobs-worker --poll-interval 1.0
+uv run python -m src backtest-jobs-worker --poll-interval 1.0
 
 # Run this worker too if you queue async B3 pairs jobs
-python -m src pairs-backtest-jobs-worker --poll-interval 1.0
+uv run python -m src pairs-backtest-jobs-worker --poll-interval 1.0
 ```
 
 3. **Access Web Interface**
 - Open **http://localhost:5173**
 - Open **Investimentos** in the main navigation to compare B3 alternatives with the same capital and aporte schedule
+- Use the preset **Carteira 40+ (video)** to compare the video-inspired allocation against `SELIC`, `BOVA11`, and other B3 alternatives
 - Select configuration (aggressive, conservative, martingale)
 - Adjust parameters and run backtests
 - Explore interactive charts and export results
@@ -147,13 +148,13 @@ python -m src pairs-backtest-jobs-worker --poll-interval 1.0
 
 ```bash
 # Run all strategies with default config
-python -m src run
+uv run python -m src run
 
 # Run specific strategies
-python -m src run --config configs/aggressive.yaml --strategies "Risk-Cap Martingale"
+uv run python -m src run --config configs/aggressive.yaml --strategies "Risk-Cap Martingale"
 
 # Skip plot generation for faster execution
-python -m src run --config configs/martingale.yaml --no-plot --quiet
+uv run python -m src run --config configs/martingale.yaml --no-plot --quiet
 ```
 
 ### Development Checks
@@ -171,10 +172,10 @@ make frontend-build
 Direct equivalents:
 
 ```bash
-./.venv/bin/pytest -q
-./.venv/bin/ruff check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/black --check src/api src/bitcoin_martingale tests/test_api.py
-./.venv/bin/mypy src/bitcoin_martingale
+uv run pytest -q
+uv run ruff check src/api src/investing_workbench tests/test_api.py
+uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+uv run mypy src/investing_workbench
 cd frontend && npm run lint
 cd frontend && npm test -- --run
 cd frontend && npm run build
@@ -225,6 +226,7 @@ cd frontend && npm run build
 - The frontend now includes Saved Research Workspaces with search, sorting, metadata editing, import/export, executive snapshots, and a dedicated Report View backed by the same server-side report contract used by the API and CLI.
 - The Pairs Trading workspace now exposes rejection diagnostics in the screener, alpha decomposition in scenario summaries, and a research batch builder for sensitivity runs directly from the UI.
 - The main navigation now includes **Investimentos**, a didactic comparison workspace backed by `GET /investments/catalog` and `POST /investments/compare`.
+- The investments catalog now also exposes guided model portfolios with component weights, implementation notes, and monthly rebalancing metadata for educational simulations such as `Carteira 40+ (video)`.
 - The Investments workspace compares B3-listed stocks, ETFs, FIIs, international exposure via B3, and a SELIC proxy under the same initial capital and monthly contribution plan.
 - The comparison API returns ranked results, benchmark curves, class summaries, and beginner-friendly highlights such as “how many alternatives beat SELIC.”
 - The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
@@ -836,15 +838,12 @@ axios@^1.6.0            # HTTP client
 1. **Clone Repository**
 ```bash
 git clone <repository-url>
-cd bitcoin-martingale
+cd investing-workbench
 ```
 
 2. **Python Environment**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
+uv sync --extra dev
 ```
 
 3. **Frontend Dependencies**
@@ -856,13 +855,13 @@ npm install
 4. **Initial Data Cache**
 ```bash
 # Download and cache Bitcoin data
-python -m src validate --config configs/martingale.yaml
+uv run python -m src validate --config configs/martingale.yaml
 ```
 
 5. **Verification**
 ```bash
 # Test CLI functionality
-python -m src validate --config configs/martingale.yaml
+uv run python -m src validate --config configs/martingale.yaml
 
 # Test backend
 python -c "from src.api.main import app; print('✅ Backend ready')"

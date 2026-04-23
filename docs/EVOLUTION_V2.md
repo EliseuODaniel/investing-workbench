@@ -17,7 +17,7 @@ Primary outcomes:
 
 ## Guiding Principles
 
-- Extend the new `src/bitcoin_martingale/` architecture instead of reintroducing logic into legacy entrypoints.
+- Extend the new `src/investing_workbench/` architecture instead of reintroducing logic into legacy entrypoints.
 - Keep CLI, API, and frontend changes thin by routing behavior through application services.
 - Prefer persisted, reproducible artifacts over transient in-memory workflows.
 - Ship each research feature as a vertical slice with documentation, tests, and artifacts.
@@ -102,7 +102,7 @@ Acceptance:
 ### New Backend Areas
 
 ```text
-src/bitcoin_martingale/
+src/investing_workbench/
   domain/
     optimizations/
       models.py

@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.bitcoin_martingale.analytics import MetricsService
+from src.investing_workbench.analytics import MetricsService
 
 _metrics_service = MetricsService()
 

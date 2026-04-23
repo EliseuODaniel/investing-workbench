@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 
-from src.bitcoin_martingale.domain.pairs_trading import (
+from src.investing_workbench.domain.pairs_trading import (
     CointegrationPairsBacktester,
     PairsTradingConfig,
     analyze_cointegration,
 )
-from src.bitcoin_martingale.domain.pairs_trading.statistics import (
+from src.investing_workbench.domain.pairs_trading.statistics import (
     apply_split_adjustment,
     estimate_pair_stability,
     estimate_short_borrow_profile,
@@ -15,17 +15,17 @@ from src.selic import save_daily_selic_data
 
 
 def _synthetic_frame(close: np.ndarray, volume: float = 5_000_000.0) -> pd.DataFrame:
-    index = pd.bdate_range('2021-01-01', periods=len(close))
+    index = pd.bdate_range("2021-01-01", periods=len(close))
     return pd.DataFrame(
         {
-            'Open': close,
-            'High': close * 1.01,
-            'Low': close * 0.99,
-            'Close': close,
-            'Adj Close': close,
-            'Volume': np.full(len(close), volume),
-            'Dividends': np.zeros(len(close)),
-            'Stock Splits': np.zeros(len(close)),
+            "Open": close,
+            "High": close * 1.01,
+            "Low": close * 0.99,
+            "Close": close,
+            "Adj Close": close,
+            "Volume": np.full(len(close), volume),
+            "Dividends": np.zeros(len(close)),
+            "Stock Splits": np.zeros(len(close)),
         },
         index=index,
     )
@@ -34,28 +34,30 @@ def _synthetic_frame(close: np.ndarray, volume: float = 5_000_000.0) -> pd.DataF
 def test_apply_split_adjustment_keeps_split_day_on_current_scale():
     df = pd.DataFrame(
         {
-            'Open': [100.0, 52.0, 53.0],
-            'High': [101.0, 53.0, 54.0],
-            'Low': [99.0, 51.0, 52.0],
-            'Close': [100.0, 52.0, 53.0],
-            'Volume': [1_000_000, 1_000_000, 1_000_000],
-            'Adj Close': [100.0, 52.0, 53.0],
-            'Dividends': [0.0, 0.0, 0.0],
-            'Stock Splits': [0.0, 2.0, 0.0],
+            "Open": [100.0, 52.0, 53.0],
+            "High": [101.0, 53.0, 54.0],
+            "Low": [99.0, 51.0, 52.0],
+            "Close": [100.0, 52.0, 53.0],
+            "Volume": [1_000_000, 1_000_000, 1_000_000],
+            "Adj Close": [100.0, 52.0, 53.0],
+            "Dividends": [0.0, 0.0, 0.0],
+            "Stock Splits": [0.0, 2.0, 0.0],
         },
-        index=pd.bdate_range('2021-01-01', periods=3),
+        index=pd.bdate_range("2021-01-01", periods=3),
     )
     adjusted = apply_split_adjustment(df)
 
-    assert adjusted['Close_sa'].iloc[0] == 50.0
-    assert adjusted['Close_sa'].iloc[1] == 52.0
-    assert adjusted['Close_sa'].iloc[2] == 53.0
+    assert adjusted["Close_sa"].iloc[0] == 50.0
+    assert adjusted["Close_sa"].iloc[1] == 52.0
+    assert adjusted["Close_sa"].iloc[2] == 53.0
 
 
 def test_estimate_short_borrow_profile_penalizes_low_liquidity_and_high_volatility():
     liquid_close = pd.Series(np.linspace(20.0, 22.0, 120))
     liquid_volume = pd.Series(np.full(120, 25_000_000.0))
-    stressed_close = pd.Series(np.concatenate([np.linspace(20.0, 40.0, 60), np.linspace(40.0, 8.0, 60)]))
+    stressed_close = pd.Series(
+        np.concatenate([np.linspace(20.0, 40.0, 60), np.linspace(40.0, 8.0, 60)])
+    )
     stressed_volume = pd.Series(np.full(120, 20_000.0))
 
     good = estimate_short_borrow_profile(
@@ -118,10 +120,10 @@ def test_backtester_produces_selection_and_trade_on_synthetic_pair():
     y = 1.05 * x + spread
 
     data = {
-        'AAA1': _synthetic_frame(y),
-        'BBB1': _synthetic_frame(x),
+        "AAA1": _synthetic_frame(y),
+        "BBB1": _synthetic_frame(x),
     }
-    sector_map = {'AAA1': 'test', 'BBB1': 'test'}
+    sector_map = {"AAA1": "test", "BBB1": "test"}
     config = PairsTradingConfig(
         initial_capital=100000.0,
         formation_window=120,
@@ -144,12 +146,14 @@ def test_backtester_produces_selection_and_trade_on_synthetic_pair():
         slippage=0.0,
         short_borrow_rate_annual=0.0,
     )
-    backtester = CointegrationPairsBacktester(data_by_ticker=data, sector_map=sector_map, config=config)
+    backtester = CointegrationPairsBacktester(
+        data_by_ticker=data, sector_map=sector_map, config=config
+    )
     result = backtester.run(require_cointegration=True)
 
-    assert not result['selections'].empty
-    assert not result['trades'].empty
-    assert result['equity']['equity'].iloc[-1] != config.initial_capital
+    assert not result["selections"].empty
+    assert not result["trades"].empty
+    assert result["equity"]["equity"].iloc[-1] != config.initial_capital
 
 
 def test_backtester_applies_cash_yield_to_idle_cash(tmp_path):
@@ -157,16 +161,16 @@ def test_backtester_applies_cash_yield_to_idle_cash(tmp_path):
     x = np.cumsum(rng.normal(0, 1, 80)) + 50
     y = 1.1 * x + rng.normal(0, 0.3, 80)
     data = {
-        'AAA1': _synthetic_frame(y),
-        'BBB1': _synthetic_frame(x),
+        "AAA1": _synthetic_frame(y),
+        "BBB1": _synthetic_frame(x),
     }
-    sector_map = {'AAA1': 'test', 'BBB1': 'test'}
+    sector_map = {"AAA1": "test", "BBB1": "test"}
 
-    selic_path = tmp_path / 'selic_daily.csv'
+    selic_path = tmp_path / "selic_daily.csv"
     selic_df = pd.DataFrame(
         {
-            'date': pd.bdate_range('2021-01-01', periods=80),
-            'rate': np.full(80, 0.001),
+            "date": pd.bdate_range("2021-01-01", periods=80),
+            "rate": np.full(80, 0.001),
         }
     )
     save_daily_selic_data(selic_df, str(selic_path))
@@ -196,12 +200,14 @@ def test_backtester_applies_cash_yield_to_idle_cash(tmp_path):
         use_real_selic=True,
         selic_path=str(selic_path),
     )
-    backtester = CointegrationPairsBacktester(data_by_ticker=data, sector_map=sector_map, config=config)
+    backtester = CointegrationPairsBacktester(
+        data_by_ticker=data, sector_map=sector_map, config=config
+    )
     result = backtester.run(require_cointegration=True)
 
-    assert result['trades'].empty
-    assert result['cash_yield_total'] > 0.0
-    assert result['equity']['equity'].iloc[-1] > config.initial_capital
+    assert result["trades"].empty
+    assert result["cash_yield_total"] > 0.0
+    assert result["equity"]["equity"].iloc[-1] > config.initial_capital
 
 
 def test_regime_filter_blocks_entries_when_market_is_outside_band():
@@ -212,10 +218,10 @@ def test_regime_filter_blocks_entries_when_market_is_outside_band():
     benchmark = np.linspace(100.0, 200.0, 420)
 
     data = {
-        'AAA1': _synthetic_frame(y),
-        'BBB1': _synthetic_frame(x),
+        "AAA1": _synthetic_frame(y),
+        "BBB1": _synthetic_frame(x),
     }
-    sector_map = {'AAA1': 'test', 'BBB1': 'test'}
+    sector_map = {"AAA1": "test", "BBB1": "test"}
     config = PairsTradingConfig(
         initial_capital=100000.0,
         formation_window=120,
@@ -237,7 +243,7 @@ def test_regime_filter_blocks_entries_when_market_is_outside_band():
         fee_rate=0.0,
         slippage=0.0,
         short_borrow_rate_annual=0.0,
-        regime_filter='ma_deviation_and_vol',
+        regime_filter="ma_deviation_and_vol",
         regime_ma_window=5,
         regime_max_deviation=1e-12,
         regime_vol_window=5,
@@ -252,9 +258,9 @@ def test_regime_filter_blocks_entries_when_market_is_outside_band():
     )
     result = backtester.run(require_cointegration=True)
 
-    assert not result['selections'].empty
-    assert result['trades'].empty
-    assert result['regime_blocked_entries'] > 0
+    assert not result["selections"].empty
+    assert result["trades"].empty
+    assert result["regime_blocked_entries"] > 0
 
 
 def test_explicit_margin_model_runs_and_encumbers_cash():
@@ -265,10 +271,10 @@ def test_explicit_margin_model_runs_and_encumbers_cash():
     benchmark = np.linspace(100.0, 120.0, 320)
 
     data = {
-        'AAA1': _synthetic_frame(y),
-        'BBB1': _synthetic_frame(x),
+        "AAA1": _synthetic_frame(y),
+        "BBB1": _synthetic_frame(x),
     }
-    sector_map = {'AAA1': 'test', 'BBB1': 'test'}
+    sector_map = {"AAA1": "test", "BBB1": "test"}
     config = PairsTradingConfig(
         initial_capital=100000.0,
         formation_window=120,
@@ -295,7 +301,7 @@ def test_explicit_margin_model_runs_and_encumbers_cash():
         explicit_margin_model=True,
         short_margin_haircut=0.5,
         dynamic_beta=True,
-        regime_filter='ma_deviation_and_vol',
+        regime_filter="ma_deviation_and_vol",
         regime_ma_window=20,
         regime_max_deviation=0.5,
         regime_vol_window=10,
@@ -310,9 +316,10 @@ def test_explicit_margin_model_runs_and_encumbers_cash():
     )
     result = backtester.run(require_cointegration=True)
 
-    assert not result['trades'].empty
-    assert result['equity']['cash'].min() < config.initial_capital
-    assert result['equity']['equity'].iloc[-1] > 0.0
+    assert not result["trades"].empty
+    assert result["equity"]["cash"].min() < config.initial_capital
+    assert result["equity"]["equity"].iloc[-1] > 0.0
+
 
 def test_backtester_uses_proxy_short_borrow_rate_on_trades():
     rng = np.random.default_rng(13)
@@ -321,10 +328,10 @@ def test_backtester_uses_proxy_short_borrow_rate_on_trades():
     y = 1.05 * x + spread
 
     data = {
-        'AAA1': _synthetic_frame(y, volume=18_000_000.0),
-        'BBB1': _synthetic_frame(x, volume=20_000_000.0),
+        "AAA1": _synthetic_frame(y, volume=18_000_000.0),
+        "BBB1": _synthetic_frame(x, volume=20_000_000.0),
     }
-    sector_map = {'AAA1': 'test', 'BBB1': 'test'}
+    sector_map = {"AAA1": "test", "BBB1": "test"}
     config = PairsTradingConfig(
         initial_capital=100000.0,
         formation_window=120,
@@ -350,10 +357,12 @@ def test_backtester_uses_proxy_short_borrow_rate_on_trades():
         proxy_borrow_max_rate_annual=0.12,
         proxy_min_short_score=0.2,
     )
-    backtester = CointegrationPairsBacktester(data_by_ticker=data, sector_map=sector_map, config=config)
+    backtester = CointegrationPairsBacktester(
+        data_by_ticker=data, sector_map=sector_map, config=config
+    )
     result = backtester.run(require_cointegration=True)
 
-    assert not result['selections'].empty
-    assert not result['trades'].empty
-    assert result['trades']['short_borrow_rate_annual'].between(0.03, 0.12).all()
-    assert result['eligible_universe']['short_score'].ge(0.2).all()
+    assert not result["selections"].empty
+    assert not result["trades"].empty
+    assert result["trades"]["short_borrow_rate_annual"].between(0.03, 0.12).all()
+    assert result["eligible_universe"]["short_score"].ge(0.2).all()

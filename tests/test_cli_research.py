@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.bitcoin_martingale.interfaces.cli.main import main
+from src.investing_workbench.interfaces.cli.main import main
 
 WORKSPACE_PAYLOAD = {
     "workspace_id": "research_ws_test",
@@ -66,7 +66,9 @@ def _services():
 
 
 def test_research_workspaces_list_cli_prints_workspace_summary(capsys):
-    with patch("src.bitcoin_martingale.interfaces.cli.main.build_services", return_value=_services()):
+    with patch(
+        "src.investing_workbench.interfaces.cli.main.build_services", return_value=_services()
+    ):
         main(["research-workspaces-list", "--limit", "5"])
 
     output = capsys.readouterr().out
@@ -79,7 +81,9 @@ def test_research_workspaces_export_cli_writes_markdown_and_html(tmp_path):
     markdown_path = tmp_path / "workspace.md"
     html_path = tmp_path / "workspace.html"
 
-    with patch("src.bitcoin_martingale.interfaces.cli.main.build_services", return_value=_services()):
+    with patch(
+        "src.investing_workbench.interfaces.cli.main.build_services", return_value=_services()
+    ):
         main(
             [
                 "research-workspaces-export",

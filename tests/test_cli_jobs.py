@@ -4,7 +4,7 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.bitcoin_martingale.interfaces.cli.main import main
+from src.investing_workbench.interfaces.cli.main import main
 
 
 def _services() -> SimpleNamespace:
@@ -33,7 +33,7 @@ def _services() -> SimpleNamespace:
 
 def test_backtest_jobs_list_cli_prints_json(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=_services(),
     ):
         main(["backtest-jobs-list", "--limit", "5"])
@@ -44,7 +44,7 @@ def test_backtest_jobs_list_cli_prints_json(capsys) -> None:
 
 def test_backtest_jobs_worker_cli_runs_once(capsys) -> None:
     with patch(
-        "src.bitcoin_martingale.interfaces.cli.main.build_services",
+        "src.investing_workbench.interfaces.cli.main.build_services",
         return_value=_services(),
     ):
         main(["backtest-jobs-worker", "--once", "--worker-id", "worker_test"])
