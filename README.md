@@ -14,6 +14,7 @@ A broader investment and research platform for comparing B3 alternatives, runnin
 - The public product name is now **Investing Workbench**. The primary package path is `src/investing_workbench/`, while legacy imports through `src/bitcoin_martingale/` still work via a compatibility shim.
 - Repository-level agent guidance lives in `AGENTS.md`.
 - Codex workflows, skills, and review conventions live in `docs/codex_workflows.md`, `docs/code_review.md`, and `.agents/skills/`.
+- The concise current-state and direction snapshot lives in `docs/PROJECT_STATUS_AND_DIRECTION.md`.
 - Final handoff status and remaining optional backlog live in `docs/FINAL_STATUS.md`.
 - The latest Codex resume point for in-progress work lives in `docs/CODEX_HANDOFF.md`.
 - Evolution planning for the next product cycle lives in `docs/EVOLUTION_V2.md`.
@@ -54,6 +55,11 @@ A broader investment and research platform for comparing B3 alternatives, runnin
 - **Same cash-flow schedule**: Apply the same initial capital and monthly contribution plan to every alternative for a fair comparison
 - **Curated starter presets**: Built-in presets such as `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, and `Global pela B3`
 - **Guided model portfolios**: Includes `Carteira 40+ (video)` in both the original interpretation and an operational B3-proxy version inspired by Raul Sena's “investir depois dos 40” allocation
+- **Fixed-income studies**: Compare CDI, IDkA duration indexes, Tesouro Direto rolling strategies, and NTN-B ETFs while keeping index evidence separate from investable products
+- **Methodology and decision panels**: Explain what each evidence type measures, how to think about fixed-income choices, and which historical winner fits each objective
+- **Decision profile**: Rank explanations by objective, horizon, liquidity need, mark-to-market tolerance, tax view, and monthly income target
+- **Goal scenarios**: Translate the same comparison into income capacity, retirement real-return, capital preservation, and wealth accumulation views
+- **Cleaner chart interaction**: Use visual date sliders, rebased curves, legend focus/hide controls, and nearest-line tooltips for dense comparisons
 - **Didactic summaries**: Show class leaders, beat-the-SELIC counts, benchmark gaps, and simple insights instead of only raw quant metrics
 - **Interactive charts**: Clickable legends let the user isolate one asset or benchmark visually
 
@@ -173,8 +179,8 @@ Direct equivalents:
 
 ```bash
 uv run pytest -q
-uv run ruff check src/api src/investing_workbench tests/test_api.py
-uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+uv run ruff check src/api src/investing_workbench tests
+uv run python -m black --check src/api src/investing_workbench tests
 uv run mypy src/investing_workbench
 cd frontend && npm run lint
 cd frontend && npm test -- --run
@@ -229,6 +235,7 @@ cd frontend && npm run build
 - The investments catalog now also exposes guided model portfolios with component weights, implementation notes, and monthly rebalancing metadata for educational simulations such as `Carteira 40+ (video)`.
 - The Investments workspace compares B3-listed stocks, ETFs, FIIs, international exposure via B3, and a SELIC proxy under the same initial capital and monthly contribution plan.
 - The comparison API returns ranked results, benchmark curves, class summaries, and beginner-friendly highlights such as “how many alternatives beat SELIC.”
+- The comparison API now accepts `decision_profile` and returns `methodology_guide`, `fixed_income_decision_guide`, and `portfolio_objective_summary` so the UI can explain assumptions and decisions without hard-coding the story.
 - The platform now exposes a Dataset Manager across API, CLI, and frontend for inspecting local `data/` assets and applying one to the current backtest request.
 - The Dataset Manager now supports importing local CSV/Parquet files into `data/`, refreshing supported cached datasets, and exposing richer validation diagnostics.
 - The frontend now includes a Research Drilldown panel that cross-checks optimization winners against walk-forward behavior and Monte Carlo tail risk.
@@ -953,9 +960,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/bitcoin-martingale/issues)
-- **Documentation**: [Wiki](https://github.com/your-repo/bitcoin-martingale/wiki)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/bitcoin-martingale/discussions)
+- **Issues**: [GitHub Issues](https://github.com/EliseuODaniel/investing-workbench/issues)
+- **Documentation**: see `docs/`
+- **Discussions**: use the repository discussion or issue tracker for project decisions
 
 ---
 

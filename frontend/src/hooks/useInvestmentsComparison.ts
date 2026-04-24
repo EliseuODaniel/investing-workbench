@@ -18,6 +18,14 @@ const DEFAULT_REQUEST: InvestmentCompareRequestPayload = {
   fixed_income_study_mode: 'auto',
   fixed_income_tax_treatment: 'gross',
   fixed_income_window_frequency: 'monthly',
+  decision_profile: {
+    objective: 'balanced',
+    horizon_years: 5,
+    liquidity_need: 'monthly',
+    mark_to_market_tolerance: 'medium',
+    tax_view: 'gross',
+    monthly_income_target: 0,
+  },
   force_download: false,
 };
 

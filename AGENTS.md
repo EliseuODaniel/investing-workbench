@@ -1,7 +1,8 @@
-# Bitcoin Martingale Repo Guide
+# Investing Workbench Repo Guide
 
 ## Mission
-- Keep this repository evolving toward a reliable backtesting and research platform for crypto and benchmark comparison.
+- Keep this repository evolving toward a reliable local-first platform for didactic investment comparison, backtesting, and quantitative research.
+- Treat `Investimentos` as the main investor-facing product surface, with `Simular`, `Resultados`, and `Avancado` carrying strategy research and deeper analysis.
 - Prefer incremental refactors over large rewrites.
 - Preserve user-visible behavior unless the task explicitly changes it.
 
@@ -18,8 +19,8 @@
 ## Canonical Commands
 - Backend setup: `uv sync --extra dev`
 - Backend tests: `uv run pytest -q`
-- Backend lint: `uv run ruff check src/api src/investing_workbench tests/test_api.py`
-- Backend format check: `uv run python -m black --check src/api src/investing_workbench tests/test_api.py`
+- Backend lint: `uv run ruff check src/api src/investing_workbench tests`
+- Backend format check: `uv run python -m black --check src/api src/investing_workbench tests`
 - Backend type check: `uv run mypy src/investing_workbench`
 - Frontend install: `cd frontend && npm install`
 - Frontend lint: `cd frontend && npm run lint`
@@ -37,6 +38,7 @@
 
 ## Safe Edit Rules
 - Treat `data/` and `reports/` as generated artifacts.
+- Treat downloaded fixed-income caches, local research workspaces, and pairs backtest outputs as local runtime artifacts unless a task explicitly asks to version fixtures.
 - Do not remove legacy modules unless they are fully replaced and validated.
 - Keep compatibility with existing config files during the migration.
 - If a feature is stubbed, expose that clearly instead of pretending it works.
@@ -52,5 +54,6 @@
 - Use repo-local skills in `.agents/skills/` when they match the task.
 - Reach for `.agents/skills/software-engineering-guardrails/` on implementation/refactor work.
 - Reach for `.agents/skills/git-hygiene/` before staging, committing, or pushing.
+- Reach for `.agents/skills/docs-sync/` whenever product direction, commands, endpoints, or user-facing behavior changes.
 - Check `docs/code_review.md` before asking for or performing review-style work.
 - Check `PLANS.md` for active migration phases before editing architecture-heavy files.

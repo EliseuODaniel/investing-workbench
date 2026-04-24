@@ -43,6 +43,7 @@ class _StubInvestmentComparisonService:
         fixed_income_study_mode: str,
         fixed_income_tax_treatment: str,
         fixed_income_window_frequency: str,
+        decision_profile: dict[str, object],
         force_download: bool,
     ) -> dict[str, object]:
         return {
@@ -58,6 +59,7 @@ class _StubInvestmentComparisonService:
                 "fixed_income_study_mode": fixed_income_study_mode,
                 "fixed_income_tax_treatment": fixed_income_tax_treatment,
                 "fixed_income_window_frequency": fixed_income_window_frequency,
+                "decision_profile": decision_profile,
                 "force_download": force_download,
             },
             "catalog_snapshot": {"categories": [], "selected_assets": [], "presets": []},
@@ -241,6 +243,14 @@ def test_investments_compare_route_uses_current_service_container() -> None:
                 "initial_capital": 10000,
                 "monthly_contribution": 500,
                 "benchmark_ids": ["selic_cash"],
+                "decision_profile": {
+                    "objective": "retirement",
+                    "horizon_years": 15,
+                    "liquidity_need": "long_term",
+                    "mark_to_market_tolerance": "medium",
+                    "tax_view": "net",
+                    "monthly_income_target": 3000,
+                },
                 "force_download": True,
             },
         )
@@ -252,6 +262,8 @@ def test_investments_compare_route_uses_current_service_container() -> None:
     assert payload["request"]["fixed_income_study_mode"] == "auto"
     assert payload["request"]["fixed_income_tax_treatment"] == "gross"
     assert payload["request"]["fixed_income_window_frequency"] == "monthly"
+    assert payload["request"]["decision_profile"]["objective"] == "retirement"
+    assert payload["request"]["decision_profile"]["monthly_income_target"] == 3000
     assert payload["chart"]["reference_series_id"] == "selic_cash"
     assert payload["results"][0]["label"] == "PETR4"
     assert payload["fixed_income_backtest"]["methodology"]["benchmark_instrument_id"] == "CDI_INDEX"

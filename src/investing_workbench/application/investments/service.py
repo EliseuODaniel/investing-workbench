@@ -22,12 +22,18 @@ from .catalog import (
     InvestmentInstrument,
     build_catalog_payload,
 )
+from .decision_profile import normalize_decision_profile
 from .fixed_income import (
     build_fixed_income_cache_metadata,
     get_fixed_income_definition,
     get_or_create_fixed_income_quotes,
 )
 from .inflation import get_monthly_ipca_rate, get_or_create_ipca_data
+from .narratives import (
+    build_fixed_income_decision_guide,
+    build_methodology_guide,
+    build_portfolio_objective_summary,
+)
 from .tesouro_direto import (
     TESOURO_DIRETO_CSV_URL,
     build_tesouro_cache_metadata,
@@ -202,6 +208,7 @@ class InvestmentComparisonService:
         fixed_income_study_mode: str = "auto",
         fixed_income_tax_treatment: str = "gross",
         fixed_income_window_frequency: str = "monthly",
+        decision_profile: dict[str, Any] | None = None,
         force_download: bool = False,
     ) -> dict[str, Any]:
         if not asset_ids and not custom_portfolios:
@@ -219,6 +226,7 @@ class InvestmentComparisonService:
 
         generated_at = datetime.now(UTC)
         end_date_resolved = end_date or generated_at.strftime("%Y-%m-%d")
+        normalized_decision_profile = normalize_decision_profile(decision_profile)
         benchmark_keys = (
             benchmark_ids
             if benchmark_ids is not None
@@ -345,6 +353,45 @@ class InvestmentComparisonService:
             force_download=force_download,
             series_cache=series_cache,
         )
+        assumptions = [
+            "A comparacao usa a mesma agenda de aportes para todos os investimentos.",
+            (
+                "Acoes, ETFs, FIIs e BDRs usam serie ajustada para aproximar "
+                "rendimento total historico."
+            ),
+            (
+                "Proxies de SELIC, CDI, IPCA, IPCA+ e prefixado sao simplificacoes "
+                "didaticas, nao a simulacao de um titulo especifico."
+            ),
+            (
+                "Os indices historicos de CDI e IDkA usam cotacoes diarias para "
+                "comparar renda fixa por duration sem depender de um fundo especifico."
+            ),
+            (
+                "Retorno real deflaciona a curva pelo IPCA mensal para mostrar "
+                "poder de compra no inicio do periodo."
+            ),
+            (
+                "Aporte mensal entra no primeiro dia util ou de negociacao "
+                "disponivel de cada mes, apos o inicio."
+            ),
+        ]
+        methodology_guide = build_methodology_guide(
+            results=result_payloads,
+            benchmarks=benchmark_payloads,
+            fixed_income_backtest=fixed_income_backtest,
+            assumptions=assumptions,
+            decision_profile=normalized_decision_profile,
+        )
+        fixed_income_decision_guide = build_fixed_income_decision_guide(
+            fixed_income_backtest=fixed_income_backtest,
+            decision_profile=normalized_decision_profile,
+        )
+        portfolio_objective_summary = build_portfolio_objective_summary(
+            results=result_payloads,
+            fixed_income_backtest=fixed_income_backtest,
+            decision_profile=normalized_decision_profile,
+        )
 
         return {
             "generated_at": generated_at,
@@ -361,6 +408,7 @@ class InvestmentComparisonService:
                 "fixed_income_study_mode": fixed_income_study_mode,
                 "fixed_income_tax_treatment": fixed_income_tax_treatment,
                 "fixed_income_window_frequency": fixed_income_window_frequency,
+                "decision_profile": normalized_decision_profile,
                 "force_download": force_download,
             },
             "catalog_snapshot": {
@@ -368,29 +416,7 @@ class InvestmentComparisonService:
                 "selected_assets": [item.to_payload() for item in comparison_instruments],
                 "presets": [item.to_payload() for item in PRESETS],
             },
-            "assumptions": [
-                "A comparacao usa a mesma agenda de aportes para todos os investimentos.",
-                (
-                    "Acoes, ETFs, FIIs e BDRs usam serie ajustada para aproximar "
-                    "rendimento total historico."
-                ),
-                (
-                    "Proxies de SELIC, CDI, IPCA, IPCA+ e prefixado sao simplificacoes "
-                    "didaticas, nao a simulacao de um titulo especifico."
-                ),
-                (
-                    "Os indices historicos de CDI e IDkA usam cotacoes diarias para "
-                    "comparar renda fixa por duration sem depender de um fundo especifico."
-                ),
-                (
-                    "Retorno real deflaciona a curva pelo IPCA mensal para mostrar "
-                    "poder de compra no inicio do periodo."
-                ),
-                (
-                    "Aporte mensal entra no primeiro dia util ou de negociacao "
-                    "disponivel de cada mes, apos o inicio."
-                ),
-            ],
+            "assumptions": assumptions,
             "results": result_payloads,
             "benchmarks": benchmark_payloads,
             "chart": {
@@ -407,6 +433,9 @@ class InvestmentComparisonService:
             "class_summary": class_summary,
             "highlights": highlight_summary,
             "fixed_income_backtest": fixed_income_backtest,
+            "methodology_guide": methodology_guide,
+            "fixed_income_decision_guide": fixed_income_decision_guide,
+            "portfolio_objective_summary": portfolio_objective_summary,
             "warnings": warnings,
         }
 

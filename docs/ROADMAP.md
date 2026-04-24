@@ -27,5 +27,12 @@
 
 ## Next Cycle
 - The active execution reference is `docs/MASTER_PLAN.md`.
+- The concise current-state reference is `docs/PROJECT_STATUS_AND_DIRECTION.md`.
 - `docs/EVOLUTION_V2.md` remains useful as historical planning context for the V2 delivery wave.
-- Current delivery focus: architecture consolidation, experiment lineage, richer research UX, and optional background automation.
+- Current delivery focus: investment-comparison clarity, fixed-income methodology, architecture consolidation, experiment lineage, and richer research UX.
+
+## Immediate Product Focus
+- Make `Investimentos` easier to understand before adding many more assets.
+- Continue deepening the new methodology panels that separate index studies, investable ETFs, Tesouro Direto studies, cash proxies, and market tickers in the UI and API narratives.
+- Continue modularizing the Investments frontend and backend hotspots after the first result panels and backend narrative module.
+- Expand portfolio and retirement scenarios from the new objective-summary payload.

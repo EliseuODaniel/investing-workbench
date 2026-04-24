@@ -613,6 +613,17 @@ class InvestmentCustomPortfolioRequestModel(BaseModel):
     )
 
 
+class InvestmentDecisionProfileRequestModel(BaseModel):
+    """Optional investor profile used to rank didactic decision guidance."""
+
+    objective: str = Field(default="balanced")
+    horizon_years: int = Field(default=5, ge=1, le=40)
+    liquidity_need: str = Field(default="monthly")
+    mark_to_market_tolerance: str = Field(default="medium")
+    tax_view: str = Field(default="gross")
+    monthly_income_target: float = Field(default=0.0, ge=0.0)
+
+
 class InvestmentCompareRequestModel(BaseModel):
     """Request model for comparing historical B3 investment alternatives."""
 
@@ -626,6 +637,9 @@ class InvestmentCompareRequestModel(BaseModel):
     fixed_income_study_mode: str = Field(default="auto")
     fixed_income_tax_treatment: str = Field(default="gross")
     fixed_income_window_frequency: str = Field(default="monthly")
+    decision_profile: InvestmentDecisionProfileRequestModel = Field(
+        default_factory=InvestmentDecisionProfileRequestModel
+    )
     force_download: bool = Field(default=False)
 
 
@@ -656,6 +670,9 @@ class InvestmentCompareResponseModel(BaseModel):
     class_summary: List[Dict[str, Any]] = Field(default_factory=list)
     highlights: Dict[str, Any] = Field(default_factory=dict)
     fixed_income_backtest: Optional[Dict[str, Any]] = Field(default=None)
+    methodology_guide: Dict[str, Any] = Field(default_factory=dict)
+    fixed_income_decision_guide: Optional[Dict[str, Any]] = Field(default=None)
+    portfolio_objective_summary: Dict[str, Any] = Field(default_factory=dict)
     warnings: List[str] = Field(default_factory=list)
 
 

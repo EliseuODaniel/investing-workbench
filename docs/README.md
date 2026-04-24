@@ -12,7 +12,8 @@ Welcome to the documentation for Investing Workbench. This material covers the p
 
 ### Architecture & Development
 - **[Architecture Documentation](ARCHITECTURE.md)** - Deep dive into system design and components
-- **[Codex Handoff](CODEX_HANDOFF.md)** - Current resume point for the active uncommitted worktree
+- **[Project Status And Direction](PROJECT_STATUS_AND_DIRECTION.md)** - Concise snapshot of where the project stands and where it should go next
+- **[Codex Handoff](CODEX_HANDOFF.md)** - Current resume point for Codex sessions
 - **[Master Plan](MASTER_PLAN.md)** - Current execution plan, product direction, and implementation phases
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Comprehensive development workflow and coding standards
 - **[API Reference](API_REFERENCE.md)** - Complete REST API documentation with examples

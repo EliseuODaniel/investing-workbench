@@ -225,6 +225,8 @@ POST /investments/compare
 - `GET /investments/catalog`: guided portfolios expose `components`, `rebalance_frequency`, `implementation_note`, and explanatory `notes` so the UI can show how the allocation was approximated
 - `POST /investments/compare`: compares the same initial capital and monthly contribution schedule across the selected assets
 - `POST /investments/compare`: returns ranked results, benchmark curves, class summaries, and simple highlights such as how many chosen assets beat SELIC or BOVA11
+- `POST /investments/compare`: accepts `decision_profile` so explanations can be ranked by objective, horizon, liquidity need, mark-to-market tolerance, tax view, and income target without changing the historical simulation
+- `POST /investments/compare`: returns `methodology_guide`, `fixed_income_decision_guide`, and `portfolio_objective_summary` for didactic interpretation and scenario cards
 - Market assets use adjusted close to approximate total return, while `SELIC_PROXY` compounds by daily SELIC rate as a didactic cash / Tesouro Selic reference
 
 **Example Request**
@@ -236,6 +238,14 @@ POST /investments/compare
   "initial_capital": 10000,
   "monthly_contribution": 500,
   "benchmark_ids": ["selic_cash", "bova11"],
+  "decision_profile": {
+    "objective": "retirement",
+    "horizon_years": 12,
+    "liquidity_need": "long_term",
+    "mark_to_market_tolerance": "medium",
+    "tax_view": "net",
+    "monthly_income_target": 3000
+  },
   "force_download": false
 }
 ```
@@ -247,6 +257,9 @@ POST /investments/compare
 - `chart`: rendered series metadata plus aligned points for the frontend chart
 - `class_summary`: average performance by asset family
 - `highlights`: best final value, most defensive asset, and plain-language insights
+- `methodology_guide`: evidence types, assumptions, caveats, decision-profile notes, and realism notes
+- `fixed_income_decision_guide`: profile-scored fixed-income cards when the comparison includes fixed income
+- `portfolio_objective_summary`: objective-ranked winners, portfolio rows, and scenario cards for income, retirement, preservation, and accumulation
 - `warnings`: explains excluded assets or incomplete history when the requested window is not fair for all instruments
 
 ### 1C. List Local Datasets

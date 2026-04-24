@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Last updated: `2026-04-23T01:51:48-03:00`
+Last updated: `2026-04-24T00:25:50-03:00`
 
 ## Read This First
 
@@ -13,7 +13,11 @@ If a future Codex session needs to continue from where this session stopped, rea
 3. `/home/edann/projects/investing-workbench/docs/API_REFERENCE.md`
 4. `/home/edann/projects/investing-workbench/frontend/src/App.tsx`
 5. `/home/edann/projects/investing-workbench/frontend/src/components/InvestmentsWorkspace.tsx`
-6. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
+6. `/home/edann/projects/investing-workbench/frontend/src/components/investments/`
+7. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
+8. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
+9. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/decision_profile.py`
+10. `/home/edann/projects/investing-workbench/docs/PROJECT_STATUS_AND_DIRECTION.md`
 
 ## Current Identity And Location
 
@@ -31,6 +35,7 @@ If a future Codex session needs to continue from where this session stopped, rea
 - The internal application package was moved from `src/bitcoin_martingale/` to `src/investing_workbench/`.
 - A compatibility shim remains in `/home/edann/projects/investing-workbench/src/bitcoin_martingale/__init__.py` so legacy imports still resolve.
 - Public docs, API title, frontend title, and package metadata were updated to use **Investing Workbench**.
+- The latest status and next direction are summarized in `/home/edann/projects/investing-workbench/docs/PROJECT_STATUS_AND_DIRECTION.md`.
 
 ### Product Direction
 
@@ -63,6 +68,9 @@ The active direction is to keep making the app:
 ### Investment Platform Layer
 
 - New `Investimentos` area in the UI
+- Current `Investimentos` UX uses internal setup/result tabs, visual date sliders, chart rebasing, legend focus/hide behavior, and nearest-line tooltips.
+- Result interpretation now includes extracted panels for methodology, fixed-income decisions, and objective-based portfolio reading.
+- Setup includes a decision-profile form for objective, horizon, liquidity, mark-to-market tolerance, tax view, and monthly income target.
 - Investment comparison API:
   - `GET /investments/catalog`
   - `POST /investments/compare`
@@ -102,14 +110,20 @@ The active direction is to keep making the app:
   - `fixed_income_study_mode`
   - `fixed_income_tax_treatment`
   - `fixed_income_window_frequency`
+  - `decision_profile`
 - The response payload now exposes:
   - top-level fixed-income summary
   - `studies[]` with one block per methodology
   - gross, net, and real metrics for fixed-income rows
   - rolling-window consistency by horizon
+  - `methodology_guide` explaining evidence types and caveats
+  - `fixed_income_decision_guide` for profile-scored horizon/liquidity/real-return tradeoffs
+  - `portfolio_objective_summary` for objective-based winners, portfolio rows, and scenario cards
 - New backend entry points involved in this layer:
   - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/fixed_income.py`
   - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/tesouro_direto.py`
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/decision_profile.py`
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
   - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
 
 ### Advanced Simulations
@@ -136,15 +150,28 @@ That means the most relevant ongoing work is:
 If resuming work, the best next-entry files are:
 
 - `/home/edann/projects/investing-workbench/frontend/src/components/InvestmentsWorkspace.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/components/investments/InvestmentMethodologyPanel.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/components/investments/InvestmentDecisionProfileForm.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/components/investments/FixedIncomeDecisionGuidePanel.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/components/investments/PortfolioObjectiveSummaryPanel.tsx`
 - `/home/edann/projects/investing-workbench/frontend/src/hooks/useInvestmentsComparison.ts`
 - `/home/edann/projects/investing-workbench/frontend/src/lib/api.ts`
 - `/home/edann/projects/investing-workbench/frontend/src/types/api.ts`
 - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/catalog.py`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/decision_profile.py`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
 - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
 - `/home/edann/projects/investing-workbench/src/investing_workbench/interfaces/api/routers/investments.py`
 
 The current product architecture already supports comparison, but the next valuable layer is:
 
+- continuing to modularize the Investments frontend and backend hotspots:
+  - `/home/edann/projects/investing-workbench/frontend/src/components/InvestmentsWorkspace.tsx`
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
+- deepening the new narrative layer:
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
+- evolving the new decision-profile layer:
+  - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/decision_profile.py`
 - broader fixed-income coverage beyond Tesouro Direto:
   - LCI/LCA
   - CDBs %CDI
@@ -157,35 +184,56 @@ The current product architecture already supports comparison, but the next valua
 
 If a new Codex session continues from here, the highest-value next items are:
 
-1. Expand retail fixed-income coverage:
+1. Modularize the Investments workspace:
+   - continue after the extracted result panels
+   - split setup tabs, review, charts, fixed-income summary, and portfolio controls
+   - keep the beginner path uncluttered
+   - preserve the current interaction behavior with tests
+
+2. Split the Investments backend service:
+   - continue after the extracted narrative module
+   - data loading
+   - market ticker simulation
+   - fixed-income index studies
+   - Tesouro Direto rolling strategies
+   - summary/narrative generation
+
+3. Deepen methodology-aware result explanations:
+   - the visible methodology layer now exists
+   - distinguish IDkA index studies, NTN-B ETFs, Tesouro Direto simulations, CDI/SELIC references, proxies, and real market tickers even more clearly
+   - expose tax, fee, inflation, liquidity, and horizon assumptions
+
+4. Expand retail fixed-income coverage:
    - LCI/LCA
    - CDB `% do CDI`
    - debentures incentivadas
    - explicit fee / tax toggles where applicable
 
-2. Improve performance and UX for fixed income:
+5. Improve performance and UX for fixed income:
    - faster cold-start Tesouro Direto preparation
    - clearer side-by-side explanation of `indice` vs `produto real`
    - richer fixed-income charts and leader cards
 
-3. Add portfolio comparison flows:
+6. Add portfolio comparison flows:
+   - build on the new `portfolio_objective_summary`
+   - expand the current income/retirement/preservation/accumulation scenario cards into full simulations
    - compare one selected asset vs a multi-asset allocation
    - compare user-defined mixes against guided portfolios
    - show contribution by sleeve/class
 
-4. Improve didactic storytelling:
+7. Improve didactic storytelling:
    - “what beat Selic”
    - “what had lower drawdown”
    - “what delivered better real return”
    - “what generated more income”
 
-5. Add scenario presets for investor profiles:
+8. Add scenario presets for investor profiles:
    - conservative
    - balanced
    - growth
    - pre-retirement / retirement
 
-6. Expand B3 comparison coverage:
+9. Expand B3 comparison coverage:
    - broader FII and ETF catalog
    - clearer treatment of BDRs and international exposure
 
@@ -193,6 +241,14 @@ If a new Codex session continues from here, the highest-value next items are:
 
 The latest fixed-income cycle passed with:
 
+- `uv run pytest tests/test_investment_compare_service.py -q`
+- `uv run ruff check src/api src/investing_workbench tests`
+- `uv run mypy src/investing_workbench`
+- `PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm test -- --run InvestmentDecisionPanels` from `/home/edann/projects/investing-workbench/frontend`
+- `PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm test -- --run InvestmentsWorkspace` from `/home/edann/projects/investing-workbench/frontend`
+- `PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm run build` from `/home/edann/projects/investing-workbench/frontend`
+- `uv run pytest tests/test_investment_compare_service.py -q`
+- `PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm test -- --run InvestmentDecisionPanels` from `/home/edann/projects/investing-workbench/frontend`
 - `uv run pytest -q tests/test_investment_compare_service.py tests/test_api_investments.py`
 - `uv run pytest -q tests/test_data_b3_tickers.py tests/test_investment_compare_service.py tests/test_api_investments.py`
 - `cd frontend && /tmp/node-v22.22.2-linux-x64/bin/node ./scripts/run-frontend-task.mjs test -- --run src/hooks/useInvestmentsComparison.test.tsx`
@@ -232,12 +288,13 @@ Frontend:
 
 ```bash
 cd /home/edann/projects/investing-workbench/frontend
-/tmp/node-v22.22.2-linux-x64/bin/node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173
+PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 ## Worktree Caution
 
-- There is active, unstaged local work in the repository.
+- The canonical branch is `main`, synchronized with `origin/main` as of commit `fa29273` before the current local documentation and implementation slice.
+- Check `git status --short` before staging; current work may include local docs/skills and narrative-panel changes.
 - The move from the old path to the new path already happened.
 - Do not use the old `vscode_projects/bitcoin-martingale` location.
 - Prefer continuing from the current worktree instead of recreating or copying files manually.

@@ -130,6 +130,7 @@ describe('InvestmentsWorkspace', () => {
 
     expect(screen.queryByText('1. Escolha como quer começar')).toBeNull();
     expect(screen.getByText('2. Defina o dinheiro e o periodo')).toBeTruthy();
+    expect(screen.getByText('Perfil da decisão')).toBeTruthy();
   });
 
   it('switches to manual mode and opens the asset editor explicitly', async () => {

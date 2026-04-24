@@ -101,8 +101,8 @@ frontend/src/
 **Backend Changes**
 ```bash
 uv run pytest -q
-uv run ruff check src/api src/investing_workbench tests/test_api.py
-uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+uv run ruff check src/api src/investing_workbench tests
+uv run python -m black --check src/api src/investing_workbench tests
 uv run mypy src/investing_workbench
 ```
 
@@ -655,8 +655,8 @@ test('ApiClient handles backtest request', async () => {
 
 **Formatting and Linting**
 ```bash
-uv run python -m black --check src/api src/investing_workbench tests/test_api.py
-uv run ruff check src/api src/investing_workbench tests/test_api.py
+uv run python -m black --check src/api src/investing_workbench tests
+uv run ruff check src/api src/investing_workbench tests
 uv run mypy src/investing_workbench
 ```
 

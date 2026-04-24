@@ -7,10 +7,10 @@ backend-test:
 	uv run pytest -q
 
 backend-lint:
-	uv run ruff check src/api src/investing_workbench tests/test_api.py
+	uv run ruff check src/api src/investing_workbench tests
 
 backend-format:
-	uv run python -m black --check src/api src/investing_workbench tests/test_api.py
+	uv run python -m black --check src/api src/investing_workbench tests
 
 backend-type:
 	uv run mypy src/investing_workbench

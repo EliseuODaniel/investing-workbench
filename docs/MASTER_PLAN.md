@@ -1,12 +1,12 @@
 # Master Plan
 
-Last updated: `2026-04-20`
+Last updated: `2026-04-23`
 
 ## Purpose
 
 This document is the execution guide for the next product cycle.
 
-It translates the current repository state into a practical plan to evolve the system from a strong backtesting application into a complete, reproducible, robust research platform for crypto and benchmark strategies.
+It translates the current repository state into a practical plan to evolve the system from a strong backtesting application into a complete, reproducible, robust investment comparison and quantitative research platform.
 
 It is intentionally more operational than `ROADMAP.md` and more current than older planning notes. Use it as the default planning reference for architecture, product direction, and implementation sequencing.
 
@@ -18,36 +18,40 @@ The repository is already in a strong delivery state:
 - persisted runs, optimizations, walk-forward validations, Monte Carlo analyses, and dataset workflows already exist
 - the repository has a usable application service layer in `src/investing_workbench/`
 - the legacy runtime in `src/` still carries part of the operational surface
-- the frontend provides a functional research workspace but still relies on a large application shell
+- the frontend provides a functional research workspace and a didactic `Investimentos` workspace
+- the current largest product hotspots are `frontend/src/components/InvestmentsWorkspace.tsx` and `src/investing_workbench/application/investments/service.py`
 
 The main gaps are no longer basic feature gaps. They are primarily:
 
 - architectural consolidation
 - workflow orchestration maturity
 - documentation truthfulness and consistency
-- deeper quantitative realism
+- deeper investment and quantitative realism
 - more powerful research ergonomics
 
 ## North Star
 
-Build a local-first quantitative research platform that is:
+Build a local-first investment comparison and quantitative research platform that is:
 
 - reproducible: every experiment, dataset, config, and artifact can be traced and reopened
 - robust: research results are stress-tested and operationally reliable
-- useful: the system helps users decide what to trust, not just what performed best
+- useful: the system helps users decide what to trust, not just what performed best historically
 - extensible: new datasets, strategies, analyzers, and workflows can be added cleanly
 - practical: the product stays usable for solo research and small teams without cloud dependence
+- didactic: the main product explains investment results in plain language before exposing advanced detail
 
 ## Product Positioning
 
-The target is not to become a generic broker platform or a clone of QuantConnect.
+The target is not to become a generic broker platform, recommendation engine, or a clone of QuantConnect.
 
-The target is to become a focused research system for crypto and benchmark strategy evaluation with strong reproducibility, strong experiment lineage, and an unusually good interpretation layer.
+The target is to become a focused system for didactic investment comparison, B3-oriented portfolio analysis, and benchmark-aware strategy research with strong reproducibility, strong experiment lineage, and an unusually good interpretation layer.
 
 The differentiators should be:
 
 - local-first execution with persisted artifacts
 - research workflows that are understandable and auditable
+- investment comparisons that explain methodology and assumptions before implying conclusions
+- simple investor-facing workflows with progressive disclosure instead of dense default screens
 - quantitative robustness checks built into the normal workflow
 - strong dataset governance and provenance
 - didactic reporting for learning and review
@@ -61,6 +65,7 @@ The differentiators should be:
 - Prefer explicit contracts and artifact schemas over implicit conventions.
 - Keep API, CLI, and frontend thin. Business logic belongs in application and domain layers.
 - Every material behavior change should ship with tests and updated documentation.
+- User-facing changes should improve comprehension, reduce unnecessary visible complexity, or clearly justify any added complexity.
 
 ## Strategic Workstreams
 
@@ -72,13 +77,13 @@ Reduce dependence on legacy runtime modules and complete the migration path into
 
 Unify runs, optimization jobs, walk-forward jobs, Monte Carlo jobs, and dataset metadata under a coherent experiment model.
 
-### 3. Quantitative Realism
+### 3. Investment And Quantitative Realism
 
-Improve execution realism, portfolio modeling, transaction cost modeling, and robustness diagnostics.
+Improve investment methodology, execution realism, portfolio modeling, tax/fee treatment, transaction cost modeling, and robustness diagnostics.
 
-### 4. Research UX
+### 4. Investment And Research UX
 
-Turn the current frontend shell into a more navigable research workspace with stronger comparison and interpretation flows.
+Turn the current frontend into a more navigable product with `Investimentos` as the simple investor-facing path and advanced research workflows behind clearer sections.
 
 ### 5. Data Governance
 
@@ -103,6 +108,7 @@ The codebase is healthier than the docs currently suggest. If the team does not 
 ### Deliverables
 
 - sync `README.md`, `docs/DEVELOPER_GUIDE.md`, `docs/ROADMAP.md`, `docs/FINAL_STATUS.md`, and `docs/EVOLUTION_V2.md`
+- keep `docs/PROJECT_STATUS_AND_DIRECTION.md` as the concise status and direction snapshot
 - document current architecture truthfully, including what is already shipped
 - define the official baseline validation matrix
 - define stable API, artifact, and service contracts for core workflows
@@ -132,13 +138,15 @@ Reduce the size and responsibility of the current orchestration hotspots.
 
 ### Motivation
 
-The current largest coordination points are:
+The current coordination points to keep thinning are:
 
 - `src/cli.py`
 - `src/api/main.py`
 - `frontend/src/App.tsx`
+- `frontend/src/components/InvestmentsWorkspace.tsx`
+- `src/investing_workbench/application/investments/service.py`
 
-These files are not broken, but they are carrying too much orchestration weight.
+These files are not broken, but the two Investments files are now carrying the most active product weight.
 
 ### Deliverables
 
@@ -148,6 +156,7 @@ These files are not broken, but they are carrying too much orchestration weight.
 - reduce `src/cli.py` to compatibility delegation or remove it once safe
 - split frontend app orchestration into feature-specific shells and route-like sections
 - define a clear frontend module boundary for:
+  - investment comparison setup, review, result reading, and chart interactions
   - backtest execution
   - run history and comparison
   - optimization
@@ -161,6 +170,7 @@ These files are not broken, but they are carrying too much orchestration weight.
 - `src/api/main.py` becomes an assembly point, not a dense endpoint file
 - `src/cli.py` no longer contains most workflow logic
 - `frontend/src/App.tsx` becomes substantially smaller and focused on shell composition
+- `InvestmentsWorkspace.tsx` and `application/investments/service.py` become composed feature modules instead of long all-in-one coordinators
 - tests continue to validate all public behavior
 
 ## Phase 2: Research Kernel and Experiment Registry
@@ -194,7 +204,7 @@ A run, optimization job, walk-forward job, and Monte Carlo job should feel like 
 - related workflows can be compared through shared identifiers and lineage
 - artifact layouts are consistent enough for tooling and exports
 
-## Phase 3: Quantitative Realism Upgrade
+## Phase 3: Investment And Quantitative Realism Upgrade
 
 ### Goal
 
@@ -202,6 +212,8 @@ Make research outputs more trustworthy and decision-relevant.
 
 ### Deliverables
 
+- methodology-aware investment comparisons that distinguish indexes, investable ETFs, Tesouro Direto studies, cash proxies, and market tickers
+- explicit tax, fee, inflation, income, liquidity, and horizon assumptions in investment results
 - pluggable fee and slippage models
 - support for partial fills and more realistic order assumptions
 - richer benchmark alignment and portfolio-aware comparisons
@@ -213,12 +225,14 @@ Make research outputs more trustworthy and decision-relevant.
 Status note:
 
 - the core engine already supports configurable fee/slippage inputs and partial-fill execution with liquidity caps
+- investment comparisons now expose a first methodology/decision/objective narrative layer through backend payloads and extracted frontend panels
 - the remaining work in this phase is now centered on analysis depth, benchmark context, and robustness reporting
 
 ### Acceptance Criteria
 
 - execution assumptions are explicit and configurable
 - reports explain not just returns, but fragility and sensitivity
+- investment results explain not just historical winners, but whether the result is investable, comparable, and horizon-appropriate
 - users can tell whether a result is robust or merely curve-fit
 
 ## Phase 4: Optimization and Validation Maturity
@@ -240,7 +254,7 @@ Expand the system from deterministic workflow execution into a more powerful res
 ### Acceptance Criteria
 
 - large search spaces remain tractable
-- research jobs produce clearer recommendations, not just raw score tables
+- research jobs produce clearer rankings and caveats, not just raw score tables
 - long-running jobs can be inspected and resumed safely
 
 ## Phase 5: Data Governance and Automation
@@ -265,15 +279,17 @@ Make datasets reliable enough to serve as durable research inputs.
 - refreshes are operationally manageable
 - dataset quality problems become visible before they damage research conclusions
 
-## Phase 6: Research Workspace UX
+## Phase 6: Investment And Research Workspace UX
 
 ### Goal
 
-Turn the current functional UI into a more deliberate research workspace.
+Turn the current functional UI into a more deliberate investment and research workspace.
 
 ### Deliverables
 
 - move from a mostly single-shell composition into feature-led navigation
+- make `Investimentos` the clearest path for non-technical investment comparison
+- make each default screen answer one practical investor question before exposing technical controls
 - unify cross-workflow comparison views
 - add saved research views and comparison presets
 - add better narrative summaries and interpretation flows
@@ -283,6 +299,8 @@ Turn the current functional UI into a more deliberate research workspace.
 ### Acceptance Criteria
 
 - the UI helps a user decide what to inspect next
+- `Investimentos` helps a user understand result assumptions without becoming a dense quant terminal
+- first-time users can complete a useful comparison without understanding the internal data methodology first
 - the system explains why a strategy is risky, fragile, or convincing
 - users can move naturally from backtest to validation to interpretation
 
@@ -344,6 +362,8 @@ Track the following repository and product health metrics:
 
 - number of workflows routed through `src/investing_workbench/` instead of legacy orchestration
 - size reduction in `src/cli.py`, `src/api/main.py`, and `frontend/src/App.tsx`
+- size and responsibility reduction in `frontend/src/components/InvestmentsWorkspace.tsx`
+- size and responsibility reduction in `src/investing_workbench/application/investments/service.py`
 - time to reproduce a past run from persisted artifacts
 - percentage of experiment types with normalized manifests and lineage
 - number of dataset quality failures caught before execution
@@ -362,6 +382,7 @@ Track the following repository and product health metrics:
 
 - becoming a generic brokerage execution platform
 - supporting every asset class before dataset governance is mature
+- turning historical investment winners into direct recommendations
 - replacing local-first usage with cloud dependence
 - introducing large rewrites without incremental migration paths
 

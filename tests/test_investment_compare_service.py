@@ -148,6 +148,16 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
         "SELIC_PROXY",
         "HGLG11",
     }
+    assert payload["methodology_guide"]["title"] == "Como ler este estudo"
+    assert any(
+        item["kind"] == "listed_security" for item in payload["methodology_guide"]["evidence_types"]
+    )
+    assert payload["portfolio_objective_summary"]["title"] == "Decisao por objetivo"
+    assert payload["request"]["decision_profile"]["objective"] == "balanced"
+    assert any(
+        item["objective_id"] == "protect_purchasing_power"
+        for item in payload["portfolio_objective_summary"]["objectives"]
+    )
     assert any(
         point["selic_cash"] is not None and point["PETR4"] is not None
         for point in payload["chart"]["points"]
@@ -418,6 +428,14 @@ def test_compare_supports_custom_portfolios_and_rate_proxies(
         initial_capital=10000.0,
         monthly_contribution=500.0,
         benchmark_ids=["selic_cash"],
+        decision_profile={
+            "objective": "income",
+            "horizon_years": 12,
+            "liquidity_need": "long_term",
+            "mark_to_market_tolerance": "medium",
+            "tax_view": "net",
+            "monthly_income_target": 25.0,
+        },
     )
 
     result_ids = {row["instrument_id"] for row in payload["results"]}
@@ -432,6 +450,13 @@ def test_compare_supports_custom_portfolios_and_rate_proxies(
     assert custom_result["source_kind"] == "custom_portfolio"
     assert len(custom_result["component_breakdown"]) == 2
     assert payload["request"]["custom_portfolios"][0]["label"] == "Minha carteira"
+    assert payload["portfolio_objective_summary"]["portfolio_rows"]
+    assert payload["portfolio_objective_summary"]["decision_profile"]["objective"] == "income"
+    assert payload["portfolio_objective_summary"]["scenario_cards"][0]["target_value"] == 25.0
+    assert any(
+        item["objective_id"] == "compare_allocation"
+        for item in payload["portfolio_objective_summary"]["objectives"]
+    )
 
 
 def test_compare_builds_fixed_income_duration_backtest(
@@ -492,6 +517,13 @@ def test_compare_builds_fixed_income_duration_backtest(
         row["window_years"] == 5 and row["instrument_id"] == "IDKA_IPCA_2A"
         for row in fixed_income["rolling_windows"]
     )
+    assert payload["fixed_income_decision_guide"]["title"] == "Como decidir em renda fixa"
+    assert any(
+        item["decision_id"] == "real_return"
+        for item in payload["fixed_income_decision_guide"]["decision_cards"]
+    )
+    assert payload["fixed_income_decision_guide"]["decision_cards"][0]["fit_label"]
+    assert payload["portfolio_objective_summary"]["fixed_income_study_available"] is True
 
 
 def test_compare_builds_retail_treasury_fixed_income_study(
@@ -561,3 +593,4 @@ def test_compare_builds_retail_treasury_fixed_income_study(
     assert all(row["final_value_net"] <= row["final_value"] for row in treasury_rows)
     assert fixed_income["rolling_windows"]
     assert any(item["study_id"] == "retail_treasury" for item in fixed_income["studies"])
+    assert payload["fixed_income_decision_guide"]["decision_cards"]

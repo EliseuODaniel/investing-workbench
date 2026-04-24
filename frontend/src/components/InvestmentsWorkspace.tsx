@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import InteractiveSeriesChart from './charts/InteractiveSeriesChart';
 import SectionTabs from './app-shell/SectionTabs';
+import FixedIncomeDecisionGuidePanel from './investments/FixedIncomeDecisionGuidePanel';
+import InvestmentDecisionProfileForm from './investments/InvestmentDecisionProfileForm';
+import InvestmentMethodologyPanel from './investments/InvestmentMethodologyPanel';
+import PortfolioObjectiveSummaryPanel from './investments/PortfolioObjectiveSummaryPanel';
 import { useInvestmentsComparison } from '../hooks/useInvestmentsComparison';
 import { formatCurrency, formatDate, formatNumber, formatPercent } from '../lib/utils';
 import type {
@@ -619,6 +623,14 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               recorte atual, o valor investido seria aproximadamente{' '}
               <strong>{formatCurrency(investedTotal)}</strong>.
             </div>
+
+            <div className="mt-4">
+              <InvestmentDecisionProfileForm
+                profile={request.decision_profile}
+                onChange={(profile) => updateRequest('decision_profile', profile)}
+              />
+            </div>
+
             {hasFixedIncomeSelection ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
                 <div className="text-sm font-semibold text-amber-900 dark:text-amber-100">
@@ -1232,6 +1244,10 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               </div>
             </div>
 
+            <InvestmentMethodologyPanel guide={comparison.methodology_guide} />
+
+            <PortfolioObjectiveSummaryPanel summary={comparison.portfolio_objective_summary} />
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Visualizacao do patrimonio em valores nominais ou ajustados pelo IPCA.
@@ -1285,6 +1301,8 @@ export default function InvestmentsWorkspace({ onError }: InvestmentsWorkspacePr
               enableDateFilter
               rebaseOnDateFilter
             />
+
+            <FixedIncomeDecisionGuidePanel guide={comparison.fixed_income_decision_guide} />
 
             {fixedIncomeBacktest ? (
               <div className="space-y-5 rounded-2xl border border-gray-200 p-5 dark:border-gray-800">

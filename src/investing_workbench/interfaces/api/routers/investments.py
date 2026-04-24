@@ -42,6 +42,7 @@ async def compare_investments(
             fixed_income_study_mode=payload.fixed_income_study_mode,
             fixed_income_tax_treatment=payload.fixed_income_tax_treatment,
             fixed_income_window_frequency=payload.fixed_income_window_frequency,
+            decision_profile=payload.decision_profile.model_dump(),
             force_download=payload.force_download,
         )
     except Exception as exc:

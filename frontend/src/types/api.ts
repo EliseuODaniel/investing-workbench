@@ -141,7 +141,21 @@ export interface InvestmentCompareRequestPayload {
   fixed_income_study_mode?: string;
   fixed_income_tax_treatment?: string;
   fixed_income_window_frequency?: string;
+  decision_profile?: InvestmentDecisionProfilePayload;
   force_download?: boolean;
+}
+
+export interface InvestmentDecisionProfilePayload {
+  objective: string;
+  objective_label?: string;
+  horizon_years: number;
+  liquidity_need: string;
+  liquidity_need_label?: string;
+  mark_to_market_tolerance: string;
+  mark_to_market_tolerance_label?: string;
+  tax_view: string;
+  tax_view_label?: string;
+  monthly_income_target: number;
 }
 
 export interface InvestmentComparisonResultPayload {
@@ -197,6 +211,115 @@ export interface InvestmentComparisonChartPayload {
   points: Array<Record<string, string | number | null>>;
 }
 
+export interface InvestmentMethodologyEvidencePayload {
+  kind: string;
+  label: string;
+  description: string;
+  limitations: string;
+  included_count: number;
+  included_labels: string[];
+}
+
+export interface InvestmentMethodologyGuidePayload {
+  title: string;
+  plain_language_summary: string;
+  evidence_types: InvestmentMethodologyEvidencePayload[];
+  assumption_notes: string[];
+  caveats: string[];
+  decision_profile_notes?: string[];
+  realism_notes?: Array<{
+    dimension: string;
+    status: string;
+    note: string;
+  }>;
+}
+
+export interface InvestmentDecisionCardPayload {
+  decision_id: string;
+  label: string;
+  when_it_fits: string;
+  watch_out: string;
+  best_match_id?: string | null;
+  best_match_label?: string | null;
+  metric_label?: string | null;
+  metric_value?: number | null;
+  metric_kind?: string | null;
+  fit_score?: number | null;
+  fit_label?: string | null;
+  profile_reason?: string | null;
+}
+
+export interface InvestmentFixedIncomeDecisionGuidePayload {
+  title: string;
+  plain_language_summary: string;
+  study_label?: string | null;
+  tax_treatment?: string | null;
+  window_frequency?: string | null;
+  decision_profile?: InvestmentDecisionProfilePayload;
+  profile_summary?: string;
+  decision_cards: InvestmentDecisionCardPayload[];
+  next_questions: string[];
+}
+
+export interface InvestmentPortfolioObjectivePayload {
+  objective_id: string;
+  label: string;
+  question: string;
+  best_match_id?: string | null;
+  best_match_label?: string | null;
+  reason: string;
+  tradeoff: string;
+  metric_label?: string | null;
+  metric_value?: number | null;
+  metric_kind?: string | null;
+  fit_score?: number | null;
+  fit_label?: string | null;
+  profile_reason?: string | null;
+}
+
+export interface InvestmentPortfolioObjectiveSummaryPayload {
+  title: string;
+  plain_language_summary: string;
+  objectives: InvestmentPortfolioObjectivePayload[];
+  portfolio_rows: Array<{
+    instrument_id?: string | null;
+    label?: string | null;
+    source_kind?: string | null;
+    final_value: number;
+    real_cagr: number;
+    max_drawdown: number;
+    component_count: number;
+    top_components: Array<{
+      label?: string | null;
+      target_weight: number;
+      ending_weight: number;
+      final_value: number;
+    }>;
+    category_breakdown: Array<{
+      label?: string | null;
+      target_weight: number;
+      ending_weight: number;
+      final_value: number;
+    }>;
+  }>;
+  fixed_income_study_available?: boolean;
+  decision_profile?: InvestmentDecisionProfilePayload;
+  scenario_cards?: Array<{
+    scenario_id: string;
+    label: string;
+    description: string;
+    best_match_id?: string | null;
+    best_match_label?: string | null;
+    metric_label: string;
+    metric_value: number;
+    metric_kind: string;
+    target_value?: number | null;
+    target_met?: boolean | null;
+  }>;
+  profile_summary?: string;
+  next_steps: string[];
+}
+
 export interface InvestmentComparisonRequestSnapshotPayload {
   asset_ids: string[];
   custom_portfolios: InvestmentCustomPortfolioRequestPayload[];
@@ -208,6 +331,7 @@ export interface InvestmentComparisonRequestSnapshotPayload {
   fixed_income_study_mode: string;
   fixed_income_tax_treatment: string;
   fixed_income_window_frequency: string;
+  decision_profile: InvestmentDecisionProfilePayload;
   force_download: boolean;
 }
 
@@ -389,6 +513,9 @@ export interface InvestmentComparisonResponsePayload {
     rolling_windows: InvestmentFixedIncomeWindowPayload[];
     takeaways: string[];
   } | null;
+  methodology_guide?: InvestmentMethodologyGuidePayload;
+  fixed_income_decision_guide?: InvestmentFixedIncomeDecisionGuidePayload | null;
+  portfolio_objective_summary?: InvestmentPortfolioObjectiveSummaryPayload;
   warnings: string[];
 }
 
