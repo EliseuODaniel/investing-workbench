@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Last updated: `2026-04-24T00:25:50-03:00`
+Last updated: `2026-04-27T21:10:00-03:00`
 
 ## Read This First
 
@@ -18,6 +18,9 @@ If a future Codex session needs to continue from where this session stopped, rea
 8. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
 9. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/decision_profile.py`
 10. `/home/edann/projects/investing-workbench/docs/PROJECT_STATUS_AND_DIRECTION.md`
+11. `/home/edann/projects/investing-workbench/frontend/src/components/StrategyCatalogPanel.tsx`
+12. `/home/edann/projects/investing-workbench/src/investing_workbench/application/backtests/strategy_catalog.py`
+13. `/home/edann/projects/investing-workbench/src/investing_workbench/application/investment_workspaces/service.py`
 
 ## Current Identity And Location
 
@@ -55,6 +58,18 @@ The active direction is to keep making the app:
 - more didactic about real-world returns
 - broader across B3 asset classes
 - still powerful enough for advanced quantitative research in the advanced area
+
+### Latest Strategy Setup Cycle
+
+The newest product slice turns `Simular` from a basic backtest form into a strategy setup workspace:
+
+- `GET /backtests/strategy-catalog` exposes strategy families, risk notes, score dimensions, defaults, suggested universes, and execution notes.
+- `POST /backtests/strategy-setup-plan` converts a saved setup into a reviewable route/payload plan.
+- `/investments/workspaces/strategy-radar` persists saved setup drafts.
+- `/investments/workspaces/strategy-setup-runs` persists execution summaries for setups.
+- `/investments/workspaces/strategy-setup-scores` returns the first backend ranking for executed setups.
+- Frontend `StrategyCatalogPanel` can save, edit, prepare, run `/backtest` setups, reopen persisted run responses, and send `pairs_cointegration` setups into `Avancado > Pairs B3`.
+- Pairs handoff is stored in `investing-workbench.pairs-setup-handoff.v1` and hydrated by `usePairsTrading`.
 
 ## What Is Implemented
 
@@ -131,6 +146,7 @@ The active direction is to keep making the app:
 - Dedicated WEGE3 comparative scenario in the advanced area
 - Long-only strategy comparison with charting, benchmarks, and trade audit
 - Pairs trading workspace with guided and research controls
+- Strategy setup radar in `Simular` with editable setup drafts, backend persistence, execution planning, run history, backend score ranking, compact result reopening, and Pairs handoff
 - Optimization, walk-forward, and Monte Carlo visual summaries with interactive charts
 
 ## Current Active Focus
@@ -162,6 +178,12 @@ If resuming work, the best next-entry files are:
 - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/narratives.py`
 - `/home/edann/projects/investing-workbench/src/investing_workbench/application/investments/service.py`
 - `/home/edann/projects/investing-workbench/src/investing_workbench/interfaces/api/routers/investments.py`
+- `/home/edann/projects/investing-workbench/frontend/src/components/StrategyCatalogPanel.tsx`
+- `/home/edann/projects/investing-workbench/frontend/src/hooks/useSavedStrategyRadar.ts`
+- `/home/edann/projects/investing-workbench/frontend/src/hooks/usePairsTrading.ts`
+- `/home/edann/projects/investing-workbench/frontend/src/lib/pairsPayload.ts`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/backtests/strategy_catalog.py`
+- `/home/edann/projects/investing-workbench/src/investing_workbench/application/investment_workspaces/service.py`
 
 The current product architecture already supports comparison, but the next valuable layer is:
 
@@ -218,6 +240,11 @@ If a new Codex session continues from here, the highest-value next items are:
    - build on the new `portfolio_objective_summary`
    - expand the current income/retirement/preservation/accumulation scenario cards into full simulations
    - compare one selected asset vs a multi-asset allocation
+
+7. Mature strategy setup scoring:
+   - replace the first return-minus-drawdown score with EV, drawdown, robustness, execution-quality, and data-validity dimensions
+   - keep historical winners framed as evidence, not recommendation
+   - persist enough context to compare repeated setup runs over time
    - compare user-defined mixes against guided portfolios
    - show contribution by sleeve/class
 
@@ -288,7 +315,7 @@ Frontend:
 
 ```bash
 cd /home/edann/projects/investing-workbench/frontend
-PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm run dev -- --host 127.0.0.1 --port 5173
+PATH=/home/edann/.nvm/versions/node/v22.20.0/bin:$PATH npm run dev -- --host 127.0.0.1 --port 3001
 ```
 
 ## Worktree Caution

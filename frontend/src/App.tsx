@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import AdvancedSection from './components/app-shell/AdvancedSection';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import AppHeader from './components/app-shell/AppHeader';
 import ErrorBanner from './components/app-shell/ErrorBanner';
 import HomeSection from './components/app-shell/HomeSection';
-import InvestmentsWorkspace from './components/InvestmentsWorkspace';
-import OperateSection from './components/app-shell/OperateSection';
-import ResultsSection from './components/app-shell/ResultsSection';
 import SectionTabs from './components/app-shell/SectionTabs';
+import LoadingSpinner from './components/LoadingSpinner';
 import { useAppShellState } from './hooks/useAppShellState';
 import { useBacktestJobs } from './hooks/useBacktestJobs';
 import { useBacktestWorkspace } from './hooks/useBacktestWorkspace';
@@ -15,6 +12,21 @@ import { useResearchWorkspaces } from './hooks/useResearchWorkspaces';
 import { useRunComparison } from './hooks/useRunComparison';
 import { useRunHistory } from './hooks/useRunHistory';
 import { useRunPermalink } from './hooks/useRunPermalink';
+
+const AdvancedSection = lazy(() => import('./components/app-shell/AdvancedSection'));
+const InvestmentsWorkspace = lazy(() => import('./components/InvestmentsWorkspace'));
+const OperateSection = lazy(() => import('./components/app-shell/OperateSection'));
+const ResultsSection = lazy(() => import('./components/app-shell/ResultsSection'));
+
+type NavigateAdvancedToolEvent = CustomEvent<{ tool: string }>;
+
+function sectionFallback(message: string) {
+  return (
+    <div className="card">
+      <LoadingSpinner message={message} />
+    </div>
+  );
+}
 
 function App() {
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +89,26 @@ function App() {
   useEffect(() => {
     loadRunFromPermalinkRef.current = workspace.handleLoadRun;
   }, [workspace.handleLoadRun]);
+
+  useEffect(() => {
+    function handleNavigateAdvancedTool(event: Event) {
+      const detail = (event as NavigateAdvancedToolEvent).detail;
+      if (detail?.tool === 'pairs') {
+        appShell.setPrimarySection('advanced');
+        appShell.setAdvancedTool('pairs');
+      }
+    }
+    window.addEventListener(
+      'investing-workbench:navigate-advanced-tool',
+      handleNavigateAdvancedTool
+    );
+    return () => {
+      window.removeEventListener(
+        'investing-workbench:navigate-advanced-tool',
+        handleNavigateAdvancedTool
+      );
+    };
+  }, [appShell]);
   const defaultStrategies = backtestRequest.strategies ?? selectedConfig?.strategies ?? [];
   const latestValidRunId =
     runs.find((run) => run.run_quality?.status !== 'legacy_invalid')?.run_id ?? null;
@@ -119,127 +151,135 @@ function App() {
         )}
 
         {appShell.primarySection === 'investments' && (
-          <InvestmentsWorkspace onError={setError} />
+          <Suspense fallback={sectionFallback('Carregando area de investimentos...')}>
+            <InvestmentsWorkspace onError={setError} />
+          </Suspense>
         )}
 
         {appShell.primarySection === 'simulate' && (
-          <OperateSection
-            simulateTabs={appShell.simulateTabs}
-            simulateTab={appShell.simulateTab}
-            onSimulateTabChange={(tab) =>
-              appShell.setSimulateTab(tab as typeof appShell.simulateTab)
-            }
-            backtestFormProps={{
-              configs,
-              selectedConfig,
-              backtestRequest,
-              onConfigChange: handleConfigChange,
-              onRequestChange: handleRequestChange,
-              onRunBacktest: backtestJobs.startJob,
-              isLoading: isBacktestBusy,
-            }}
-            datasetManagerProps={{
-              currentCachePath: backtestRequest.cache_path,
-              onApplyDataset: (dataset) => {
-                handleRequestChange({
-                  cache_path: dataset.path,
-                  data_source: dataset.name,
-                });
-                setError(null);
-              },
-              onError: setError,
-            }}
-            jobsPanelProps={{
-              jobs: backtestJobs.jobs,
-              activeJob: backtestJobs.activeJob,
-              isLoadingJobs: backtestJobs.isLoadingJobs,
-              isCancellingJob: backtestJobs.isCancellingJob,
-              onOpenJob: backtestJobs.openJob,
-              onResumeJob: backtestJobs.resumeJob,
-              onCancelActiveJob: backtestJobs.cancelActiveJob,
-              onRefreshJobs: backtestJobs.refreshJobs,
-            }}
-            resultsWorkspaceProps={
-              workspace.backtestResponse
-                ? {
-                    activeTab: workspace.activeTab,
-                    backtestRequest,
-                    backtestResponse: workspace.backtestResponse,
-                    exportContainerRef: workspace.exportContainerRef,
-                    isLoadingArtifacts: workspace.isLoadingArtifacts,
-                    latestValidRunId,
-                    onCopyLink: workspace.actions.copyRunLink,
-                    onCopySummary: workspace.actions.copySummary,
-                    onDownloadCSV: workspace.actions.downloadCSV,
-                    onDownloadHTML: workspace.actions.downloadHTML,
-                    onDownloadPNG: workspace.actions.downloadPNG,
-                    onOpenLatestValidRun: latestValidRunId
-                      ? () => workspace.handleLoadRun(latestValidRunId)
-                      : undefined,
-                    onSaveProject: workspace.actions.saveProjectBundle,
-                    onSetActiveTab: workspace.setActiveTab,
-                    onShareResults: workspace.actions.shareResults,
-                    onToggleAllBenchmarks: workspace.visibility.toggleAllBenchmarks,
-                    onToggleAllStrategies: workspace.visibility.toggleAllStrategies,
-                    onToggleBenchmarkVisibility: workspace.visibility.toggleBenchmarkVisibility,
-                    onToggleStrategyVisibility: workspace.visibility.toggleStrategyVisibility,
-                    runConfigSnapshot: workspace.runConfigSnapshot,
-                    runDataProfile: workspace.runDataProfile,
-                    strategyNames: workspace.strategyNames,
-                    totalTradesCount: workspace.totalTradesCount,
-                    visibleBenchmarks: workspace.visibleBenchmarks,
-                    visibleStrategies: workspace.visibleStrategies,
-                    warnings: workspace.warnings,
-                  }
-                : null
-            }
-            isBacktestBusy={isBacktestBusy}
-            loadingMessage={
-              backtestJobs.activeJob?.progress.message || 'Running backtest analysis...'
-            }
-            workspaceState={workspace.appState}
-            error={error}
-          />
+          <Suspense fallback={sectionFallback('Carregando simulador...')}>
+            <OperateSection
+              simulateTabs={appShell.simulateTabs}
+              simulateTab={appShell.simulateTab}
+              onSimulateTabChange={(tab) =>
+                appShell.setSimulateTab(tab as typeof appShell.simulateTab)
+              }
+              backtestFormProps={{
+                configs,
+                selectedConfig,
+                backtestRequest,
+                onConfigChange: handleConfigChange,
+                onRequestChange: handleRequestChange,
+                onRunBacktest: backtestJobs.startJob,
+                isLoading: isBacktestBusy,
+              }}
+              datasetManagerProps={{
+                currentCachePath: backtestRequest.cache_path,
+                onApplyDataset: (dataset) => {
+                  handleRequestChange({
+                    cache_path: dataset.path,
+                    data_source: dataset.name,
+                  });
+                  setError(null);
+                },
+                onError: setError,
+              }}
+              jobsPanelProps={{
+                jobs: backtestJobs.jobs,
+                activeJob: backtestJobs.activeJob,
+                isLoadingJobs: backtestJobs.isLoadingJobs,
+                isCancellingJob: backtestJobs.isCancellingJob,
+                onOpenJob: backtestJobs.openJob,
+                onResumeJob: backtestJobs.resumeJob,
+                onCancelActiveJob: backtestJobs.cancelActiveJob,
+                onRefreshJobs: backtestJobs.refreshJobs,
+              }}
+              resultsWorkspaceProps={
+                workspace.backtestResponse
+                  ? {
+                      activeTab: workspace.activeTab,
+                      backtestRequest,
+                      backtestResponse: workspace.backtestResponse,
+                      exportContainerRef: workspace.exportContainerRef,
+                      isLoadingArtifacts: workspace.isLoadingArtifacts,
+                      latestValidRunId,
+                      onCopyLink: workspace.actions.copyRunLink,
+                      onCopySummary: workspace.actions.copySummary,
+                      onDownloadCSV: workspace.actions.downloadCSV,
+                      onDownloadHTML: workspace.actions.downloadHTML,
+                      onDownloadPNG: workspace.actions.downloadPNG,
+                      onOpenLatestValidRun: latestValidRunId
+                        ? () => workspace.handleLoadRun(latestValidRunId)
+                        : undefined,
+                      onSaveProject: workspace.actions.saveProjectBundle,
+                      onSetActiveTab: workspace.setActiveTab,
+                      onShareResults: workspace.actions.shareResults,
+                      onToggleAllBenchmarks: workspace.visibility.toggleAllBenchmarks,
+                      onToggleAllStrategies: workspace.visibility.toggleAllStrategies,
+                      onToggleBenchmarkVisibility: workspace.visibility.toggleBenchmarkVisibility,
+                      onToggleStrategyVisibility: workspace.visibility.toggleStrategyVisibility,
+                      runConfigSnapshot: workspace.runConfigSnapshot,
+                      runDataProfile: workspace.runDataProfile,
+                      strategyNames: workspace.strategyNames,
+                      totalTradesCount: workspace.totalTradesCount,
+                      visibleBenchmarks: workspace.visibleBenchmarks,
+                      visibleStrategies: workspace.visibleStrategies,
+                      warnings: workspace.warnings,
+                    }
+                  : null
+              }
+              isBacktestBusy={isBacktestBusy}
+              loadingMessage={
+                backtestJobs.activeJob?.progress.message || 'Running backtest analysis...'
+              }
+              workspaceState={workspace.appState}
+              error={error}
+            />
+          </Suspense>
         )}
 
         {appShell.primarySection === 'results' && (
-          <ResultsSection
-            resultsTab={appShell.resultsTab}
-            resultsTabs={appShell.resultsTabs}
-            onResultsTabChange={appShell.setResultsTab}
-            runs={runs}
-            isLoadingRuns={isLoadingRuns}
-            onRefreshRuns={refreshRuns}
-            onLoadRun={workspace.handleLoadRun}
-            selectedRunIds={selectedRunIds}
-            onToggleCompare={toggleRunSelection}
-            comparisonRuns={comparisonRuns}
-            isLoadingComparison={isLoadingComparison}
-            onClearComparison={clearComparison}
-            savedResearchWorkspaces={savedResearchWorkspaces}
-            isLoadingResearchWorkspaces={isLoadingResearchWorkspaces}
-            onRefreshResearchWorkspaces={refreshResearchWorkspaces}
-            onOpenWorkspace={appShell.openWorkspaceInResearch}
-            onError={setError}
-          />
+          <Suspense fallback={sectionFallback('Carregando resultados...')}>
+            <ResultsSection
+              resultsTab={appShell.resultsTab}
+              resultsTabs={appShell.resultsTabs}
+              onResultsTabChange={appShell.setResultsTab}
+              runs={runs}
+              isLoadingRuns={isLoadingRuns}
+              onRefreshRuns={refreshRuns}
+              onLoadRun={workspace.handleLoadRun}
+              selectedRunIds={selectedRunIds}
+              onToggleCompare={toggleRunSelection}
+              comparisonRuns={comparisonRuns}
+              isLoadingComparison={isLoadingComparison}
+              onClearComparison={clearComparison}
+              savedResearchWorkspaces={savedResearchWorkspaces}
+              isLoadingResearchWorkspaces={isLoadingResearchWorkspaces}
+              onRefreshResearchWorkspaces={refreshResearchWorkspaces}
+              onOpenWorkspace={appShell.openWorkspaceInResearch}
+              onError={setError}
+            />
+          </Suspense>
         )}
 
         {appShell.primarySection === 'advanced' && (
-          <AdvancedSection
-            advancedTool={appShell.advancedTool}
-            advancedTools={appShell.advancedTools}
-            onAdvancedToolChange={appShell.setAdvancedTool}
-            selectedConfigPath={selectedConfig?.path}
-            defaultStrategies={defaultStrategies}
-            currentRunId={workspace.backtestResponse?.run_info?.run_id}
-            onError={setError}
-            onLoadRun={workspace.handleLoadRun}
-            workspaceToOpen={appShell.workspaceToOpen}
-            onWorkspaceOpened={appShell.clearWorkspaceToOpen}
-            onWorkspaceSaved={() =>
-              setResearchWorkspaceRefreshToken((current) => current + 1)
-            }
-          />
+          <Suspense fallback={sectionFallback('Carregando area avancada...')}>
+            <AdvancedSection
+              advancedTool={appShell.advancedTool}
+              advancedTools={appShell.advancedTools}
+              onAdvancedToolChange={appShell.setAdvancedTool}
+              selectedConfigPath={selectedConfig?.path}
+              defaultStrategies={defaultStrategies}
+              currentRunId={workspace.backtestResponse?.run_info?.run_id}
+              onError={setError}
+              onLoadRun={workspace.handleLoadRun}
+              workspaceToOpen={appShell.workspaceToOpen}
+              onWorkspaceOpened={appShell.clearWorkspaceToOpen}
+              onWorkspaceSaved={() =>
+                setResearchWorkspaceRefreshToken((current) => current + 1)
+              }
+            />
+          </Suspense>
         )}
       </div>
     </div>

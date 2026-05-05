@@ -7,7 +7,9 @@ const __dirname = path.dirname(__filename);
 const frontendRoot = path.resolve(__dirname, '..');
 const task = process.argv[2] ?? 'all';
 const extraArgs = process.argv.slice(3);
-const supportedNodeMajor = 22;
+const minimumSupportedNodeMajor = 20;
+const preferredNodeMajor = 22;
+const maximumSupportedNodeMajor = 23;
 
 const nodeExecutable = process.execPath;
 const eslintEntrypoint = path.join(frontendRoot, 'node_modules', 'eslint', 'bin', 'eslint.js');
@@ -77,12 +79,23 @@ function runNodeScript(scriptPath, args) {
 
 function ensureSupportedNodeRuntime() {
   const major = Number.parseInt(process.versions.node.split('.')[0] ?? '', 10);
-  if (major === supportedNodeMajor) {
+  if (Number.isNaN(major)) {
     return;
   }
 
-  throw new Error(
-    `Frontend tooling expects Node ${supportedNodeMajor}.x. Current runtime: ${process.version}. `
-      + 'Use frontend/.nvmrc or frontend/.node-version before running npm scripts.'
-  );
+  if (major < minimumSupportedNodeMajor || major >= maximumSupportedNodeMajor) {
+    throw new Error(
+      `Frontend tooling does not support Node ${major}.x. Current runtime: ${process.version}. `
+      + `Install Node ${minimumSupportedNodeMajor}.x+ and <${maximumSupportedNodeMajor}.x before running npm scripts.`
+    );
+  }
+
+  if (major !== preferredNodeMajor) {
+    console.warn(
+      `Atenção: o runtime atual é ${process.version} (Node ${major}.x). `
+      + `O frontend roda com Node ${minimumSupportedNodeMajor} a ${maximumSupportedNodeMajor - 1}.x. `
+      + `Node ${preferredNodeMajor}.x é a referência de homologação.`
+    );
+    return;
+  }
 }

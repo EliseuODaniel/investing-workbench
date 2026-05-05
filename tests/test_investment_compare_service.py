@@ -152,7 +152,124 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
     assert any(
         item["kind"] == "listed_security" for item in payload["methodology_guide"]["evidence_types"]
     )
+    assert payload["product_realism"]["title"] == "Realismo do produto investivel"
+    assert any(
+        item["dimension_id"] == "investable_product"
+        for item in payload["product_realism"]["coverage"]
+    )
+    assert any(
+        item["source_kind"] == "listed_security"
+        for item in payload["product_realism"]["product_types"]
+    )
+    assert any(
+        item["policy_id"] == "stocks_dividends_jcp"
+        for item in payload["product_realism"]["income_policy_examples"]
+    )
+    assert any(
+        item["policy_id"] == "fiis_monthly_income"
+        for item in payload["product_realism"]["income_policy_examples"]
+    )
+    assert (
+        payload["retail_fixed_income_equivalence"]["title"]
+        == "Equivalencia liquida em renda fixa de varejo"
+    )
+    assert payload["retail_fixed_income_equivalence"]["rows"]
+    assert any(
+        row["tax_exempt_product"] == "Debenture incentivada"
+        for row in payload["retail_fixed_income_equivalence"]["rows"]
+    )
+    assert any(
+        row["equivalent_cdb_pct_cdi"] > row["tax_exempt_pct_cdi"]
+        for row in payload["retail_fixed_income_equivalence"]["rows"]
+        if row["holding_days"] >= 180
+    )
+    taxable_examples = payload["retail_fixed_income_equivalence"]["taxable_product_examples"]
+    assert any(item["product_id"] == "tesouro_selic_proxy" for item in taxable_examples)
+    assert any(item["product_id"] == "fundo_di_100_fee" for item in taxable_examples)
+    assert all(item["net_pct_cdi"] < item["gross_pct_cdi"] for item in taxable_examples)
+    assert payload["result_stories"]["title"] == "Leituras guiadas do resultado"
+    assert any(
+        item["story_id"] == "best_profile_match" for item in payload["result_stories"]["stories"]
+    )
+    assert any(item["story_id"] == "beat_selic" for item in payload["result_stories"]["stories"])
+    assert any(item["ranking_id"] == "real_cagr" for item in payload["result_stories"]["rankings"])
+    assert any(
+        item["ranking_id"] == "income_generation" for item in payload["result_stories"]["rankings"]
+    )
+    assert any(
+        item["ranking_id"] == "mark_to_market_stress"
+        for item in payload["result_stories"]["rankings"]
+    )
+    assert payload["market_rankings"]["title"] == "Rankings de mercado"
+    assert payload["market_rankings"]["benchmark_context"]
+    assert any(
+        item["ranking_id"] == "guided_factor_score"
+        for item in payload["market_rankings"]["rankings"]
+    )
+    assert any(
+        item["ranking_id"] == "momentum_6m" for item in payload["market_rankings"]["rankings"]
+    )
+    assert any(
+        item["ranking_id"] == "ath_distance" for item in payload["market_rankings"]["rankings"]
+    )
+    assert any(
+        item["ranking_id"] == "beta_to_benchmark" for item in payload["market_rankings"]["rankings"]
+    )
+    assert payload["market_screeners"]["title"] == "Screeners do universo comparado"
+    assert any(
+        item["preset_id"] == "positive_real_return"
+        for item in payload["market_screeners"]["presets"]
+    )
+    assert all(
+        "methodology" in item and item["rows"] for item in payload["market_rankings"]["rankings"]
+    )
+    assert "ranking_id" in payload["market_rankings"]["export_columns"]
+    assert payload["cache_status"]["title"] == "Cache e preparacao dos dados"
+    assert any(item["cache_id"] == "listed_assets" for item in payload["cache_status"]["caches"])
+    assert all("freshness_status" in item for item in payload["cache_status"]["caches"])
+    assert all("refresh_hint" in item for item in payload["cache_status"]["caches"])
+    assert payload["study_quality"]["title"] == "Fechamento do estudo"
+    assert payload["study_quality"]["readiness_score"] == 1.0
+    assert all(item["status"] == "complete" for item in payload["study_quality"]["checks"])
     assert payload["portfolio_objective_summary"]["title"] == "Decisao por objetivo"
+    assert payload["portfolio_lifecycle"]["title"] == "Cenarios completos de carteira"
+    assert any(
+        item["scenario_id"] == "real_monthly_withdrawal"
+        for item in payload["portfolio_lifecycle"]["scenario_cards"]
+    )
+    assert (
+        payload["portfolio_lifecycle"]["withdrawal_plan"]["title"]
+        == "Plano didatico de retirada"
+    )
+    assert payload["portfolio_lifecycle"]["withdrawal_plan"]["candidates"]
+    assert payload["portfolio_lifecycle"]["withdrawal_plan"]["stress_tests"]
+    assert any(
+        item["scenario_id"] == "sequence_stress"
+        for item in payload["portfolio_lifecycle"]["withdrawal_plan"]["stress_tests"]
+    )
+    assert (
+        payload["portfolio_lifecycle"]["withdrawal_plan"]["monte_carlo_preview"]["title"]
+        == "Previa Monte Carlo"
+    )
+    assert any(
+        item["scenario_id"] == "p10_adverse"
+        for item in payload["portfolio_lifecycle"]["withdrawal_plan"]["monte_carlo_preview"][
+            "scenarios"
+        ]
+    )
+    monthly_sequence = payload["portfolio_lifecycle"]["withdrawal_plan"][
+        "monte_carlo_preview"
+    ]["monthly_sequence"]
+    assert monthly_sequence["title"] == "Simulacao mensal de exaustao"
+    assert monthly_sequence["horizon_years"] == 30
+    assert any(item["path_id"] == "adverse_sequence" for item in monthly_sequence["paths"])
+    stochastic = monthly_sequence["stochastic"]
+    assert stochastic["title"] == "Monte Carlo estocastico mensal"
+    assert stochastic["simulation_count"] == 250
+    assert 0 <= stochastic["success_rate"] <= 1
+    assert stochastic["percentiles"]["final_balance_p10"] <= stochastic["percentiles"][
+        "final_balance_p90"
+    ]
     assert payload["request"]["decision_profile"]["objective"] == "balanced"
     assert any(
         item["objective_id"] == "protect_purchasing_power"
@@ -292,9 +409,89 @@ def test_catalog_exposes_ntnb_etfs_preset(tmp_path: Any) -> None:
     )
 
     assert {"IMAB11", "IMBB11", "B5P211", "B5MB11"} <= visible_ids
+    assert {"HASH11", "VISC11", "KNCR11", "AMZO34", "TSLA34"} <= visible_ids
+    profiles = {item["instrument_id"]: item["product_profile"] for item in payload["instruments"]}
+    assert profiles["HGLG11"]["investment_type_label"] == "FII listado"
+    assert "isentos" in profiles["HGLG11"]["tax_treatment_label"]
+    assert profiles["TD_SELIC"]["investment_type_label"] == "Tesouro Direto"
+    assert (
+        profiles["CDI_INDEX"]["investability_label"]
+        == "Referencia teorica, nao produto de prateleira."
+    )
+    assert profiles["PETR4"]["investment_type_label"] == "Acao listada"
     assert preset["asset_ids"] == ["IMAB11", "IMBB11", "B5P211", "B5MB11"]
     assert preset["default_benchmark_ids"] == ["selic_cash"]
     assert preset["default_start_date"] == "2020-11-16"
+    assert any(item["preset_id"] == "fii_income_ladder" for item in payload["presets"])
+    assert any(item["preset_id"] == "global_bdr_growth" for item in payload["presets"])
+    assert payload["market_explorer"]["title"] == "Explorador de mercado"
+    assert payload["market_explorer"]["category_lists"]
+    assert any(
+        item["list_id"] == "monthly_income_candidates"
+        for item in payload["market_explorer"]["curated_lists"]
+    )
+    assert any(
+        item["list_id"] == "risk_ladder" for item in payload["market_explorer"]["curated_lists"]
+    )
+    assert any(
+        item["ranking_id"] == "drawdown" for item in payload["market_explorer"]["ranking_backlog"]
+    )
+    assert any(
+        item["ranking_id"] == "final_value"
+        for item in payload["market_explorer"]["ranking_backlog"]
+    )
+    assert any(
+        item["ranking_id"] == "real_cagr" for item in payload["market_explorer"]["ranking_backlog"]
+    )
+    assert any(
+        item["ranking_id"] == "income_generation"
+        for item in payload["market_explorer"]["ranking_backlog"]
+    )
+    assert payload["product_data_plan"]["title"] == "Plano pos-roadmap de dados de produto"
+    assert any(
+        source["source_id"] == "tesouro_transparente"
+        and source["integration_status"] == "connected"
+        for source in payload["product_data_plan"]["sources"]
+    )
+    assert any(
+        row["family_id"] == "fiis" and row["external_data_status"] == "connected_seeded"
+        for row in payload["product_data_plan"]["family_coverage"]
+    )
+    assert payload["product_data_plan"]["roadmap_completion_pct"] == 1.0
+    assert payload["product_data_plan"]["next_release_candidates"][0]["release_id"] == (
+        "fii_income_data"
+    )
+    assert payload["product_data_plan"]["source_manifest"]["title"] == (
+        "Manifesto local de dados externos"
+    )
+    assert payload["product_data_plan"]["source_manifest"]["source_count"] == 4
+    assert any(
+        item["step_id"] == "dataset_versioning"
+        and item["status"] == "manifest_available"
+        for item in payload["product_data_plan"]["roadmap_steps"]
+    )
+    assert any(
+        item["release_id"] == "etf_bdr_fee_tracking"
+        for item in payload["product_data_plan"]["next_release_candidates"]
+    )
+    assert any(
+        item["filter_id"] == "liquidity"
+        for item in payload["product_data_plan"]["market_filter_backlog"]
+    )
+    assert any(
+        item["gate_id"] == "cache_manifest"
+        for item in payload["product_data_plan"]["validation_plan"]
+    )
+    assert payload["investor_easy_parity"]["calculator_count"] == 15
+    assert payload["investor_easy_parity"]["available_calculator_count"] == 15
+    assert any(
+        item["feature_id"] == "automatic_alerts" and item["local_status"] == "partial"
+        for item in payload["investor_easy_parity"]["feature_coverage"]
+    )
+    assert any(
+        item["calculator_id"] == "financial_independence"
+        for item in payload["investor_easy_parity"]["calculator_suite"]
+    )
 
 
 def test_compare_allows_guided_portfolio_components_with_late_history(
@@ -591,6 +788,15 @@ def test_compare_builds_retail_treasury_fixed_income_study(
     assert all("display_value" in row for row in treasury_rows)
     assert any(row["taxes_paid_total"] > 0 for row in treasury_rows)
     assert all(row["final_value_net"] <= row["final_value"] for row in treasury_rows)
+    tax_realism = next(
+        item for item in payload["product_realism"]["coverage"] if item["dimension_id"] == "taxes"
+    )
+    assert tax_realism["status"] == "partial"
+    assert any("IR regressivo" in item for item in tax_realism["current_scope"])
+    assert any(
+        item["policy_id"] == "treasury_cashflows"
+        for item in payload["product_realism"]["income_policy_examples"]
+    )
     assert fixed_income["rolling_windows"]
     assert any(item["study_id"] == "retail_treasury" for item in fixed_income["studies"])
     assert payload["fixed_income_decision_guide"]["decision_cards"]

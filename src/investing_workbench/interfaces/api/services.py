@@ -14,7 +14,11 @@ from src.investing_workbench.application.backtest_jobs import (
 )
 from src.investing_workbench.application.datasets import DatasetCatalogService
 from src.investing_workbench.application.experiments import ExperimentRegistryService
-from src.investing_workbench.application.investments import InvestmentComparisonService
+from src.investing_workbench.application.investment_workspaces import InvestmentWorkspaceService
+from src.investing_workbench.application.investments import (
+    InvestmentComparisonService,
+    ProductDataSourceService,
+)
 from src.investing_workbench.application.montecarlo import MonteCarloSimulationService
 from src.investing_workbench.application.optimizations import (
     OptimizationExecutionService,
@@ -55,6 +59,8 @@ class ApiServices:
     backtest_job_service: BacktestJobService
     wege3_regra_a_service: Wege3RegraAScenarioService
     investment_comparison_service: InvestmentComparisonService
+    product_data_source_service: ProductDataSourceService
+    investment_workspace_service: InvestmentWorkspaceService
     system_status_service: PlatformStatusService
 
 
@@ -81,6 +87,8 @@ def build_api_services(*, autostart_jobs: bool = True) -> ApiServices:
     )
     wege3_regra_a_service = Wege3RegraAScenarioService()
     investment_comparison_service = InvestmentComparisonService()
+    product_data_source_service = ProductDataSourceService()
+    investment_workspace_service = InvestmentWorkspaceService()
     backtest_job_service = BacktestJobService(
         run_service=run_service,
         max_workers=job_settings.max_workers,
@@ -121,6 +129,8 @@ def build_api_services(*, autostart_jobs: bool = True) -> ApiServices:
         backtest_job_service=backtest_job_service,
         wege3_regra_a_service=wege3_regra_a_service,
         investment_comparison_service=investment_comparison_service,
+        product_data_source_service=product_data_source_service,
+        investment_workspace_service=investment_workspace_service,
         system_status_service=system_status_service,
     )
 

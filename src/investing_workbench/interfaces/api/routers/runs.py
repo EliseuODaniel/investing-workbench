@@ -5,11 +5,35 @@ from __future__ import annotations
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import Response
 
-from src.api.models import BacktestJobModel, BacktestRequest, BacktestResponse
+from src.api.models import (
+    BacktestJobModel,
+    BacktestRequest,
+    BacktestResponse,
+    SavedStrategyRadarItemModel,
+    StrategySetupPlanModel,
+)
+from src.investing_workbench.application.backtests.strategy_catalog import (
+    build_strategy_catalog_payload,
+    build_strategy_setup_plan,
+)
 from src.investing_workbench.interfaces.api.deps import get_service
 from src.investing_workbench.interfaces.api.errors import to_http_exception
 
 router = APIRouter(tags=["runs"])
+
+
+@router.get("/backtests/strategy-catalog")
+async def get_strategy_catalog() -> dict[str, object]:
+    """Return strategy catalog and score metadata for the backtest workspace."""
+    return build_strategy_catalog_payload()
+
+
+@router.post("/backtests/strategy-setup-plan", response_model=StrategySetupPlanModel)
+async def create_strategy_setup_plan(
+    payload: SavedStrategyRadarItemModel,
+) -> StrategySetupPlanModel:
+    """Prepare an explainable execution plan from a saved strategy setup."""
+    return StrategySetupPlanModel.model_validate(build_strategy_setup_plan(payload.model_dump()))
 
 
 @router.post("/backtest", response_model=BacktestResponse)

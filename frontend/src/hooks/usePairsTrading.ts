@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../lib/api';
 import {
@@ -6,6 +7,7 @@ import {
   buildPairsResearchBatchPayload,
   buildPairsScreenPayload,
   PairsDraft,
+  readPairsSetupHandoff,
 } from '../lib/pairsPayload';
 import {
   PairsBacktestManifestPayload,
@@ -69,9 +71,27 @@ const DEFAULT_DRAFT: PairsDraft = {
   regimeFilter: 'none',
 };
 
+const FALLBACK_PAIR_PRESETS: PairsUniversePresetPayload[] = [
+  {
+    preset_id: 'ibov_proxy',
+    label: 'IBOV Proxy',
+    description: 'Proxy curado com blue chips e nomes liquidos da B3.',
+    universe_kind: 'b3_ibov_proxy',
+    history_mode: 'curated_proxy',
+    benchmark_tickers: ['BOVA11.SA', '^BVSP'],
+    tickers: ['PETR4', 'PETR3', 'VALE3', 'ITUB4', 'BBDC4', 'BBAS3', 'ABEV3', 'WEGE3', 'RENT3', 'LREN3', 'SUZB3', 'PRIO3', 'GGBR4', 'CSNA3', 'ELET3', 'ENEV3', 'RADL3', 'RAIL3', 'JBSS3', 'CMIG4'],
+    ticker_count: 20,
+  },
+];
+
 export function usePairsTrading(onError: (message: string | null) => void) {
-  const [draft, setDraft] = useState<PairsDraft>(DEFAULT_DRAFT);
+  const [draft, setDraft] = useState<PairsDraft>(() => ({
+    ...DEFAULT_DRAFT,
+    ...(readPairsSetupHandoff()?.draft ?? {}),
+  }));
   const [presets, setPresets] = useState<PairsUniversePresetPayload[]>([]);
+  const [presetsSource, setPresetsSource] = useState<'api' | 'fallback'>('api');
+  const [presetsLoadError, setPresetsLoadError] = useState<string | null>(null);
   const [universe, setUniverse] = useState<PairsUniversePayload | null>(null);
   const [screening, setScreening] = useState<PairsScreenPayload | null>(null);
   const [latestBacktest, setLatestBacktest] = useState<PairsBacktestResultsPayload | null>(null);
@@ -93,11 +113,33 @@ export function usePairsTrading(onError: (message: string | null) => void) {
 
   const refreshPresets = useCallback(async () => {
     setIsLoadingPresets(true);
+    setPresetsLoadError(null);
     try {
       const response = await apiClient.listPairsUniverses();
       setPresets(response);
+      setPresetsSource('api');
+      setPresetsLoadError(null);
+      onError(null);
     } catch (error: any) {
-      onError(error.response?.data?.detail || 'Failed to load pairs universe presets');
+      setPresets(FALLBACK_PAIR_PRESETS);
+      setPresetsSource('fallback');
+      const apiErrorMessage = (() => {
+        const detail =
+          error?.response?.data?.detail ||
+          error?.response?.data ||
+          error?.message ||
+          (axios.isAxiosError(error) && error.message) ||
+          'Erro desconhecido da API';
+        if (typeof detail === 'string') {
+          return detail;
+        }
+        return 'Erro desconhecido da API';
+      })();
+      setPresetsLoadError(`Nao foi possivel carregar presets da API: ${apiErrorMessage}`);
+      console.warn(
+        'Pairs universe presets unavailable, using local curated fallback.',
+        error
+      );
     } finally {
       setIsLoadingPresets(false);
     }
@@ -108,6 +150,7 @@ export function usePairsTrading(onError: (message: string | null) => void) {
     try {
       const response = await apiClient.listPairsBacktests();
       setBacktests(response);
+      onError(null);
     } catch (error: any) {
       onError(error.response?.data?.detail || 'Failed to load persisted pairs backtests');
     } finally {
@@ -226,6 +269,8 @@ export function usePairsTrading(onError: (message: string | null) => void) {
   return {
     draft,
     presets,
+    presetsSource,
+    presetsLoadError,
     universe,
     screening,
     latestBacktest,

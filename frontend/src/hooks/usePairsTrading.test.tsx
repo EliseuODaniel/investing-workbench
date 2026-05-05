@@ -6,6 +6,7 @@ import { usePairsTrading } from './usePairsTrading';
 describe('usePairsTrading', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     vi.mocked(apiClient.listPairsUniverses).mockResolvedValue([
       {
         preset_id: 'ibov_proxy',
@@ -33,6 +34,32 @@ describe('usePairsTrading', () => {
     expect(apiClient.listPairsUniverses).toHaveBeenCalledTimes(1);
     expect(apiClient.listPairsBacktests).toHaveBeenCalledTimes(1);
     expect(result.current.presets[0].preset_id).toBe('ibov_proxy');
+  });
+
+  it('hydrates a draft from a strategy setup handoff', async () => {
+    window.localStorage.setItem(
+      'investing-workbench.pairs-setup-handoff.v1',
+      JSON.stringify({
+        source: 'strategy_setup_radar',
+        strategy_id: 'pairs_cointegration',
+        label: 'Pairs por cointegracao',
+        created_at: '2026-04-27T12:00:00Z',
+        draft: {
+          presetId: 'custom',
+          tickersText: 'PETR4, VALE3',
+          formationWindowText: '126',
+          entryZscoreText: '1.8',
+          exitZscoreText: '0.4',
+        },
+      })
+    );
+
+    const { result } = renderHook(() => usePairsTrading(vi.fn()));
+
+    expect(result.current.draft.presetId).toBe('custom');
+    expect(result.current.draft.tickersText).toBe('PETR4, VALE3');
+    expect(result.current.draft.formationWindowText).toBe('126');
+    expect(result.current.draft.entryZscoreText).toBe('1.8');
   });
 
   it('runs a pairs batch and refreshes persisted history', async () => {
@@ -107,5 +134,25 @@ describe('usePairsTrading', () => {
     expect(result.current.latestBacktest?.pairs_backtest_id).toBe('pairs_1');
     expect(result.current.backtests[0].pairs_backtest_id).toBe('pairs_1');
     expect(onError).toHaveBeenLastCalledWith(null);
+  });
+
+  it('falls back to local presets when backend presets are unavailable', async () => {
+    vi.mocked(apiClient.listPairsUniverses).mockRejectedValue({
+      response: { data: { detail: 'temporariamente fora' } },
+    });
+    const onError = vi.fn();
+    const { result } = renderHook(() => usePairsTrading(onError));
+
+    await waitFor(() => {
+      expect(result.current.isLoadingPresets).toBe(false);
+    });
+
+    expect(result.current.presets[0].preset_id).toBe('ibov_proxy');
+    expect(result.current.presets[0].label).toBe('IBOV Proxy');
+    expect(onError).not.toHaveBeenCalledWith(
+      'temporariamente fora (fallback local aplicado)'
+    );
+    expect(result.current.presetsSource).toBe('fallback');
+    expect(result.current.presetsLoadError).toContain('temporariamente fora');
   });
 });

@@ -215,7 +215,7 @@ python -m src pairs-backtests-list --limit 10
 ```
 
 Frontend:
-- `PairsTradingWorkspace` lives in the `Labs` section and exposes universe diagnostics, screener rankings, persisted history, benchmark summaries, and robustness batches.
+- `PairsTradingWorkspace` lives in the `Labs` section and exposes universe diagnostics, screener rankings, persisted history, a local radar of favorite studies, benchmark summaries, and robustness batches.
 - The workspace is now decomposed into smaller `frontend/src/components/pairs/*` panels instead of concentrating the whole feature in one large component.
 - `usePairsTrading` is the main hook for the feature and keeps the API contract typed through `frontend/src/types/api.ts`.
 - The workspace now exposes an explicit `Snapshot Ibov` date field. For `ibov_historical`, leaving it blank uses `start_date` to avoid look-ahead and enriches the preset metadata with the resolved B3 source snapshot.

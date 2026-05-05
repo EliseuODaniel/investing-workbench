@@ -71,6 +71,15 @@ export interface InvestmentInstrumentPayload {
   available_since?: string | null;
   rebalance_frequency?: string | null;
   implementation_note?: string | null;
+  product_profile?: {
+    investment_type_label: string;
+    liquidity_label: string;
+    tax_treatment_label: string;
+    income_policy_label: string;
+    fee_model_label: string;
+    data_quality_label: string;
+    investability_label: string;
+  };
   components: Array<{ component_id: string; weight: number }>;
   notes: string[];
 }
@@ -110,6 +119,75 @@ export interface InvestmentCustomPortfolioRequestPayload {
   components: InvestmentPortfolioComponentPayload[];
 }
 
+export interface SavedInvestmentPortfolioPayload
+  extends InvestmentCustomPortfolioRequestPayload {
+  portfolio_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedStrategyRadarItemPayload {
+  strategy_id: string;
+  label: string;
+  family: string;
+  direction: string;
+  parameter_values?: Record<string, string | number | boolean | null>;
+  universe?: string[];
+  timeframe?: string | null;
+  setup_notes?: string[];
+  saved_at?: string | null;
+}
+
+export interface StrategySetupPlanPayload {
+  plan_id: string;
+  strategy_id: string;
+  label: string;
+  family: string;
+  timeframe: string;
+  route_hint: string;
+  readiness: string;
+  run_request: Record<string, unknown>;
+  assumptions: string[];
+  warnings: string[];
+  setup_notes: string[];
+  next_actions: string[];
+  generated_at: string;
+}
+
+export interface SavedStrategySetupRunPayload {
+  strategy_id: string;
+  run_id?: string | null;
+  pairs_backtest_id?: string | null;
+  ran_at: string;
+  strategy_count: number;
+  best_strategy?: string | null;
+  total_return?: number | null;
+  max_drawdown?: number | null;
+  trade_count?: number | null;
+  route_hint: string;
+  saved_at?: string | null;
+}
+
+export interface StrategySetupScorePayload {
+  strategy_id: string;
+  label: string;
+  score: number;
+  total_return: number;
+  max_drawdown: number;
+  trade_count: number;
+  run_count: number;
+  route_hint: string;
+  run_id?: string | null;
+  pairs_backtest_id?: string | null;
+  return_score: number;
+  drawdown_penalty: number;
+  execution_score: number;
+  robustness_score: number;
+  data_validity_score: number;
+  ran_at: string;
+  methodology: string;
+}
+
 export interface InvestmentPortfolioContributionPayload {
   component_id?: string;
   label?: string;
@@ -126,8 +204,380 @@ export interface InvestmentCatalogPayload {
   instruments: InvestmentInstrumentPayload[];
   presets: InvestmentPresetPayload[];
   benchmark_options: InvestmentBenchmarkOptionPayload[];
+  market_explorer?: {
+    title: string;
+    plain_language_summary: string;
+    category_lists: Array<{
+      list_id: string;
+      label: string;
+      count: number;
+      sample_instrument_ids: string[];
+      sample_labels: string[];
+    }>;
+    curated_lists?: Array<{
+      list_id: string;
+      label: string;
+      description: string;
+      count: number;
+      instrument_ids: string[];
+      sample_labels: string[];
+      risk_labels: string[];
+    }>;
+    product_type_facets: Array<{
+      source_kind: string;
+      label: string;
+      count: number;
+    }>;
+    risk_facets: Array<{ facet_id: string; label: string; count: number }>;
+    region_facets: Array<{ facet_id: string; label: string; count: number }>;
+    product_data_filters?: Array<{
+      filter_id: string;
+      label: string;
+      source_id: string;
+      status: string;
+      options: Array<{ value: string; label: string; count: number }>;
+    }>;
+    product_data_screeners?: Array<{
+      screener_id: string;
+      label: string;
+      source_id: string;
+      status: string;
+      methodology: string;
+      rows: Array<{
+        instrument_id: string;
+        label: string;
+        ticker?: string | null;
+        segment?: string | null;
+        listing_status?: string | null;
+        yield_12m_pct?: number | null;
+        liquidity_label?: string | null;
+        income_focus?: string | null;
+        data_quality_score?: number | null;
+      }>;
+    }>;
+    product_data_rankings?: Array<{
+      ranking_id: string;
+      label: string;
+      source_id: string;
+      status: string;
+      methodology: string;
+      rows: Array<{
+        rank: number;
+        instrument_id: string;
+        label: string;
+        score: number;
+        reason: string;
+      }>;
+    }>;
+    ranking_backlog: Array<{ ranking_id: string; label: string; status: string }>;
+  };
+  investor_easy_parity?: {
+    title: string;
+    source_url: string;
+    plain_language_summary: string;
+    observed_at: string;
+    calculator_count: number;
+    available_calculator_count: number;
+    feature_coverage: Array<{
+      feature_id: string;
+      label: string;
+      site_offer: string;
+      local_status: string;
+      local_surface: string;
+    }>;
+    calculator_suite: Array<{
+      calculator_id: string;
+      label: string;
+      tier: string;
+      formula_family: string;
+      status: string;
+      local_surface: string;
+    }>;
+    plan_equivalence: Array<{
+      plan_label: string;
+      site_limit: string;
+      local_equivalent: string;
+    }>;
+    remaining_gaps: string[];
+  };
+  product_data_plan?: {
+    title: string;
+    plain_language_summary: string;
+    status: string;
+    source_count: number;
+    connected_source_count: number;
+    partial_source_count: number;
+    roadmap_step_count?: number;
+    roadmap_completed_step_count?: number;
+    roadmap_completion_pct?: number;
+    sources: Array<{
+      source_id: string;
+      label: string;
+      url: string;
+      coverage: string;
+      freshness_policy: string;
+      integration_status: string;
+      connector_status?: string;
+      cache_key?: string;
+      families: string[];
+      expected_fields?: string[];
+    }>;
+    family_coverage: Array<{
+      family_id: string;
+      label: string;
+      instrument_count: number;
+      product_profile_count: number;
+      coverage_score: number;
+      external_data_status: string;
+    }>;
+    source_manifest?: {
+      title: string;
+      plain_language_summary: string;
+      cache_root: string;
+      checked_at: string;
+      source_count: number;
+      warm_source_count: number;
+      stale_source_count: number;
+      sources: Array<{
+        source_id: string;
+        cache_key: string;
+        cache_dir: string;
+        exists: boolean;
+        file_count: number;
+        total_size_bytes: number;
+        latest_file_name?: string | null;
+        latest_file_at?: string | null;
+        age_days?: number | null;
+        freshness_status: string;
+        freshness_label: string;
+        connector_status: string;
+        expected_fields: string[];
+        row_count?: number | null;
+        schema_version?: string | null;
+        source_url?: string | null;
+        checksum_sha256?: string | null;
+        collection_mode?: string | null;
+        refresh_history?: Array<{
+          ran_at: string;
+          started_at?: string;
+          finished_at?: string;
+          duration_ms?: number;
+          source_attempted_url?: string;
+          source_id: string;
+          status: string;
+          status_label: string;
+          message: string;
+          row_count?: number | null;
+          schema_version?: string | null;
+          checksum_sha256?: string | null;
+          collection_mode?: string | null;
+          fetch_error?: string | null;
+        }>;
+      }>;
+      takeaways: string[];
+    };
+    catalog_enrichment?: Array<{
+      family_id: string;
+      source_id: string;
+      matched_instrument_count: number;
+      cached_row_count: number;
+      status: string;
+      sample: Array<{
+        instrument_id: string;
+        ticker?: string | null;
+        segment?: string | null;
+        listing_status?: string | null;
+      }>;
+      next_action: string;
+    }>;
+    identity_map?: Array<{
+      ticker?: string | null;
+      name?: string | null;
+      segment?: string | null;
+      listing_status?: string | null;
+      source_id: string;
+      identity_status: string;
+    }>;
+    fii_cvm_bridge?: {
+      source_id: string;
+      status: string;
+      mapped_instrument_count: number;
+      matched_cvm_cache_count: number;
+      coverage_ratio: number;
+      methodology: string;
+      rows: Array<{
+        instrument_id: string;
+        ticker: string;
+        label: string;
+        cnpj_fundo: string;
+        bridge_status: string;
+        latest_date?: string | null;
+        net_worth?: number | null;
+        quota?: number | null;
+        shareholders?: number | null;
+        source_note: string;
+      }>;
+    };
+    cvm_fund_profile?: {
+      source_id: string;
+      status: string;
+      row_count: number;
+      latest_date?: string | null;
+      total_net_worth: number;
+      total_shareholders: number;
+      net_flow: number;
+      methodology: string;
+      sample_largest_funds: Array<{
+        cnpj_fundo?: string | null;
+        net_worth: number;
+        quota: number;
+        shareholders: number;
+      }>;
+    };
+    cvm_fund_rankings?: Array<{
+      ranking_id: string;
+      label: string;
+      source_id: string;
+      status: string;
+      latest_date?: string | null;
+      methodology: string;
+      rows: Array<{
+        rank: number;
+        cnpj_fundo?: string | null;
+        score: number;
+        score_label: string;
+        net_worth: number;
+        quota: number;
+        shareholders: number;
+        net_flow: number;
+      }>;
+    }>;
+    etf_bdr_profile?: {
+      source_id: string;
+      status: string;
+      row_count: number;
+      average_fee_pct?: number | null;
+      methodology: string;
+      product_type_counts: Array<{ product_type: string; count: number }>;
+      sample_low_fee_products: Array<{
+        ticker?: string | null;
+        name?: string | null;
+        product_type?: string | null;
+        reference_index?: string | null;
+        admin_fee_pct?: number | null;
+        exposure?: string | null;
+        tracking_note?: string | null;
+        data_quality_score: number;
+      }>;
+    };
+    etf_bdr_rankings?: Array<{
+      ranking_id: string;
+      label: string;
+      source_id: string;
+      status: string;
+      methodology: string;
+      rows: Array<{
+        rank: number;
+        ticker?: string | null;
+        name?: string | null;
+        product_type?: string | null;
+        reference_index?: string | null;
+        admin_fee_pct?: number | null;
+        exposure?: string | null;
+        tracking_note?: string | null;
+        data_quality_score: number;
+        score: number;
+        score_label: string;
+      }>;
+    }>;
+    methodology_readiness_ranking?: {
+      ranking_id: string;
+      label: string;
+      status: string;
+      methodology: string;
+      rows: Array<{
+        rank: number;
+        instrument_id: string;
+        ticker: string;
+        label: string;
+        product_family: string;
+        score: number;
+        score_components: Record<string, number>;
+        source_ids: string[];
+        caveat: string;
+      }>;
+    };
+    implementation_steps: string[];
+    roadmap_steps?: Array<{
+      step_id: string;
+      label: string;
+      status: string;
+      release_ids: string[];
+    }>;
+    next_release_candidates: Array<{
+      release_id: string;
+      label: string;
+      source_ids: string[];
+      user_value: string;
+      screeners_enabled?: string[];
+      ranking_candidates?: string[];
+      status?: string;
+    }>;
+    market_filter_backlog?: Array<{
+      filter_id: string;
+      label: string;
+      families: string[];
+      status: string;
+    }>;
+    validation_plan?: Array<{
+      gate_id: string;
+      label: string;
+      checks: string[];
+    }>;
+    quality_gate: string[];
+  };
   notes: string[];
   sources: Array<{ label: string; url: string }>;
+}
+
+export interface InvestmentProductDataRefreshRequestPayload {
+  source_id: string;
+  force?: boolean;
+}
+
+export interface InvestmentProductDataRefreshResponsePayload {
+  source_id: string;
+  status: string;
+  status_label: string;
+  message: string;
+  manifest?: {
+    source_id: string;
+    source_url?: string;
+    schema_version?: string;
+    collected_at?: string;
+    row_count?: number;
+    file_name?: string;
+    checksum_sha256?: string;
+    fields?: string[];
+    collection_mode?: string;
+    caveat?: string;
+  } | null;
+  history?: Array<{
+    ran_at: string;
+    started_at?: string;
+    finished_at?: string;
+    duration_ms?: number;
+    source_attempted_url?: string;
+    source_id: string;
+    status: string;
+    status_label: string;
+    message: string;
+    row_count?: number | null;
+    schema_version?: string | null;
+    checksum_sha256?: string | null;
+    collection_mode?: string | null;
+    fetch_error?: string | null;
+  }>;
 }
 
 export interface InvestmentCompareRequestPayload {
@@ -234,6 +684,208 @@ export interface InvestmentMethodologyGuidePayload {
   }>;
 }
 
+export interface InvestmentProductRealismDimensionPayload {
+  dimension_id: string;
+  label: string;
+  status: 'modeled' | 'partial' | 'not_modeled' | string;
+  status_label: string;
+  summary: string;
+  current_scope: string[];
+  limitations: string;
+  next_step: string;
+}
+
+export interface InvestmentProductRealismPayload {
+  title: string;
+  plain_language_summary: string;
+  product_types: Array<{
+    source_kind: string;
+    label: string;
+    count: number;
+  }>;
+  coverage: InvestmentProductRealismDimensionPayload[];
+  income_policy_examples?: Array<{
+    policy_id: string;
+    label: string;
+    cashflow_treatment: string;
+    tax_treatment: string;
+    reinvestment_assumption: string;
+    user_decision: string;
+  }>;
+  next_methodology_steps: string[];
+}
+
+export interface InvestmentRetailFixedIncomeEquivalenceRowPayload {
+  holding_days: number;
+  holding_years: number;
+  tax_exempt_product: string;
+  tax_exempt_pct_cdi: number;
+  tax_exempt_annual_rate: number;
+  ir_rate: number;
+  iof_rate: number;
+  net_gain_retention: number;
+  equivalent_cdb_pct_cdi: number;
+  equivalent_cdb_annual_rate: number;
+  interpretation: string;
+}
+
+export interface InvestmentRetailFixedIncomeTaxableProductExamplePayload {
+  product_id: string;
+  label: string;
+  holding_days: number;
+  gross_pct_cdi: number;
+  annual_fee_rate: number;
+  gross_annual_rate: number;
+  ir_rate: number;
+  iof_rate: number;
+  net_annual_rate: number;
+  net_pct_cdi: number;
+  liquidity: string;
+  credit_note: string;
+  interpretation: string;
+}
+
+export interface InvestmentRetailFixedIncomeEquivalencePayload {
+  title: string;
+  plain_language_summary: string;
+  reference_cdi_annual_rate: number;
+  profile_horizon_days: number;
+  profile_horizon_label: string;
+  uses_fixed_income_backtest: boolean;
+  rows: InvestmentRetailFixedIncomeEquivalenceRowPayload[];
+  taxable_product_examples?: InvestmentRetailFixedIncomeTaxableProductExamplePayload[];
+  assumptions: string[];
+  next_steps: string[];
+}
+
+export interface InvestmentResultStoryPayload {
+  story_id: string;
+  label: string;
+  question: string;
+  winner_id?: string | null;
+  winner_label?: string | null;
+  metric_label: string;
+  metric_value: number;
+  metric_kind: string;
+  interpretation: string;
+  caveat: string;
+}
+
+export interface InvestmentResultRankingPayload {
+  ranking_id: string;
+  label: string;
+  metric_label: string;
+  metric_kind: string;
+  rows: Array<{
+    rank: number;
+    instrument_id: string;
+    label: string;
+    category_label: string;
+    value: number;
+  }>;
+}
+
+export interface InvestmentResultStoriesPayload {
+  title: string;
+  plain_language_summary: string;
+  stories: InvestmentResultStoryPayload[];
+  rankings: InvestmentResultRankingPayload[];
+  next_questions: string[];
+}
+
+export interface InvestmentMarketRankingPayload {
+  ranking_id: string;
+  label: string;
+  metric_label: string;
+  metric_kind: string;
+  methodology: string;
+  weights?: Record<string, number>;
+  rows: Array<{
+    rank: number;
+    instrument_id: string;
+    label: string;
+    category_label: string;
+    source_kind: string;
+    risk_label: string;
+    value: number;
+    secondary_value: number;
+  }>;
+}
+
+export interface InvestmentMarketRankingsPayload {
+  title: string;
+  plain_language_summary: string;
+  universe_label: string;
+  as_of_date?: string | null;
+  source_label: string;
+  benchmark_context: Array<{
+    benchmark_id: string;
+    label: string;
+    metric_label: string;
+    metric_kind: string;
+    value: number;
+    total: number;
+    interpretation: string;
+  }>;
+  rankings: InvestmentMarketRankingPayload[];
+  export_columns: string[];
+  methodology_notes: string[];
+  generated_at: string;
+}
+
+export interface InvestmentMarketScreenersPayload {
+  title: string;
+  plain_language_summary: string;
+  universe_count: number;
+  presets: Array<{
+    preset_id: string;
+    label: string;
+    rule_summary: string;
+    matched_count: number;
+    universe_count: number;
+    sort_key: string;
+    rows: Array<{
+      rank: number;
+      instrument_id: string;
+      label: string;
+      category_label: string;
+      real_cagr: number;
+      max_drawdown: number;
+      annual_volatility: number;
+      net_profit: number;
+    }>;
+  }>;
+  methodology_notes: string[];
+}
+
+export interface InvestmentCacheStatusPayload {
+  title: string;
+  plain_language_summary: string;
+  status: string;
+  status_label: string;
+  checked_at: string;
+  caches: Array<{
+    cache_id: string;
+    label: string;
+    path: string;
+    patterns?: string[];
+    exists: boolean;
+    file_count: number;
+    total_size_bytes: number;
+    latest_file_name?: string | null;
+    latest_file_at?: string | null;
+    age_days?: number | null;
+    freshness_status?: string;
+    freshness_label?: string;
+    status: string;
+    status_label: string;
+    cold_start_note: string;
+    refresh_hint?: string;
+    used_in_current_result?: boolean;
+  }>;
+  takeaways: string[];
+}
+
 export interface InvestmentDecisionCardPayload {
   decision_id: string;
   label: string;
@@ -320,6 +972,151 @@ export interface InvestmentPortfolioObjectiveSummaryPayload {
   next_steps: string[];
 }
 
+export interface InvestmentPortfolioLifecyclePayload {
+  title: string;
+  plain_language_summary: string;
+  uses_portfolio_rows: boolean;
+  portfolio_count: number;
+  scenario_cards: Array<{
+    scenario_id: string;
+    label: string;
+    description: string;
+    best_match_id?: string | null;
+    best_match_label?: string | null;
+    metric_label: string;
+    metric_value: number;
+    metric_kind: string;
+    comparison_label?: string | null;
+    target_value?: number | null;
+    target_met?: boolean | null;
+  }>;
+  withdrawal_plan?: {
+    title: string;
+    withdrawal_rate: number;
+    monthly_income_target?: number | null;
+    best_candidate_id?: string | null;
+    best_candidate_label?: string | null;
+    target_met_count: number;
+    candidate_count: number;
+    feasibility_label: string;
+    candidates: Array<{
+      instrument_id: string;
+      label: string;
+      source_kind?: string | null;
+      final_value_real_net: number;
+      monthly_withdrawal: number;
+      income_gap?: number | null;
+      target_met?: boolean | null;
+      max_drawdown: number;
+      real_cagr: number;
+      annual_volatility: number;
+    }>;
+    stress_tests?: Array<{
+      scenario_id: string;
+      label: string;
+      description: string;
+      withdrawal_multiplier: number;
+      drawdown_buffer: number;
+      stressed_monthly_withdrawal: number;
+      income_gap?: number | null;
+      target_met?: boolean | null;
+      interpretation: string;
+    }>;
+    stress_summary?: string;
+    monte_carlo_preview?: {
+      title: string;
+      methodology: string;
+      instrument_id: string;
+      label: string;
+      real_cagr: number;
+      annual_volatility: number;
+      years_of_income_at_target?: number | null;
+      coverage_score: number;
+      target_met_count: number;
+      scenario_count: number;
+      scenarios: Array<{
+        scenario_id: string;
+        label: string;
+        description: string;
+        monthly_withdrawal: number;
+        income_gap?: number | null;
+        target_met?: boolean | null;
+      }>;
+      monthly_sequence?: {
+        title: string;
+        horizon_years: number;
+        monthly_withdrawal: number;
+        monthly_base_return: number;
+        monthly_volatility: number;
+        success_count: number;
+        path_count: number;
+        success_rate: number;
+        methodology: string;
+        paths: Array<{
+          path_id: string;
+          label: string;
+          monthly_return: number;
+          early_shock: number;
+          final_balance: number;
+          lowest_balance: number;
+          exhaustion_month?: number | null;
+          exhaustion_year?: number | null;
+          survived_horizon: boolean;
+          checkpoints: Array<{
+            month: number;
+            year: number;
+            balance: number;
+          }>;
+        }>;
+        stochastic?: {
+          title: string;
+          simulation_count: number;
+          seed: number;
+          success_count: number;
+          success_rate: number;
+          percentiles: {
+            final_balance_p10: number;
+            final_balance_p50: number;
+            final_balance_p90: number;
+          };
+          median_exhaustion_month?: number | null;
+          median_exhaustion_year?: number | null;
+          sample_paths: Array<{
+            path_index: number;
+            final_balance: number;
+            lowest_balance: number;
+            exhaustion_month?: number | null;
+            survived_horizon: boolean;
+          }>;
+          methodology: string;
+        };
+      };
+      caveat: string;
+    };
+  };
+  assumptions: string[];
+  next_steps: string[];
+}
+
+export interface InvestmentStudyQualityPayload {
+  title: string;
+  status: string;
+  status_label: string;
+  readiness_score: number;
+  completed_checks: number;
+  total_checks: number;
+  summary: string;
+  remaining_work: string[];
+  checks: Array<{
+    check_id: string;
+    label: string;
+    status: string;
+    status_label: string;
+    detail: string;
+    severity: string;
+  }>;
+}
+
 export interface InvestmentComparisonRequestSnapshotPayload {
   asset_ids: string[];
   custom_portfolios: InvestmentCustomPortfolioRequestPayload[];
@@ -333,6 +1130,27 @@ export interface InvestmentComparisonRequestSnapshotPayload {
   fixed_income_window_frequency: string;
   decision_profile: InvestmentDecisionProfilePayload;
   force_download: boolean;
+}
+
+export interface InvestmentMarketRankingsRequestPayload {
+  preset_id?: string;
+  asset_ids?: string[];
+  start_date?: string;
+  end_date?: string | null;
+  initial_capital?: number;
+  monthly_contribution?: number;
+  benchmark_ids?: string[];
+  decision_profile?: Partial<InvestmentDecisionProfilePayload>;
+  force_download?: boolean;
+}
+
+export interface InvestmentMarketRankingsSnapshotPayload {
+  generated_at: string;
+  request: Record<string, unknown>;
+  market_rankings: InvestmentMarketRankingsPayload;
+  market_screeners: InvestmentMarketScreenersPayload;
+  cache_status: InvestmentCacheStatusPayload;
+  warnings: string[];
 }
 
 export interface InvestmentFixedIncomeResultPayload
@@ -425,6 +1243,60 @@ export interface InvestmentFixedIncomeStudyPayload {
   takeaways: string[];
 }
 
+export interface InvestmentFixedIncomeBacktestPayload {
+  requested_study_mode?: string;
+  tax_treatment?: string;
+  window_frequency?: string;
+  selected_study_id?: string;
+  selected_study_label?: string;
+  study_count?: number;
+  studies?: InvestmentFixedIncomeStudyPayload[];
+  summary?: {
+    available_study_ids: string[];
+    takeaways: string[];
+  };
+  methodology: {
+    benchmark_instrument_id: string;
+    benchmark_label: string;
+    series_source_label: string;
+    series_source_url?: string;
+    index_methodology_label: string;
+    study_id?: string;
+    study_label?: string;
+    study_scope_label?: string;
+    what_it_measures?: string;
+    what_it_does_not_measure?: string;
+    rolling_window_note: string;
+    full_period_note: string;
+    comparison_metric_label?: string;
+    tax_treatment?: string;
+    window_frequency_requested?: string;
+    window_frequency_effective?: string;
+    selected_fixed_income_ids: string[];
+    video_reference_match: boolean;
+    cache?: Record<string, unknown>;
+    benchmark_cache?: Record<string, unknown>;
+  };
+  full_period: {
+    start_date: string;
+    end_date: string;
+    initial_capital: number;
+    monthly_contribution: number;
+    benchmark: InvestmentFixedIncomeResultPayload;
+    results: InvestmentFixedIncomeResultPayload[];
+    leaders: {
+      overall?: InvestmentFixedIncomeResultPayload;
+      best_real_cagr?: InvestmentFixedIncomeResultPayload;
+      post_fixed?: InvestmentFixedIncomeResultPayload;
+      prefixado?: InvestmentFixedIncomeResultPayload;
+      ipca_plus?: InvestmentFixedIncomeResultPayload;
+      most_consistent?: InvestmentFixedIncomeWindowPayload;
+    };
+  };
+  rolling_windows: InvestmentFixedIncomeWindowPayload[];
+  takeaways: string[];
+}
+
 export interface InvestmentComparisonResponsePayload {
   generated_at: string;
   request: InvestmentComparisonRequestSnapshotPayload;
@@ -460,62 +1332,18 @@ export interface InvestmentComparisonResponsePayload {
     beats_inflation_count?: number | null;
     insights?: string[];
   };
-  fixed_income_backtest?: {
-    requested_study_mode?: string;
-    tax_treatment?: string;
-    window_frequency?: string;
-    selected_study_id?: string;
-    selected_study_label?: string;
-    study_count?: number;
-    studies?: InvestmentFixedIncomeStudyPayload[];
-    summary?: {
-      available_study_ids: string[];
-      takeaways: string[];
-    };
-    methodology: {
-      benchmark_instrument_id: string;
-      benchmark_label: string;
-      series_source_label: string;
-      series_source_url?: string;
-      index_methodology_label: string;
-      study_id?: string;
-      study_label?: string;
-      study_scope_label?: string;
-      what_it_measures?: string;
-      what_it_does_not_measure?: string;
-      rolling_window_note: string;
-      full_period_note: string;
-      comparison_metric_label?: string;
-      tax_treatment?: string;
-      window_frequency_requested?: string;
-      window_frequency_effective?: string;
-      selected_fixed_income_ids: string[];
-      video_reference_match: boolean;
-      cache?: Record<string, unknown>;
-      benchmark_cache?: Record<string, unknown>;
-    };
-    full_period: {
-      start_date: string;
-      end_date: string;
-      initial_capital: number;
-      monthly_contribution: number;
-      benchmark: InvestmentFixedIncomeResultPayload;
-      results: InvestmentFixedIncomeResultPayload[];
-      leaders: {
-        overall?: InvestmentFixedIncomeResultPayload;
-        best_real_cagr?: InvestmentFixedIncomeResultPayload;
-        post_fixed?: InvestmentFixedIncomeResultPayload;
-        prefixado?: InvestmentFixedIncomeResultPayload;
-        ipca_plus?: InvestmentFixedIncomeResultPayload;
-        most_consistent?: InvestmentFixedIncomeWindowPayload;
-      };
-    };
-    rolling_windows: InvestmentFixedIncomeWindowPayload[];
-    takeaways: string[];
-  } | null;
+  fixed_income_backtest?: InvestmentFixedIncomeBacktestPayload | null;
   methodology_guide?: InvestmentMethodologyGuidePayload;
+  product_realism?: InvestmentProductRealismPayload;
+  retail_fixed_income_equivalence?: InvestmentRetailFixedIncomeEquivalencePayload;
+  result_stories?: InvestmentResultStoriesPayload;
+  market_rankings?: InvestmentMarketRankingsPayload;
+  market_screeners?: InvestmentMarketScreenersPayload;
+  cache_status?: InvestmentCacheStatusPayload;
   fixed_income_decision_guide?: InvestmentFixedIncomeDecisionGuidePayload | null;
   portfolio_objective_summary?: InvestmentPortfolioObjectiveSummaryPayload;
+  portfolio_lifecycle?: InvestmentPortfolioLifecyclePayload;
+  study_quality?: InvestmentStudyQualityPayload;
   warnings: string[];
 }
 
@@ -1014,6 +1842,17 @@ export interface PairsBacktestManifestPayload {
   warnings: string[];
 }
 
+export interface SavedPairsRadarItemPayload {
+  pairs_backtest_id: string;
+  label: string;
+  preset_label: string;
+  created_at: string;
+  saved_at: string;
+  scenario_count: number;
+  candidate_pair_count: number;
+  benchmark_ids: string[];
+}
+
 export interface PairsBacktestResultsPayload {
   pairs_backtest_id: string;
   created_at: string;
@@ -1257,6 +2096,30 @@ export interface Wege3RegraAScenarioPayload {
   trades: Wege3RegraATradePayload[];
   artifacts: Wege3RegraAArtifactsPayload;
   reproduction_command: string;
+}
+
+export interface BacktestStrategyCatalogPayload {
+  title: string;
+  plain_language_summary: string;
+  generated_at: string;
+  strategies: Array<{
+    strategy_id: string;
+    label: string;
+    family: string;
+    direction: string;
+    required_inputs: string[];
+    parameter_defaults?: Record<string, string | number | boolean | null>;
+    universe_defaults?: string[];
+    supported_timeframes: string[];
+    execution_notes?: string[];
+    risk_notes: string[];
+  }>;
+  score_dimensions: Array<{
+    dimension_id: string;
+    label: string;
+    description: string;
+  }>;
+  radar_plan: string[];
 }
 
 export interface BacktestResponse {

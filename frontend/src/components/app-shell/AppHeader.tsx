@@ -13,7 +13,7 @@ function statusClasses(isLoading: boolean, isDegraded: boolean, hasError: boolea
 }
 
 export default function AppHeader() {
-  const { status, isLoading, error } = useSystemStatus();
+  const { status, isLoading, isStale, error } = useSystemStatus();
   const warningCount = status?.warnings.length ?? 0;
   const activeJobs =
     (status?.job_counts.queued ?? 0) +
@@ -21,11 +21,13 @@ export default function AppHeader() {
     (status?.pairs_job_counts.queued ?? 0) +
     (status?.pairs_job_counts.running ?? 0);
   const hasError = error !== null;
-  const isDegraded = status?.status === 'degraded';
+  const isDegraded = status?.status === 'degraded' || isStale;
   const statusLabel = isLoading
     ? 'Verificando sistema'
     : hasError
       ? 'Diagnostico indisponivel'
+      : isStale
+        ? 'Diagnostico com atraso'
       : isDegraded
         ? `Atencao: ${warningCount} alerta${warningCount === 1 ? '' : 's'}`
         : 'Sistema pronto';
@@ -58,6 +60,8 @@ export default function AppHeader() {
             )}
             {statusLabel}
           </div>
+
+          {hasError ? <p className="mt-2 text-xs opacity-80">Motivo: {error}</p> : null}
 
           {status && !hasError && (
             <>

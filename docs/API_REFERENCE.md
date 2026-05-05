@@ -216,17 +216,31 @@ asset class?”.
 ```
 GET  /investments/catalog
 POST /investments/compare
+POST /investments/product-data/refresh
 ```
 
 **Highlights**
 
 - `GET /investments/catalog`: returns the curated catalog used by the Investments workspace, grouped by families such as Brazilian stocks, ETFs, FIIs, international exposure via B3, and fixed-income proxies
 - `GET /investments/catalog`: also returns beginner-friendly presets like `Primeiros passos`, `Balanceado B3`, `Renda e defensividade`, `Global pela B3`, and `Carteira 40+ (video)`
+- `GET /investments/catalog`: includes `investor_easy_parity`, a local comparison with the public Investidor Facil offer, including feature coverage, plan equivalence, remaining gaps, and 15 educational calculators
 - `GET /investments/catalog`: guided portfolios expose `components`, `rebalance_frequency`, `implementation_note`, and explanatory `notes` so the UI can show how the allocation was approximated
+- `GET /investments/catalog`: includes `market_explorer` facets for category lists, product types, risk, region, and the first ranking backlog inspired by market-list workflows
+- `GET /investments/catalog`: includes `product_data_plan` with source registry, local source manifest, catalog enrichment, FII identity map, FII-to-CVM bridge, CVM fund profile summary, initial CVM rankings, ETF/BDR profile and fee ranking, consolidated methodology-readiness ranking, release packages, market-filter backlog, and validation gates for post-roadmap product-data ingestion
+- `POST /investments/product-data/refresh`: refreshes one controlled product-data source into `data/product_sources`; operational sources currently include `b3_fii_listed`, `cvm_fund_daily_reports`, and `b3_listed_products`. FIIs attempt the official B3 page, persist a CSV cache, `manifest.json`, and `refresh_history.jsonl`, and fall back to curated seed data when the source shape is not structured. The FII cache schema `b3_fii_listed.v2` also exposes approximate yield, liquidity, income focus, and data-quality fields used by Market Explorer filters and rankings. CVM fund daily reports attempt the official monthly ZIP and normalize quota, PL, subscriptions, redemptions, and holder-count fields before falling back. B3 listed products expose ETF/BDR product type, reference index, admin fee, exposure, and tracking notes through `b3_listed_products.v1`
 - `POST /investments/compare`: compares the same initial capital and monthly contribution schedule across the selected assets
 - `POST /investments/compare`: returns ranked results, benchmark curves, class summaries, and simple highlights such as how many chosen assets beat SELIC or BOVA11
 - `POST /investments/compare`: accepts `decision_profile` so explanations can be ranked by objective, horizon, liquidity need, mark-to-market tolerance, tax view, and income target without changing the historical simulation
-- `POST /investments/compare`: returns `methodology_guide`, `fixed_income_decision_guide`, and `portfolio_objective_summary` for didactic interpretation and scenario cards
+- `POST /investments/compare`: returns `methodology_guide`, `product_realism`, `retail_fixed_income_equivalence`, `result_stories`, `market_rankings`, `market_screeners`, `cache_status`, `fixed_income_decision_guide`, `portfolio_objective_summary`, and `portfolio_lifecycle` for didactic interpretation, investable-product caveats, retail fixed-income equivalence, guided result stories, QuantBrasil-inspired rankings/screeners, data-cache observability, and scenario cards
+- `POST /investments/market-rankings`: builds a compact market-explorer snapshot from a preset or explicit asset list, returning `market_rankings`, `market_screeners`, `cache_status`, and warnings without the full comparison payload
+- `GET /investments/workspaces/portfolios` and `POST /investments/workspaces/portfolios`: list and save reusable custom portfolios for the Investments workspace
+- `DELETE /investments/workspaces/portfolios/{portfolio_id}`: removes one saved custom portfolio
+- `GET /investments/workspaces/pairs-radar` and `POST /investments/workspaces/pairs-radar`: list and save Pairs radar favorites for reusable cointegration/backtest research
+- `DELETE /investments/workspaces/pairs-radar/{pairs_backtest_id}`: removes one saved Pairs radar favorite
+- `GET /investments/workspaces/strategy-radar` and `POST /investments/workspaces/strategy-radar`: list, save, and update strategy setup favorites from the `Simular` catalog, including `parameter_values`, `universe`, `timeframe`, and setup notes when available
+- `DELETE /investments/workspaces/strategy-radar/{strategy_id}`: removes one saved strategy setup favorite
+- `GET /investments/workspaces/strategy-setup-runs` and `POST /investments/workspaces/strategy-setup-runs`: list and persist execution summaries for saved `Simular` setups, including run id or `pairs_backtest_id`, strategy/scenario count, return, drawdown, and route hint
+- `GET /investments/workspaces/strategy-setup-scores`: returns the first backend-ranked setup score, using latest persisted run history and the explicit `score = total_return * 100 - abs(max_drawdown) * 50 + min(trade_count, 20) * 0.25 + min(run_count, 5) * 0.5 + data_validity_score` methodology, plus component fields for return, drawdown penalty, execution score, robustness score, data-validity score, route, run id, and Pairs backtest id
 - Market assets use adjusted close to approximate total return, while `SELIC_PROXY` compounds by daily SELIC rate as a didactic cash / Tesouro Selic reference
 
 **Example Request**
@@ -258,8 +272,15 @@ POST /investments/compare
 - `class_summary`: average performance by asset family
 - `highlights`: best final value, most defensive asset, and plain-language insights
 - `methodology_guide`: evidence types, assumptions, caveats, decision-profile notes, and realism notes
+- `product_realism`: explicit coverage of tax, IOF, fees/spreads, liquidity, mark-to-market, income/reinvestment, product investability, and the next methodology gaps
+- `retail_fixed_income_equivalence`: first practical CDB versus LCI/LCA/debenture incentivada after-tax equivalence table using IR regressivo, IOF for short redemptions, the profile horizon, and a reference CDI assumption
+- `result_stories`: guided readings and first rankings for questions such as who beat SELIC, who fell less, who protected better against inflation, and who led by final value or real return
+- `market_rankings`: exportable rankings for period return, real return, drawdown, volatility, momentum, distance from peak, beta to benchmark, and a guided factor score over the selected universe, with methodology notes, benchmark context, source label, and caveats
+- `market_screeners`: reusable screener presets for the current universe, including positive real return, low drawdown, low volatility, and income candidates, with rule summaries and matched rows
+- `cache_status`: local cache readiness for listed assets, fixed-income indexes, and Tesouro Direto, including cold-start notes, latest file name, approximate cache age, freshness labels, refresh hints, and which groups were used by the current result
 - `fixed_income_decision_guide`: profile-scored fixed-income cards when the comparison includes fixed income
 - `portfolio_objective_summary`: objective-ranked winners, portfolio rows, and scenario cards for income, retirement, preservation, and accumulation
+- `portfolio_lifecycle`: retirement, withdrawal, pre-retirement, accumulation, and portfolio-versus-single-asset scenario cards
 - `warnings`: explains excluded assets or incomplete history when the requested window is not fair for all instruments
 
 ### 1C. List Local Datasets
@@ -393,6 +414,38 @@ The saved payload is designed for reopening the same portfolio draft in the fron
 ### 2. Run Backtest
 
 Execute backtest with specified parameters and strategies.
+
+### 2.0 Strategy Catalog
+
+**Endpoint**
+```
+GET /backtests/strategy-catalog
+POST /backtests/strategy-setup-plan
+```
+
+Returns the first explainable strategy catalog for the `Simular` workspace:
+
+- `strategies`: strategy id, label, family, direction, required inputs, supported timeframe, and risk notes
+- `score_dimensions`: EV, drawdown, robustness, and execution-quality dimensions that will feed the score/radar flow
+- `radar_plan`: planned local favorites, explainable ranking, and result-validity metadata
+
+`POST /backtests/strategy-setup-plan` accepts one saved strategy radar item and returns a
+reviewable execution plan with `route_hint`, `readiness`, a draft `run_request`, assumptions,
+warnings, and next actions. It prepares the future run/compare flow without treating the saved
+setup as an investment recommendation. In the frontend, plans with `route_hint=/backtest` and
+`route_hint=/pairs/backtests` can now be executed directly from the `Simular` setup radar. Pairs
+setups still keep the separate handoff into the dedicated lab for deeper inspection. Executed setup runs are persisted through
+`/investments/workspaces/strategy-setup-runs` and mirrored in browser storage as a fallback, so the
+user can compare recent run ids, Pairs backtest ids, trade counts, and basic metrics. The backend also exposes the first setup score
+endpoint from latest setup history using a simple return-minus-drawdown-plus-execution methodology, explicitly as
+an interim explanation layer rather than a recommendation. From each persisted setup run, the
+frontend can reopen `GET /runs/{run_id}/response` and display a compact per-strategy result summary
+inside the setup radar; Pairs executions can likewise reopen `GET /pairs/backtests/{pairs_backtest_id}/results`
+for a compact per-scenario result summary. Setups with `route_hint=/pairs/backtests` can be handed off from the
+`Simular` radar to the Pairs lab through a browser-persisted draft containing tickers, formation
+window, entry/exit z-scores, and stop z-score; the app also switches directly to `Avancado > Pairs
+B3` when that handoff is triggered. The frontend can export the executed setup ranking as CSV with
+score components, run ids, Pairs backtest ids, route hints, and methodology.
 
 **Endpoint**
 ```

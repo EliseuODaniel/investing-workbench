@@ -39,6 +39,7 @@ class InvestmentInstrument:
             {"component_id": component_id, "weight": weight}
             for component_id, weight in self.components
         ]
+        payload["product_profile"] = _build_instrument_product_profile(self)
         return payload
 
 
@@ -79,6 +80,116 @@ CATEGORY_LABELS: dict[str, str] = {
     "fixed_income_b3": "Renda fixa / juros na B3",
     "macro_proxies": "Caixa, inflacao e retorno real",
 }
+
+SOURCE_KIND_LABELS: dict[str, str] = {
+    "listed_security": "Ativos negociados",
+    "model_portfolio": "Carteiras guiadas",
+    "fixed_income_index": "Indices de renda fixa",
+    "tesouro_direct_strategy": "Tesouro Direto",
+    "selic_proxy": "Proxy de caixa",
+    "rate_proxy": "Proxy de taxa",
+    "inflation_proxy": "Proxy de inflacao",
+}
+
+
+def _build_instrument_product_profile(instrument: InvestmentInstrument) -> dict[str, Any]:
+    """Build product-level metadata for didactic catalog explanations."""
+
+    if instrument.source_kind == "model_portfolio":
+        return {
+            "investment_type_label": "Carteira modelo",
+            "liquidity_label": "Depende dos componentes e do rebalanceamento.",
+            "tax_treatment_label": "Impostos tratados pelos produtos internos quando aplicavel.",
+            "income_policy_label": "Renda e valorizacao sao agregadas no retorno total.",
+            "fee_model_label": "Sem taxa propria; componentes podem ter custos e spreads.",
+            "data_quality_label": "Backtest composto por historico dos componentes.",
+            "investability_label": "Modelo replicavel manualmente, nao um produto unico.",
+        }
+    if instrument.source_kind == "tesouro_direct_strategy":
+        return {
+            "investment_type_label": "Tesouro Direto",
+            "liquidity_label": "Liquidez diaria via Tesouro Direto, sujeita a calendario e preco.",
+            "tax_treatment_label": "IR regressivo e IOF estimados na visao liquida.",
+            "income_policy_label": (
+                "Cupom e vencimentos sao aproximados pela estrategia de rolagem."
+            ),
+            "fee_model_label": "Nao inclui spread operacional ou eventuais custos de corretora.",
+            "data_quality_label": "Historico oficial de precos e taxas do Tesouro Direto.",
+            "investability_label": "Produto de varejo real, modelado por regra de rolagem.",
+        }
+    if instrument.source_kind == "fixed_income_index":
+        return {
+            "investment_type_label": "Indice de renda fixa",
+            "liquidity_label": "Nao e produto negociavel diretamente.",
+            "tax_treatment_label": (
+                "Indice teorico bruto, salvo quando estudo aplicar visao liquida."
+            ),
+            "income_policy_label": "Retorno total do indice, sem fluxo de caixa individual.",
+            "fee_model_label": "Sem taxa de produto; ETFs/fundos reais podem divergir.",
+            "data_quality_label": "Serie historica de indice usada para metodologia.",
+            "investability_label": "Referencia teorica, nao produto de prateleira.",
+        }
+    if instrument.source_kind in {"selic_proxy", "rate_proxy", "inflation_proxy"}:
+        return {
+            "investment_type_label": "Proxy macro",
+            "liquidity_label": "Referencia didatica, nao produto compravel diretamente.",
+            "tax_treatment_label": "Sem tributacao de produto modelada neste proxy.",
+            "income_policy_label": "Acumulacao por taxa ou indice.",
+            "fee_model_label": "Sem taxa de administracao ou spread.",
+            "data_quality_label": "Serie macro transformada em curva comparativa.",
+            "investability_label": "Proxy para decisao, nao instrumento investivel.",
+        }
+    if instrument.category_id == "fiis":
+        return {
+            "investment_type_label": "FII listado",
+            "liquidity_label": "Negociado em bolsa; liquidez depende do fundo.",
+            "tax_treatment_label": (
+                "Rendimentos podem ser isentos; ganho de capital tem regras proprias."
+            ),
+            "income_policy_label": (
+                "Cota ajustada aproxima retorno total, sem calendario mensal detalhado."
+            ),
+            "fee_model_label": (
+                "Taxas do fundo ja afetam a cota; spread de negociacao nao modelado."
+            ),
+            "data_quality_label": "Serie ajustada em bolsa, sujeita a historico mais curto.",
+            "investability_label": "Produto listado compravel na B3.",
+        }
+    if instrument.category_id == "international_b3":
+        return {
+            "investment_type_label": "ETF/BDR internacional pela B3",
+            "liquidity_label": "Negociado em reais na B3; liquidez varia por produto.",
+            "tax_treatment_label": "Tributacao de renda variavel local nao e modelada no catalogo.",
+            "income_policy_label": "Serie ajustada aproxima dividendos/eventos no retorno total.",
+            "fee_model_label": "Taxas do ETF/BDR e tracking error podem afetar o retorno.",
+            "data_quality_label": (
+                "Historico local em reais; pode ser mais curto que o ativo original."
+            ),
+            "investability_label": "Produto listado na B3 ou proxy local de exposicao global.",
+        }
+    if instrument.category_id == "fixed_income_b3":
+        return {
+            "investment_type_label": "ETF de renda fixa listado",
+            "liquidity_label": "Negociado em bolsa; liquidez e spread variam por ETF.",
+            "tax_treatment_label": "Imposto do produto listado nao e separado neste catalogo.",
+            "income_policy_label": "Retorno total via cota ajustada, sem fluxo de cupons separado.",
+            "fee_model_label": "Taxa do ETF e tracking error aparecem indiretamente na cota.",
+            "data_quality_label": (
+                "Historico de produto investivel, normalmente mais curto que indices."
+            ),
+            "investability_label": "Produto listado compravel na B3.",
+        }
+    return {
+        "investment_type_label": "Acao listada",
+        "liquidity_label": "Negociada em bolsa; liquidez depende do papel.",
+        "tax_treatment_label": "Tributacao de renda variavel nao e aplicada no catalogo.",
+        "income_policy_label": (
+            "Serie ajustada aproxima dividendos, JCP e eventos no retorno total."
+        ),
+        "fee_model_label": "Corretagem, spread e emolumentos nao modelados.",
+        "data_quality_label": "Historico ajustado de mercado.",
+        "investability_label": "Ativo listado compravel na B3.",
+    }
 
 
 _VIDEO_STOCK_SLEEVE: tuple[tuple[str, float], ...] = (
@@ -322,6 +433,23 @@ INSTRUMENTS: tuple[InvestmentInstrument, ...] = (
         region_label="Brasil",
     ),
     InvestmentInstrument(
+        instrument_id="HASH11",
+        label="HASH11",
+        ticker="HASH11",
+        category_id="etfs_brazil",
+        category_label=CATEGORY_LABELS["etfs_brazil"],
+        description="ETF local de criptoativos usado como comparativo de classe alternativa.",
+        rationale=(
+            "Ajuda a separar retorno de alto risco de uma alocacao diversificada tradicional."
+        ),
+        risk_label="Muito alta",
+        region_label="Brasil",
+        notes=(
+            "Pode ter volatilidade muito superior a acoes, FIIs e renda fixa.",
+            "Entra como comparativo educacional, nao como recomendacao de alocacao.",
+        ),
+    ),
+    InvestmentInstrument(
         instrument_id="IVVB11",
         label="IVVB11",
         ticker="IVVB11",
@@ -420,6 +548,28 @@ INSTRUMENTS: tuple[InvestmentInstrument, ...] = (
         region_label="Internacional via B3",
     ),
     InvestmentInstrument(
+        instrument_id="TSLA34",
+        label="TSLA34",
+        ticker="TSLA34",
+        category_id="international_b3",
+        category_label=CATEGORY_LABELS["international_b3"],
+        description="BDR de acao internacional de crescimento negociado em reais na B3.",
+        rationale="Exemplo de BDR individual com risco idiossincratico elevado.",
+        risk_label="Muito alta",
+        region_label="Internacional via B3",
+    ),
+    InvestmentInstrument(
+        instrument_id="AMZO34",
+        label="AMZO34",
+        ticker="AMZO34",
+        category_id="international_b3",
+        category_label=CATEGORY_LABELS["international_b3"],
+        description="BDR de acao internacional de comercio digital e tecnologia.",
+        rationale="Permite comparar uma big tech/consumo global contra ETFs amplos.",
+        risk_label="Alta",
+        region_label="Internacional via B3",
+    ),
+    InvestmentInstrument(
         instrument_id="HGLG11",
         label="HGLG11",
         ticker="HGLG11",
@@ -427,6 +577,28 @@ INSTRUMENTS: tuple[InvestmentInstrument, ...] = (
         category_label=CATEGORY_LABELS["fiis"],
         description="FII de tijolo com foco logistica, muito acompanhado pelo mercado.",
         rationale="Serve como referencia de renda imobiliaria listada na bolsa.",
+        risk_label="Media",
+        region_label="Brasil",
+    ),
+    InvestmentInstrument(
+        instrument_id="VISC11",
+        label="VISC11",
+        ticker="VISC11",
+        category_id="fiis",
+        category_label=CATEGORY_LABELS["fiis"],
+        description="FII de shopping centers usado para comparar tijolo de consumo.",
+        rationale="Complementa os FIIs logisticos e hibridos com uma tese imobiliaria diferente.",
+        risk_label="Media",
+        region_label="Brasil",
+    ),
+    InvestmentInstrument(
+        instrument_id="KNCR11",
+        label="KNCR11",
+        ticker="KNCR11",
+        category_id="fiis",
+        category_label=CATEGORY_LABELS["fiis"],
+        description="FII de papel indexado majoritariamente a credito imobiliario.",
+        rationale="Ajuda a comparar renda recorrente de recebiveis contra tijolo e caixa.",
         risk_label="Media",
         region_label="Brasil",
     ),
@@ -1111,8 +1283,29 @@ PRESETS: tuple[InvestmentPreset, ...] = (
         preset_id="global_b3",
         label="Global pela B3",
         description="Internacionalizacao por ETF e BDR, sem abrir conta fora.",
-        asset_ids=("SELIC_PROXY", "IVVB11", "AAPL34", "MSFT34", "GOGL34"),
+        asset_ids=("SELIC_PROXY", "IVVB11", "ACWI11", "AAPL34", "MSFT34", "GOGL34"),
         goal_label="Comparar acesso internacional amplo versus concentrado.",
+    ),
+    InvestmentPreset(
+        preset_id="global_bdr_growth",
+        label="BDRs de crescimento",
+        description="Compara big techs e empresas globais acessiveis via BDR na B3.",
+        asset_ids=("SELIC_PROXY", "IVVB11", "AAPL34", "MSFT34", "GOGL34", "AMZO34", "TSLA34"),
+        goal_label="Separar diversificacao internacional ampla de concentracao em BDRs.",
+    ),
+    InvestmentPreset(
+        preset_id="fii_income_ladder",
+        label="FIIs por tipo",
+        description="Compara FIIs logisticos, hibridos, shoppings e recebiveis.",
+        asset_ids=("SELIC_PROXY", "HGLG11", "KNRI11", "XPLG11", "VISC11", "MXRF11", "KNCR11"),
+        goal_label="Entender como diferentes tipos de FII aparecem em retorno, queda e renda.",
+    ),
+    InvestmentPreset(
+        preset_id="risk_spectrum",
+        label="Escada de risco",
+        description="Coloca caixa, juros reais, bolsa, exterior, FIIs e cripto ETF lado a lado.",
+        asset_ids=("SELIC_PROXY", "IMAB11", "BOVA11", "IVVB11", "HGLG11", "HASH11"),
+        goal_label="Visualizar o preco de buscar mais retorno em classes mais volateis.",
     ),
     InvestmentPreset(
         preset_id="sardinha_40_plus",
@@ -1166,6 +1359,10 @@ BENCHMARK_OPTIONS: tuple[dict[str, Any], ...] = (
 
 def build_catalog_payload() -> dict[str, Any]:
     """Serialize the curated catalog for API/UI consumers."""
+
+    from .investor_easy_parity import build_investor_easy_parity
+    from .product_data_plan import build_product_data_plan
+
     visible_items = [item for item in INSTRUMENTS if item.visible_in_catalog]
     categories = [
         {
@@ -1181,6 +1378,9 @@ def build_catalog_payload() -> dict[str, Any]:
         "instruments": [item.to_payload() for item in visible_items],
         "presets": [item.to_payload() for item in PRESETS],
         "benchmark_options": list(BENCHMARK_OPTIONS),
+        "market_explorer": _build_market_explorer_payload(visible_items),
+        "product_data_plan": build_product_data_plan(instruments=list(INSTRUMENTS)),
+        "investor_easy_parity": build_investor_easy_parity(),
         "notes": [
             (
                 "Acoes, ETFs, FIIs e BDRs usam serie ajustada para aproximar "
@@ -1219,3 +1419,428 @@ def build_catalog_payload() -> dict[str, Any]:
             ),
         ],
     }
+
+
+def _build_market_explorer_payload(
+    visible_items: list[InvestmentInstrument],
+) -> dict[str, Any]:
+    """Build lightweight catalog facets inspired by market-list products."""
+
+    return {
+        "title": "Explorador de mercado",
+        "plain_language_summary": (
+            "Visao inicial do universo disponivel no Workbench por categoria, tipo de produto, "
+            "risco e regiao. Rankings historicos completos entram em ciclos posteriores."
+        ),
+        "category_lists": [
+            {
+                "list_id": category_id,
+                "label": label,
+                "count": len(items),
+                "sample_instrument_ids": [item.instrument_id for item in items[:6]],
+                "sample_labels": [item.label for item in items[:6]],
+            }
+            for category_id, label, items in _group_catalog_items(
+                visible_items,
+                key=lambda item: item.category_id,
+                label=lambda item: item.category_label,
+            )
+        ],
+        "curated_lists": _build_curated_market_lists(visible_items),
+        "product_type_facets": [
+            {
+                "source_kind": source_kind,
+                "label": SOURCE_KIND_LABELS.get(source_kind, source_kind.replace("_", " ").title()),
+                "count": len(items),
+            }
+            for source_kind, _label, items in _group_catalog_items(
+                visible_items,
+                key=lambda item: item.source_kind,
+                label=lambda item: SOURCE_KIND_LABELS.get(
+                    item.source_kind,
+                    item.source_kind.replace("_", " ").title(),
+                ),
+            )
+        ],
+        "risk_facets": _count_facet(
+            visible_items,
+            facet_id="risk",
+            key=lambda item: item.risk_label,
+        ),
+        "region_facets": _count_facet(
+            visible_items,
+            facet_id="region",
+            key=lambda item: item.region_label,
+        ),
+        "product_data_filters": _build_product_data_filters(visible_items),
+        "product_data_screeners": _build_product_data_screeners(visible_items),
+        "product_data_rankings": _build_product_data_rankings(visible_items),
+        "ranking_backlog": [
+            {
+                "ranking_id": "final_value",
+                "label": "Valor final",
+                "status": "available_in_market_rankings",
+            },
+            {
+                "ranking_id": "drawdown",
+                "label": "Quem caiu menos",
+                "status": "available_in_market_rankings",
+            },
+            {
+                "ranking_id": "real_cagr",
+                "label": "Protecao contra inflacao",
+                "status": "available_in_market_rankings",
+            },
+            {
+                "ranking_id": "income_generation",
+                "label": "Renda acumulada",
+                "status": "available_in_result_stories",
+            },
+            {
+                "ranking_id": "mark_to_market_stress",
+                "label": "Marcação a mercado extrema",
+                "status": "available_in_result_stories",
+            },
+            {
+                "ranking_id": "best_profile_match",
+                "label": "Melhor perfil de decisão",
+                "status": "available_in_result_stories",
+            },
+            {
+                "ranking_id": "guided_factor_score",
+                "label": "Score fatorial guiado",
+                "status": "available_in_market_rankings",
+            },
+            {
+                "ranking_id": "momentum_beta_var",
+                "label": "Momentum, beta e VaR",
+                "status": "planned",
+            },
+        ],
+    }
+
+
+def _build_product_data_filters(
+    visible_items: list[InvestmentInstrument],
+) -> list[dict[str, Any]]:
+    from .product_data_connectors import load_cached_source_rows
+
+    rows = load_cached_source_rows(source_id="b3_fii_listed")
+    by_ticker = {row["ticker"].upper(): row for row in rows if row.get("ticker")}
+    fii_items = [
+        item
+        for item in visible_items
+        if item.category_id == "fiis" and item.ticker and item.ticker.upper() in by_ticker
+    ]
+    if not fii_items:
+        return []
+
+    segment_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    liquidity_counts: dict[str, int] = {}
+    income_focus_counts: dict[str, int] = {}
+    for item in fii_items:
+        row = by_ticker[str(item.ticker).upper()]
+        segment = row.get("segmento") or "Nao informado"
+        status = row.get("status_listagem") or "Nao informado"
+        liquidity = row.get("liquidity_label") or "Nao informado"
+        income_focus = row.get("income_focus") or "Nao informado"
+        segment_counts[segment] = segment_counts.get(segment, 0) + 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+        liquidity_counts[liquidity] = liquidity_counts.get(liquidity, 0) + 1
+        income_focus_counts[income_focus] = income_focus_counts.get(income_focus, 0) + 1
+    return [
+        {
+            "filter_id": "fii_segment",
+            "label": "Segmento de FII",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "options": [
+                {"value": segment, "label": segment, "count": count}
+                for segment, count in sorted(segment_counts.items())
+            ],
+        },
+        {
+            "filter_id": "fii_listing_status",
+            "label": "Status de listagem",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "options": [
+                {"value": status, "label": status, "count": count}
+                for status, count in sorted(status_counts.items())
+            ],
+        },
+        {
+            "filter_id": "fii_liquidity",
+            "label": "Liquidez estimada",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "options": [
+                {"value": liquidity, "label": liquidity, "count": count}
+                for liquidity, count in sorted(liquidity_counts.items())
+            ],
+        },
+        {
+            "filter_id": "fii_income_focus",
+            "label": "Tipo de renda",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "options": [
+                {"value": focus, "label": focus, "count": count}
+                for focus, count in sorted(income_focus_counts.items())
+            ],
+        },
+    ]
+
+
+def _build_product_data_screeners(
+    visible_items: list[InvestmentInstrument],
+) -> list[dict[str, Any]]:
+    from .product_data_connectors import load_cached_source_rows
+
+    rows = load_cached_source_rows(source_id="b3_fii_listed")
+    by_ticker = {row["ticker"].upper(): row for row in rows if row.get("ticker")}
+    matched_rows = [
+        {
+            "instrument_id": item.instrument_id,
+            "label": item.label,
+            "ticker": item.ticker,
+            "segment": by_ticker[str(item.ticker).upper()].get("segmento"),
+            "listing_status": by_ticker[str(item.ticker).upper()].get("status_listagem"),
+            "yield_12m_pct": _float_or_none(
+                by_ticker[str(item.ticker).upper()].get("yield_12m_pct")
+            ),
+            "liquidity_label": by_ticker[str(item.ticker).upper()].get("liquidity_label"),
+            "income_focus": by_ticker[str(item.ticker).upper()].get("income_focus"),
+            "data_quality_score": _float_or_none(
+                by_ticker[str(item.ticker).upper()].get("data_quality_score")
+            ),
+        }
+        for item in visible_items
+        if item.category_id == "fiis" and item.ticker and item.ticker.upper() in by_ticker
+    ]
+    if not matched_rows:
+        return []
+    return [
+        {
+            "screener_id": "fii_listed_metadata",
+            "label": "FIIs com metadados B3 em cache",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "methodology": (
+                "Lista FIIs do catalogo que encontraram ticker no cache local da fonte B3."
+            ),
+            "rows": matched_rows,
+        }
+    ]
+
+
+def _build_product_data_rankings(
+    visible_items: list[InvestmentInstrument],
+) -> list[dict[str, Any]]:
+    screeners = _build_product_data_screeners(visible_items)
+    if not screeners:
+        return []
+    quality_rows = [
+        {
+            "rank": index + 1,
+            "instrument_id": row["instrument_id"],
+            "label": row["label"],
+            "score": round(row.get("data_quality_score") or 0.5, 2),
+            "reason": (
+                "Ticker presente no cache B3 de FIIs, status de listagem disponivel "
+                "e campos de perfil preenchidos."
+            ),
+        }
+        for index, row in enumerate(
+            sorted(
+                screeners[0]["rows"],
+                key=lambda item: item.get("data_quality_score") or 0.0,
+                reverse=True,
+            )
+        )
+    ]
+    income_rows = [
+        {
+            "rank": index + 1,
+            "instrument_id": row["instrument_id"],
+            "label": row["label"],
+            "score": _fii_income_quality_score(row),
+            "reason": _fii_income_quality_reason(row),
+        }
+        for index, row in enumerate(
+            sorted(
+                screeners[0]["rows"],
+                key=_fii_income_quality_score,
+                reverse=True,
+            )
+        )
+    ]
+    return [
+        {
+            "ranking_id": "fii_data_quality",
+            "label": "Qualidade de dado FII",
+            "source_id": "b3_fii_listed",
+            "status": "available",
+            "methodology": (
+                "Ranking por completude e confianca dos metadados FII disponiveis no cache local."
+            ),
+            "rows": quality_rows,
+        },
+        {
+            "ranking_id": "fii_income_quality",
+            "label": "Renda FII com qualidade",
+            "source_id": "b3_fii_listed",
+            "status": "available_seed",
+            "methodology": (
+                "Score didatico combina yield 12m, liquidez qualitativa e qualidade do dado. "
+                "Quando a fonte esta em fallback, use como triagem inicial, nao recomendacao."
+            ),
+            "rows": income_rows,
+        },
+    ]
+
+
+def _float_or_none(value: Any) -> float | None:
+    if value in {None, ""}:
+        return None
+    try:
+        return float(str(value).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _fii_income_quality_score(row: dict[str, Any]) -> float:
+    yield_pct = row.get("yield_12m_pct") or 0.0
+    data_quality = row.get("data_quality_score") or 0.5
+    liquidity_multiplier = {
+        "Alta": 1.0,
+        "Media": 0.85,
+        "Baixa": 0.65,
+    }.get(str(row.get("liquidity_label") or ""), 0.55)
+    return round(float(yield_pct) * float(data_quality) * liquidity_multiplier, 2)
+
+
+def _fii_income_quality_reason(row: dict[str, Any]) -> str:
+    yield_pct = row.get("yield_12m_pct")
+    liquidity = row.get("liquidity_label") or "liquidez nao informada"
+    focus = row.get("income_focus") or "foco de renda nao informado"
+    if yield_pct is None:
+        return f"{focus}; {liquidity}; yield 12m ausente no cache."
+    return f"{focus}; {liquidity}; yield 12m aproximado de {yield_pct:.1f}% no cache."
+
+
+def _build_curated_market_lists(
+    visible_items: list[InvestmentInstrument],
+) -> list[dict[str, Any]]:
+    by_id = {item.instrument_id: item for item in visible_items}
+    definitions = (
+        {
+            "list_id": "monthly_income_candidates",
+            "label": "Candidatos a renda mensal",
+            "description": "FIIs e juros usados para estudar renda recorrente e estabilidade.",
+            "instrument_ids": (
+                "SELIC_PROXY",
+                "CDI_PROXY",
+                "HGLG11",
+                "KNRI11",
+                "VISC11",
+                "MXRF11",
+                "KNCR11",
+            ),
+        },
+        {
+            "list_id": "fii_segments",
+            "label": "FIIs por segmento",
+            "description": "Tijolo logistico, hibrido, shopping e papel no mesmo recorte.",
+            "instrument_ids": ("HGLG11", "KNRI11", "XPLG11", "VISC11", "MXRF11", "KNCR11"),
+        },
+        {
+            "list_id": "global_b3_access",
+            "label": "Exterior via B3",
+            "description": "ETFs amplos, ouro, qualidade global e BDRs individuais.",
+            "instrument_ids": (
+                "IVVB11",
+                "ACWI11",
+                "GOLD11",
+                "BQUA39",
+                "AAPL34",
+                "MSFT34",
+                "GOGL34",
+                "AMZO34",
+                "TSLA34",
+            ),
+        },
+        {
+            "list_id": "ntnb_investable",
+            "label": "NTN-B investivel",
+            "description": "ETFs de juros reais compraveis na B3, com diferentes durations.",
+            "instrument_ids": ("IMAB11", "IMBB11", "B5P211", "B5MB11"),
+        },
+        {
+            "list_id": "retail_treasury_real",
+            "label": "Tesouro Direto real",
+            "description": "Estrategias oficiais de Tesouro para comparar prateleira de varejo.",
+            "instrument_ids": (
+                "TD_SELIC",
+                "TD_PREFIXADO_2A",
+                "TD_PREFIXADO_5A",
+                "TD_IPCA_2A",
+                "TD_IPCA_5A",
+            ),
+        },
+        {
+            "list_id": "risk_ladder",
+            "label": "Escada de risco",
+            "description": "Do caixa a cripto ETF para enxergar retorno, volatilidade e queda.",
+            "instrument_ids": ("SELIC_PROXY", "IMAB11", "BOVA11", "IVVB11", "HGLG11", "HASH11"),
+        },
+    )
+    lists: list[dict[str, Any]] = []
+    for definition in definitions:
+        items = [by_id[item_id] for item_id in definition["instrument_ids"] if item_id in by_id]
+        lists.append(
+            {
+                "list_id": definition["list_id"],
+                "label": definition["label"],
+                "description": definition["description"],
+                "count": len(items),
+                "instrument_ids": [item.instrument_id for item in items],
+                "sample_labels": [item.label for item in items[:8]],
+                "risk_labels": sorted({item.risk_label for item in items}),
+            }
+        )
+    return lists
+
+
+def _group_catalog_items(
+    items: list[InvestmentInstrument],
+    *,
+    key: Any,
+    label: Any,
+) -> list[tuple[str, str, list[InvestmentInstrument]]]:
+    grouped: dict[str, tuple[str, list[InvestmentInstrument]]] = {}
+    for item in items:
+        group_key = str(key(item))
+        group_label, group_items = grouped.setdefault(group_key, (str(label(item)), []))
+        grouped[group_key] = (group_label, [*group_items, item])
+    return [
+        (group_key, group_label, group_items)
+        for group_key, (group_label, group_items) in sorted(grouped.items())
+    ]
+
+
+def _count_facet(
+    items: list[InvestmentInstrument],
+    *,
+    facet_id: str,
+    key: Any,
+) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for item in items:
+        facet_value = str(key(item))
+        counts[facet_value] = counts.get(facet_value, 0) + 1
+    return [
+        {"facet_id": facet_id, "label": label, "count": count}
+        for label, count in sorted(counts.items(), key=lambda row: (-row[1], row[0]))
+    ]

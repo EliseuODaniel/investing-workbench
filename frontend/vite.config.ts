@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const hasPackagePath = (id: string, packageName: string) =>
@@ -6,7 +6,15 @@ const hasPackagePath = (id: string, packageName: string) =>
   id.includes(`\\node_modules\\${packageName}\\`)
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const rawDevApiBase = (env.VITE_API_BASE || 'http://127.0.0.1:18001').trim() || 'http://127.0.0.1:18001';
+  const resolvedDevApiBase =
+    rawDevApiBase === '/api'
+      ? 'http://127.0.0.1:18001'
+      : rawDevApiBase.replace(/\/$/, '');
+
+  return {
   plugins: [react()],
   build: {
     rollupOptions: {
@@ -46,7 +54,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        target: resolvedDevApiBase,
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
@@ -58,4 +66,5 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.tsx']
   }
+}
 })

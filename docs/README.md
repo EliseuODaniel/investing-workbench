@@ -19,6 +19,8 @@ Welcome to the documentation for Investing Workbench. This material covers the p
 - **[API Reference](API_REFERENCE.md)** - Complete REST API documentation with examples
 - **[Final Status](FINAL_STATUS.md)** - Handoff summary, validation status, and optional next backlog
 - **[Evolution V2](EVOLUTION_V2.md)** - Detailed roadmap and implementation plan for the next product cycle
+- **[QuantBrasil Product Audit](QUANTBRASIL_PRODUCT_AUDIT.md)** - Authenticated product audit and replication backlog for Investing Workbench
+- **[Next Product Implementation Plan](NEXT_PRODUCT_IMPLEMENTATION_PLAN.md)** - Detailed next-step roadmap combining current gaps with QuantBrasil-inspired product ideas
 
 ### Trading Strategies
 - **[Strategies Guide](STRATEGIES_GUIDE.md)** - Detailed documentation of all available trading strategies

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import {
   BarChart3,
   Briefcase,
@@ -9,16 +9,18 @@ import {
   SearchCode,
   TrendingUp,
 } from 'lucide-react';
-import AllocationSection from './AllocationSection';
-import MonteCarloWorkspace from '../MonteCarloWorkspace';
-import OptimizationWorkspace from '../OptimizationWorkspace';
-import PairsTradingWorkspace from '../PairsTradingWorkspace';
-import ResearchDrilldownPanel from '../ResearchDrilldownPanel';
-import ResearchOverviewPanel from '../ResearchOverviewPanel';
-import Wege3RegraAWorkspace from '../Wege3RegraAWorkspace';
-import WalkForwardWorkspace from '../WalkForwardWorkspace';
+import LoadingSpinner from '../LoadingSpinner';
 import { AdvancedTool } from '../../hooks/useAppShellState';
 import { ResearchWorkspacePayload } from '../../types/api';
+
+const AllocationSection = lazy(() => import('./AllocationSection'));
+const MonteCarloWorkspace = lazy(() => import('../MonteCarloWorkspace'));
+const OptimizationWorkspace = lazy(() => import('../OptimizationWorkspace'));
+const PairsTradingWorkspace = lazy(() => import('../PairsTradingWorkspace'));
+const ResearchDrilldownPanel = lazy(() => import('../ResearchDrilldownPanel'));
+const ResearchOverviewPanel = lazy(() => import('../ResearchOverviewPanel'));
+const Wege3RegraAWorkspace = lazy(() => import('../Wege3RegraAWorkspace'));
+const WalkForwardWorkspace = lazy(() => import('../WalkForwardWorkspace'));
 
 interface AdvancedSectionProps {
   advancedTool: AdvancedTool;
@@ -138,6 +140,10 @@ function renderAdvancedTool(
   }
 }
 
+function advancedToolFallback(label: string) {
+  return <LoadingSpinner message={`Carregando ${label.toLowerCase()}...`} />;
+}
+
 export default function AdvancedSection({
   advancedTool,
   advancedTools,
@@ -222,16 +228,22 @@ export default function AdvancedSection({
           </p>
         </div>
 
-        {renderAdvancedTool(advancedTool, {
-          selectedConfigPath,
-          defaultStrategies,
-          currentRunId,
-          onError,
-          onLoadRun,
-          workspaceToOpen,
-          onWorkspaceOpened,
-          onWorkspaceSaved,
-        })}
+        <Suspense
+          fallback={advancedToolFallback(
+            advancedTools.find((tool) => tool.id === advancedTool)?.label ?? 'ferramenta'
+          )}
+        >
+          {renderAdvancedTool(advancedTool, {
+            selectedConfigPath,
+            defaultStrategies,
+            currentRunId,
+            onError,
+            onLoadRun,
+            workspaceToOpen,
+            onWorkspaceOpened,
+            onWorkspaceSaved,
+          })}
+        </Suspense>
       </div>
     </div>
   );

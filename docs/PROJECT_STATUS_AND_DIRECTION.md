@@ -1,6 +1,6 @@
 # Project Status And Direction
 
-Last updated: `2026-04-24T00:25:50-03:00`
+Last updated: `2026-04-27T21:10:00-03:00`
 
 ## Executive Read
 
@@ -29,6 +29,9 @@ The product center has shifted. The most important surface is now `Investimentos
 - Persisted backtests, async jobs, run history, comparison, reports, exports, and reproducibility metadata.
 - B3 pairs trading research with universe resolution, screeners, batch backtests, borrow snapshots, diagnostics, and persisted artifacts.
 - Optimization, walk-forward validation, Monte Carlo robustness, dataset management, saved research workspaces, and allocation planning.
+- QuantBrasil-inspired market explorer/rankings/screeners in `Investimentos`.
+- Backend-backed custom portfolios, Pairs radar, strategy setup radar, and setup execution history.
+- `Simular` strategy catalog with editable setup drafts, execution planning, direct `/backtest` execution, backend setup scoring, compact result reopening, and direct handoff to `Avancado > Pairs B3`.
 
 ## Architecture Assessment
 
@@ -41,6 +44,9 @@ The main architecture pressure has moved to two hotspots, with the first extract
 - `src/investing_workbench/application/investments/narratives.py` now owns the first slice of methodology, decision, and objective narrative payloads.
 - `src/investing_workbench/application/investments/decision_profile.py` normalizes investor profile inputs for didactic guidance.
 - `frontend/src/components/investments/` now owns the first extracted result panels for methodology and decision support.
+- `frontend/src/components/StrategyCatalogPanel.tsx` is now the main `Simular` setup-radar surface.
+- `src/investing_workbench/application/backtests/strategy_catalog.py` owns strategy catalog metadata and setup-plan generation.
+- `src/investing_workbench/application/investment_workspaces/service.py` now persists reusable portfolios, Pairs radar, strategy radar, setup run summaries, and setup scores.
 
 That is a good sign in a way: the pressure has moved from "the app is not wired" to "the flagship feature is important enough to deserve proper internal boundaries."
 
@@ -82,6 +88,9 @@ This means the next improvements should prioritize:
 
 6. Harden cold-start performance and cache observability.
    Fixed-income and Tesouro studies should be fast after first load, transparent about cache coverage, and clear when official data could not be refreshed.
+
+7. Mature setup scoring and Pairs execution.
+   The setup radar now works end to end for cataloging, editing, planning, executing core backtests, scoring first-pass results, reopening run summaries, and handing Pairs setups to the advanced lab. Next, deepen score dimensions and decide whether Pairs should execute directly from the radar or remain intentionally inside the lab.
 
 ## Risks To Watch
 

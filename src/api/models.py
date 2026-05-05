@@ -643,6 +643,40 @@ class InvestmentCompareRequestModel(BaseModel):
     force_download: bool = Field(default=False)
 
 
+class InvestmentMarketRankingsRequestModel(BaseModel):
+    """Request model for a market-rankings snapshot over a preset or custom universe."""
+
+    preset_id: str = Field(default="first_steps")
+    asset_ids: List[str] = Field(default_factory=list)
+    start_date: str = Field(default="2021-01-01")
+    end_date: Optional[str] = Field(default=None)
+    initial_capital: float = Field(default=10000.0, gt=0.0)
+    monthly_contribution: float = Field(default=0.0, ge=0.0)
+    benchmark_ids: List[str] = Field(default_factory=lambda: ["selic_cash"])
+    decision_profile: InvestmentDecisionProfileRequestModel = Field(
+        default_factory=InvestmentDecisionProfileRequestModel
+    )
+    force_download: bool = Field(default=False)
+
+
+class InvestmentProductDataRefreshRequestModel(BaseModel):
+    """Request model for refreshing one product-data source."""
+
+    source_id: str = Field(default="b3_fii_listed")
+    force: bool = Field(default=False)
+
+
+class InvestmentProductDataRefreshResponseModel(BaseModel):
+    """Response payload for one product-data source refresh."""
+
+    source_id: str
+    status: str
+    status_label: str
+    message: str
+    manifest: Optional[Dict[str, Any]] = Field(default=None)
+    history: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 class InvestmentCatalogResponseModel(BaseModel):
     """Catalog payload for the didactic B3 investment comparison experience."""
 
@@ -651,6 +685,9 @@ class InvestmentCatalogResponseModel(BaseModel):
     instruments: List[Dict[str, Any]] = Field(default_factory=list)
     presets: List[Dict[str, Any]] = Field(default_factory=list)
     benchmark_options: List[Dict[str, Any]] = Field(default_factory=list)
+    market_explorer: Dict[str, Any] = Field(default_factory=dict)
+    investor_easy_parity: Dict[str, Any] = Field(default_factory=dict)
+    product_data_plan: Dict[str, Any] = Field(default_factory=dict)
     notes: List[str] = Field(default_factory=list)
     sources: List[Dict[str, str]] = Field(default_factory=list)
 
@@ -671,9 +708,122 @@ class InvestmentCompareResponseModel(BaseModel):
     highlights: Dict[str, Any] = Field(default_factory=dict)
     fixed_income_backtest: Optional[Dict[str, Any]] = Field(default=None)
     methodology_guide: Dict[str, Any] = Field(default_factory=dict)
+    product_realism: Dict[str, Any] = Field(default_factory=dict)
+    retail_fixed_income_equivalence: Dict[str, Any] = Field(default_factory=dict)
+    result_stories: Dict[str, Any] = Field(default_factory=dict)
+    market_rankings: Dict[str, Any] = Field(default_factory=dict)
+    market_screeners: Dict[str, Any] = Field(default_factory=dict)
+    cache_status: Dict[str, Any] = Field(default_factory=dict)
     fixed_income_decision_guide: Optional[Dict[str, Any]] = Field(default=None)
     portfolio_objective_summary: Dict[str, Any] = Field(default_factory=dict)
+    portfolio_lifecycle: Dict[str, Any] = Field(default_factory=dict)
     warnings: List[str] = Field(default_factory=list)
+
+
+class InvestmentMarketRankingsResponseModel(BaseModel):
+    """Compact market explorer ranking payload."""
+
+    generated_at: datetime
+    request: Dict[str, Any] = Field(default_factory=dict)
+    market_rankings: Dict[str, Any] = Field(default_factory=dict)
+    market_screeners: Dict[str, Any] = Field(default_factory=dict)
+    cache_status: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
+
+
+class SavedInvestmentPortfolioModel(BaseModel):
+    """Reusable custom portfolio saved by the investments workspace."""
+
+    portfolio_id: Optional[str] = Field(default=None)
+    label: str
+    description: Optional[str] = Field(default=None)
+    rebalance_frequency: Optional[str] = Field(default="monthly")
+    components: List[InvestmentPortfolioComponentRequestModel] = Field(default_factory=list)
+    created_at: Optional[str] = Field(default=None)
+    updated_at: Optional[str] = Field(default=None)
+
+
+class SavedPairsRadarItemModel(BaseModel):
+    """Saved pairs-trading radar favorite."""
+
+    pairs_backtest_id: str
+    label: str
+    preset_label: str
+    created_at: str
+    saved_at: Optional[str] = Field(default=None)
+    scenario_count: int = Field(default=0, ge=0)
+    candidate_pair_count: int = Field(default=0, ge=0)
+    benchmark_ids: List[str] = Field(default_factory=list)
+
+
+class SavedStrategyRadarItemModel(BaseModel):
+    """Saved strategy radar favorite."""
+
+    strategy_id: str
+    label: str
+    family: str
+    direction: str
+    parameter_values: Dict[str, Any] = Field(default_factory=dict)
+    universe: List[str] = Field(default_factory=list)
+    timeframe: Optional[str] = Field(default=None)
+    setup_notes: List[str] = Field(default_factory=list)
+    saved_at: Optional[str] = Field(default=None)
+
+
+class StrategySetupPlanModel(BaseModel):
+    """Prepared execution plan for a saved strategy setup draft."""
+
+    plan_id: str
+    strategy_id: str
+    label: str
+    family: str
+    timeframe: str
+    route_hint: str
+    readiness: str
+    run_request: Dict[str, Any]
+    assumptions: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    setup_notes: List[str] = Field(default_factory=list)
+    next_actions: List[str] = Field(default_factory=list)
+    generated_at: str
+
+
+class SavedStrategySetupRunModel(BaseModel):
+    """Persisted execution summary for a strategy setup."""
+
+    strategy_id: str
+    run_id: Optional[str] = Field(default=None)
+    pairs_backtest_id: Optional[str] = Field(default=None)
+    ran_at: str
+    strategy_count: int = Field(default=0, ge=0)
+    best_strategy: Optional[str] = Field(default=None)
+    total_return: Optional[float] = Field(default=None)
+    max_drawdown: Optional[float] = Field(default=None)
+    trade_count: Optional[int] = Field(default=None, ge=0)
+    route_hint: str = Field(default="/backtest")
+    saved_at: Optional[str] = Field(default=None)
+
+
+class StrategySetupScoreModel(BaseModel):
+    """Explainable score for a strategy setup based on latest execution."""
+
+    strategy_id: str
+    label: str
+    score: float
+    total_return: float
+    max_drawdown: float
+    trade_count: int = Field(default=0, ge=0)
+    run_count: int = Field(default=0, ge=0)
+    route_hint: str
+    run_id: Optional[str] = Field(default=None)
+    pairs_backtest_id: Optional[str] = Field(default=None)
+    return_score: float
+    drawdown_penalty: float
+    execution_score: float
+    robustness_score: float
+    data_validity_score: float
+    ran_at: str
+    methodology: str
 
 
 class DatasetSummaryModel(BaseModel):

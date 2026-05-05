@@ -74,6 +74,63 @@ class TestConfigsEndpoint:
             assert "Configs directory not found" in response.json()["detail"]
 
 
+class TestBacktestStrategyCatalogEndpoint:
+    def test_get_strategy_catalog(self):
+        response = client.get("/backtests/strategy-catalog")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["title"] == "Catalogo de estrategias"
+        assert any(item["strategy_id"] == "martingale_v1" for item in payload["strategies"])
+        assert any(
+            item["parameter_defaults"]
+            for item in payload["strategies"]
+            if item["strategy_id"] == "pairs_cointegration"
+        )
+        assert any(item["dimension_id"] == "robustness" for item in payload["score_dimensions"])
+
+    def test_create_strategy_setup_plan(self):
+        response = client.post(
+            "/backtests/strategy-setup-plan",
+            json={
+                "strategy_id": "pairs_cointegration",
+                "label": "Pairs por cointegracao",
+                "family": "market_neutral",
+                "direction": "long_short",
+                "parameter_values": {"formation_window": 252, "entry_zscore": 2.0},
+                "universe": ["PETR4", "VALE3"],
+                "timeframe": "daily",
+                "setup_notes": ["Revalidar janela."],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["route_hint"] == "/pairs/backtests"
+        assert payload["readiness"] == "ready_to_review"
+        assert payload["run_request"]["formation_window"] == 252
+
+    def test_create_strategy_setup_plan_for_core_backtest(self):
+        response = client.post(
+            "/backtests/strategy-setup-plan",
+            json={
+                "strategy_id": "buy_and_hold",
+                "label": "Buy and hold",
+                "family": "benchmark",
+                "direction": "long",
+                "parameter_values": {"initial_capital": 10000},
+                "universe": ["BOVA11"],
+                "timeframe": "daily",
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["route_hint"] == "/backtest"
+        assert payload["run_request"]["config_path"] == "configs/test.yaml"
+        assert payload["run_request"]["strategies"] == ["Buy & Hold"]
+
+
 class TestDatasetsEndpoint:
     """Test dataset catalog endpoints."""
 

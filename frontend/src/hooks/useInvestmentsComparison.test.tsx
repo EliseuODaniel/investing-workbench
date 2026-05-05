@@ -1,9 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../lib/api';
 import { useInvestmentsComparison } from './useInvestmentsComparison';
 
 describe('useInvestmentsComparison', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
   it('loads the catalog and applies the guided video preset when available', async () => {
     vi.mocked(apiClient.getInvestmentCatalog).mockResolvedValueOnce({
       generated_at: '2026-04-21T12:00:00Z',
@@ -381,5 +386,101 @@ describe('useInvestmentsComparison', () => {
         ],
       })
     );
+  });
+
+  it('saves and reapplies reusable custom portfolios locally', async () => {
+    vi.mocked(apiClient.getInvestmentCatalog).mockResolvedValueOnce({
+      generated_at: '2026-04-21T12:00:00Z',
+      categories: [],
+      instruments: [
+        {
+          instrument_id: 'SELIC_PROXY',
+          label: 'Tesouro Selic (proxy)',
+          category_id: 'fixed_income_b3',
+          category_label: 'Renda fixa / juros na B3',
+          description: 'desc',
+          rationale: 'why',
+          risk_label: 'Baixa',
+          region_label: 'Brasil',
+          source_kind: 'selic_proxy',
+          listed_on_b3: false,
+          uses_adjusted_close: false,
+          components: [],
+          notes: [],
+        },
+        {
+          instrument_id: 'WEGE3',
+          label: 'WEGE3',
+          category_id: 'stocks_brazil',
+          category_label: 'Acoes brasileiras',
+          description: 'desc',
+          rationale: 'why',
+          risk_label: 'Alta',
+          region_label: 'Brasil',
+          source_kind: 'listed_security',
+          listed_on_b3: true,
+          uses_adjusted_close: true,
+          components: [],
+          notes: [],
+        },
+      ],
+      presets: [
+        {
+          preset_id: 'balanced_b3',
+          label: 'Balanceado B3',
+          description: 'desc',
+          asset_ids: ['SELIC_PROXY', 'WEGE3'],
+          goal_label: 'goal',
+          default_benchmark_ids: [],
+        },
+      ],
+      benchmark_options: [
+        { benchmark_id: 'selic_cash', label: 'SELIC / caixa', description: 'desc' },
+      ],
+      notes: [],
+      sources: [],
+    } as any);
+
+    const onError = vi.fn();
+    const { result } = renderHook(() => useInvestmentsComparison(onError));
+
+    await waitFor(() => {
+      expect(result.current.request.asset_ids).toEqual(['SELIC_PROXY', 'WEGE3']);
+    });
+
+    act(() => {
+      result.current.setIsCustomPortfolioEnabled(true);
+      result.current.setCustomPortfolioName('Carteira renda e crescimento');
+      result.current.updateCustomPortfolioWeight('SELIC_PROXY', 70);
+      result.current.updateCustomPortfolioWeight('WEGE3', 30);
+    });
+
+    await act(async () => {
+      await result.current.saveCurrentCustomPortfolio();
+    });
+
+    expect(result.current.savedPortfolios[0].label).toBe('Carteira renda e crescimento');
+    expect(result.current.savedPortfolios[0].components).toEqual([
+      { component_id: 'SELIC_PROXY', weight: 70 },
+      { component_id: 'WEGE3', weight: 30 },
+    ]);
+
+    act(() => {
+      result.current.updateCustomPortfolioWeight('SELIC_PROXY', 10);
+      result.current.applySavedPortfolio(result.current.savedPortfolios[0]);
+    });
+
+    expect(result.current.isCustomPortfolioEnabled).toBe(true);
+    expect(result.current.request.asset_ids).toEqual(['SELIC_PROXY', 'WEGE3']);
+    expect(result.current.customPortfolioWeights).toMatchObject({
+      SELIC_PROXY: 70,
+      WEGE3: 30,
+    });
+
+    await act(async () => {
+      await result.current.deleteSavedPortfolio(result.current.savedPortfolios[0].portfolio_id);
+    });
+
+    expect(result.current.savedPortfolios).toEqual([]);
   });
 });

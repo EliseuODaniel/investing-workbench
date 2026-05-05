@@ -60,6 +60,17 @@ export interface PairsDraft {
   regimeFilter: 'none' | 'ma_deviation_and_vol';
 }
 
+export interface PairsSetupHandoff {
+  source: 'strategy_setup_radar';
+  strategy_id: string;
+  label: string;
+  created_at: string;
+  draft: Partial<PairsDraft>;
+}
+
+export const PAIRS_SETUP_HANDOFF_STORAGE_KEY =
+  'investing-workbench.pairs-setup-handoff.v1';
+
 function parseTickers(value: string): string[] {
   return value
     .split(',')
@@ -259,4 +270,33 @@ export function buildPairsResearchBatchPayload(draft: PairsDraft): PairsBatchReq
     ...basePayload,
     scenario_variants: scenarioVariants,
   };
+}
+
+export function readPairsSetupHandoff(): PairsSetupHandoff | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(PAIRS_SETUP_HANDOFF_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!isPairsSetupHandoff(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function isPairsSetupHandoff(value: unknown): value is PairsSetupHandoff {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<PairsSetupHandoff>;
+  return (
+    candidate.source === 'strategy_setup_radar' &&
+    typeof candidate.strategy_id === 'string' &&
+    typeof candidate.label === 'string' &&
+    typeof candidate.created_at === 'string' &&
+    typeof candidate.draft === 'object'
+  );
 }

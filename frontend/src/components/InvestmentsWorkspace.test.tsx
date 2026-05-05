@@ -64,6 +64,25 @@ function buildHookState() {
       benchmark_options: [
         { benchmark_id: 'selic_cash', label: 'SELIC / caixa', description: 'Referência básica' },
       ],
+      market_explorer: {
+        title: 'Explorador de mercado',
+        plain_language_summary: 'Visao inicial do universo disponivel.',
+        category_lists: [
+          {
+            list_id: 'fixed_income_b3',
+            label: 'Renda fixa / juros na B3',
+            count: 1,
+            sample_instrument_ids: ['CDI_INDEX'],
+            sample_labels: ['CDI / taxa extramercado (proxy)'],
+          },
+        ],
+        product_type_facets: [
+          { source_kind: 'fixed_income_index', label: 'Indices de renda fixa', count: 1 },
+        ],
+        risk_facets: [{ facet_id: 'risk', label: 'Baixa', count: 1 }],
+        region_facets: [{ facet_id: 'region', label: 'Brasil', count: 2 }],
+        ranking_backlog: [{ ranking_id: 'drawdown', label: 'Quem caiu menos', status: 'planned' }],
+      },
       notes: ['Cada estudo usa o mesmo fluxo de caixa para todos os ativos.'],
       sources: [],
     },
@@ -93,6 +112,7 @@ function buildHookState() {
     customPortfolioDescription: '',
     customPortfolioWeights: {},
     customPortfolioAssets: [],
+    savedPortfolios: [],
     applyPreset: vi.fn(),
     updateRequest: vi.fn(),
     toggleAsset: vi.fn(),
@@ -101,6 +121,9 @@ function buildHookState() {
     setCustomPortfolioName: vi.fn(),
     setCustomPortfolioDescription: vi.fn(),
     updateCustomPortfolioWeight: vi.fn(),
+    saveCurrentCustomPortfolio: vi.fn(),
+    applySavedPortfolio: vi.fn(),
+    deleteSavedPortfolio: vi.fn(),
     compare: vi.fn(),
   };
 }
@@ -113,6 +136,7 @@ describe('InvestmentsWorkspace', () => {
 
     expect(screen.getByText('1. Escolha como quer começar')).toBeTruthy();
     expect(screen.getByText('Quero um estudo pronto')).toBeTruthy();
+    expect(screen.getByText('Explorador de mercado')).toBeTruthy();
     expect(screen.queryByText('Estudo ativo: IPCA+ vs CDI (vídeo)')).toBeNull();
     expect(screen.queryByText('O que está entrando agora na comparação')).toBeNull();
     expect(screen.queryByText('Volatilidade alta para comparar com renda fixa.')).toBeNull();
@@ -131,6 +155,23 @@ describe('InvestmentsWorkspace', () => {
     expect(screen.queryByText('1. Escolha como quer começar')).toBeNull();
     expect(screen.getByText('2. Defina o dinheiro e o periodo')).toBeTruthy();
     expect(screen.getByText('Perfil da decisão')).toBeTruthy();
+  });
+
+  it('guides the decision profile in wizard steps', async () => {
+    const user = userEvent.setup();
+    useInvestmentsComparisonMock.mockReturnValue(buildHookState());
+
+    render(<InvestmentsWorkspace onError={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '2. Cenário' }));
+
+    expect(screen.getByText('1. Objetivo')).toBeTruthy();
+    expect(screen.queryByText('Marcação a mercado')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '2. Prazo e risco' }));
+
+    expect(screen.getByText('Marcação a mercado')).toBeTruthy();
+    expect(screen.getByText('Etapa 2 de 3')).toBeTruthy();
   });
 
   it('switches to manual mode and opens the asset editor explicitly', async () => {

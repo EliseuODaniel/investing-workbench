@@ -6,6 +6,10 @@ vi.mock('../BacktestForm', () => ({
   default: () => <div>backtest-form</div>,
 }));
 
+vi.mock('../StrategyCatalogPanel', () => ({
+  default: () => <div>strategy-catalog</div>,
+}));
+
 vi.mock('../DatasetManagerPanel', () => ({
   default: () => <div>dataset-manager</div>,
 }));
@@ -58,7 +62,7 @@ const baseProps = {
 };
 
 describe('OperateSection', () => {
-  it('hides the jobs panel when only completed jobs exist', () => {
+  it('hides the jobs panel when only completed jobs exist', async () => {
     render(
       <OperateSection
         {...baseProps}
@@ -75,6 +79,7 @@ describe('OperateSection', () => {
     );
 
     expect(screen.queryByText('jobs-panel')).toBeNull();
+    expect(await screen.findByText('strategy-catalog')).toBeTruthy();
   });
 
   it('shows the jobs panel when there is a failed job that needs attention', () => {

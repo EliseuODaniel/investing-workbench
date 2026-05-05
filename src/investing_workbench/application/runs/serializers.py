@@ -25,13 +25,32 @@ from src.metrics import calculate_metrics
 def build_config_info(config_file: Path, config_data: dict[str, Any]) -> ConfigInfo:
     """Build the API-facing config descriptor from a YAML file payload."""
     display_name = config_data.get("name", config_file.stem)
-    strategy_names = [strategy.get("name", "") for strategy in config_data.get("strategies", [])]
+    strategy_names = _extract_strategy_names(config_data.get("strategies", []))
     return ConfigInfo(
         name=config_file.stem,
         path=str(config_file),
         display_name=display_name,
         strategies=strategy_names,
     )
+
+
+def _extract_strategy_names(strategies: Any) -> list[str]:
+    """Return strategy labels from runtime configs and optimization-search configs."""
+    if isinstance(strategies, dict):
+        return [str(strategy_name) for strategy_name in strategies]
+
+    if not isinstance(strategies, list):
+        return []
+
+    strategy_names: list[str] = []
+    for strategy in strategies:
+        if isinstance(strategy, dict):
+            name = strategy.get("name", "")
+            if name:
+                strategy_names.append(str(name))
+        elif isinstance(strategy, str):
+            strategy_names.append(strategy)
+    return strategy_names
 
 
 class RunResponseSerializer:

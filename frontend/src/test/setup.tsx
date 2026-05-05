@@ -18,13 +18,50 @@ vi.mock('react-plotly.js', () => {
   };
 });
 
+vi.mock('../lib/utils', async () => {
+  const actual = await vi.importActual<typeof import('../lib/utils')>('../lib/utils');
+  return {
+    ...actual,
+    downloadCSV: vi.fn(),
+  };
+});
+
 // Mock API
 vi.mock('../lib/api', () => ({
   apiClient: {
     getConfigs: vi.fn(),
     getSystemStatus: vi.fn(),
+    getBacktestStrategyCatalog: vi.fn(),
+    buildStrategySetupPlan: vi.fn(async (payload) => ({
+      plan_id: `strategy_setup_plan_${payload.strategy_id}`,
+      strategy_id: payload.strategy_id,
+      label: payload.label,
+      family: payload.family,
+      timeframe: payload.timeframe || 'daily',
+      route_hint: '/backtest',
+      readiness: 'ready_to_review',
+      run_request: { strategies: [payload.strategy_id] },
+      assumptions: ['Plano de teste.'],
+      warnings: [],
+      setup_notes: payload.setup_notes || [],
+      next_actions: ['Executar backtest.'],
+      generated_at: '2026-04-27T12:00:00Z',
+    })),
     getInvestmentCatalog: vi.fn(),
     compareInvestments: vi.fn(),
+    buildInvestmentMarketRankings: vi.fn(),
+    listSavedInvestmentPortfolios: vi.fn().mockResolvedValue([]),
+    saveInvestmentPortfolio: vi.fn(async (payload) => payload),
+    deleteInvestmentPortfolio: vi.fn().mockResolvedValue(undefined),
+    listSavedPairsRadarItems: vi.fn().mockResolvedValue([]),
+    savePairsRadarItem: vi.fn().mockResolvedValue(undefined),
+    deletePairsRadarItem: vi.fn().mockResolvedValue(undefined),
+    listSavedStrategyRadarItems: vi.fn().mockResolvedValue([]),
+    saveStrategyRadarItem: vi.fn(async (payload) => payload),
+    deleteStrategyRadarItem: vi.fn().mockResolvedValue(undefined),
+    listSavedStrategySetupRuns: vi.fn().mockResolvedValue([]),
+    saveStrategySetupRun: vi.fn(async (payload) => payload),
+    listStrategySetupScores: vi.fn().mockResolvedValue([]),
     listPairsUniverses: vi.fn(),
     resolvePairsUniverse: vi.fn(),
     screenPairs: vi.fn(),
@@ -42,6 +79,7 @@ vi.mock('../lib/api', () => ({
     listWalkForwardExecutions: vi.fn(),
     listMonteCarloExecutions: vi.fn(),
     listRuns: vi.fn(),
+    getRunResponse: vi.fn(),
     runBacktest: vi.fn(),
     runWege3RegraAScenario: vi.fn(),
     createBacktestJob: vi.fn(),

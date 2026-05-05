@@ -5,7 +5,9 @@ import {
   InvestmentCompareRequestPayload,
   InvestmentComparisonResponsePayload,
   InvestmentCustomPortfolioRequestPayload,
+  SavedInvestmentPortfolioPayload,
 } from '../types/api';
+import { useSavedInvestmentPortfolios } from './useSavedInvestmentPortfolios';
 
 const DEFAULT_REQUEST: InvestmentCompareRequestPayload = {
   asset_ids: [],
@@ -42,6 +44,7 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     'Carteira personalizada para comparar a alocacao contra ativos e carteiras guiadas.'
   );
   const [customPortfolioWeights, setCustomPortfolioWeights] = useState<Record<string, number>>({});
+  const { savedPortfolios, savePortfolio, deletePortfolio } = useSavedInvestmentPortfolios();
 
   const selectedPreset = useMemo(
     () => catalog?.presets.find((preset) => preset.preset_id === selectedPresetId) ?? null,
@@ -222,6 +225,37 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     }));
   };
 
+  const saveCurrentCustomPortfolio = useCallback(async () => {
+    const [portfolio] = buildCustomPortfolios();
+    if (!portfolio) {
+      onError('Selecione pelo menos dois ativos com peso positivo para salvar a carteira.');
+      return null;
+    }
+    const saved = await savePortfolio(portfolio);
+    onError(null);
+    return saved;
+  }, [buildCustomPortfolios, onError, savePortfolio]);
+
+  const applySavedPortfolio = useCallback((portfolio: SavedInvestmentPortfolioPayload) => {
+    setIsCustomPortfolioEnabled(true);
+    setCustomPortfolioName(portfolio.label);
+    setCustomPortfolioDescription(
+      portfolio.description ||
+        'Carteira reutilizada para comparar a alocacao contra ativos e carteiras guiadas.'
+    );
+    setCustomPortfolioWeights(
+      Object.fromEntries(
+        portfolio.components.map((component) => [component.component_id, component.weight])
+      )
+    );
+    setRequest((current) => ({
+      ...current,
+      asset_ids: portfolio.components.map((component) => component.component_id),
+      custom_portfolios: [],
+    }));
+    onError(null);
+  }, [onError]);
+
   const compare = async () => {
     setIsComparing(true);
     onError(null);
@@ -258,6 +292,7 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     customPortfolioDescription,
     customPortfolioWeights,
     customPortfolioAssets,
+    savedPortfolios,
     applyPreset,
     updateRequest,
     toggleAsset,
@@ -266,6 +301,9 @@ export function useInvestmentsComparison(onError: (message: string | null) => vo
     setCustomPortfolioName,
     setCustomPortfolioDescription,
     updateCustomPortfolioWeight,
+    saveCurrentCustomPortfolio,
+    applySavedPortfolio,
+    deleteSavedPortfolio: deletePortfolio,
     compare,
     reloadCatalog: loadCatalog,
   };

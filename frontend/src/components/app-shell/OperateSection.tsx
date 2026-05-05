@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import { lazy, Suspense, type ComponentProps } from 'react';
 import BacktestForm from '../BacktestForm';
 import BacktestJobsPanel from '../BacktestJobsPanel';
 import BacktestResultsWorkspace from '../BacktestResultsWorkspace';
@@ -7,6 +7,8 @@ import InitialWorkspaceState from '../InitialWorkspaceState';
 import LoadingSpinner from '../LoadingSpinner';
 import SectionTabs from './SectionTabs';
 import ErrorBanner from './ErrorBanner';
+
+const StrategyCatalogPanel = lazy(() => import('../StrategyCatalogPanel'));
 
 interface OperateSectionProps {
   simulateTabs: ComponentProps<typeof SectionTabs>['tabs'];
@@ -58,7 +60,18 @@ export default function OperateSection({
         </div>
 
         {simulateTab === 'configure' ? (
-          <BacktestForm {...backtestFormProps} />
+          <>
+            <Suspense
+              fallback={
+                <section className="card text-sm text-gray-500 dark:text-gray-400">
+                  Carregando catalogo de estrategias...
+                </section>
+              }
+            >
+              <StrategyCatalogPanel />
+            </Suspense>
+            <BacktestForm {...backtestFormProps} />
+          </>
         ) : (
           <DatasetManagerPanel {...datasetManagerProps} />
         )}

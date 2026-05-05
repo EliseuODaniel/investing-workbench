@@ -5,6 +5,8 @@ interface PairsControlsCardProps {
   draft: PairsDraft;
   presets: PairsUniversePresetPayload[];
   selectedPreset?: PairsUniversePresetPayload | null;
+  presetsSource: 'api' | 'fallback';
+  presetsLoadError: string | null;
   isResolving: boolean;
   isScreening: boolean;
   isRunning: boolean;
@@ -19,6 +21,8 @@ interface PairsControlsCardProps {
 export function PairsControlsCard({
   draft,
   presets,
+  presetsSource,
+  presetsLoadError,
   selectedPreset = null,
   isResolving,
   isScreening,
@@ -41,6 +45,16 @@ export function PairsControlsCard({
             Universe builder, screener de cointegração, batch de cenários e leitura de robustez
             para long-short em ações brasileiras.
           </p>
+          {presetsSource === 'fallback' ? (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+              Presets carregados localmente (API indisponível no momento).
+            </p>
+          ) : null}
+          {presetsLoadError ? (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+              {presetsLoadError}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
