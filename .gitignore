@@ -36,8 +36,10 @@ frontend/.env.local
 frontend/.env
 pairs_backtests/
 research_workspaces/
+investment_workspaces/
 data/fixed_income_indexes/
 data/investments/
+data/product_sources/
 data/tesouro_direto/
 data/ipca_monthly.csv
 data/selic_daily.csv
