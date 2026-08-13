@@ -84,7 +84,6 @@ class _StubInvestmentComparisonService:
             "sources": [{"label": "B3", "url": "https://www.b3.com.br/"}],
         }
 
-
     def refresh_source(self, *, source_id: str, force: bool = False) -> dict[str, object]:
         return {
             "source_id": source_id,

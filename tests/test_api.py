@@ -134,17 +134,34 @@ class TestBacktestStrategyCatalogEndpoint:
 class TestDatasetsEndpoint:
     """Test dataset catalog endpoints."""
 
-    def test_list_datasets(self):
-        response = client.get("/datasets")
+    def test_list_datasets(self, tmp_path):
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "sample.csv").write_text(
+            "Date,Open,High,Low,Close\n2024-01-01,1,2,0.5,1.5\n",
+            encoding="utf-8",
+        )
+
+        with override_api_services(dataset_service=DatasetCatalogService(data_dir=data_dir)):
+            response = client.get("/datasets")
+
         assert response.status_code == 200
         assert isinstance(response.json(), list)
-        assert any(item["path"] == "data/btc_brl.parquet" for item in response.json())
+        assert response.json()[0]["name"] == "sample"
 
-    def test_get_dataset_detail(self):
-        list_response = client.get("/datasets")
-        dataset_id = list_response.json()[0]["dataset_id"]
+    def test_get_dataset_detail(self, tmp_path):
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "sample.csv").write_text(
+            "Date,Open,High,Low,Close\n2024-01-01,1,2,0.5,1.5\n",
+            encoding="utf-8",
+        )
+        dataset_service = DatasetCatalogService(data_dir=data_dir)
+        dataset_id = dataset_service.list_datasets()[0]["dataset_id"]
 
-        response = client.get(f"/datasets/{dataset_id}")
+        with override_api_services(dataset_service=dataset_service):
+            response = client.get(f"/datasets/{dataset_id}")
+
         assert response.status_code == 200
         assert response.json()["dataset_id"] == dataset_id
         assert "preview_rows" in response.json()

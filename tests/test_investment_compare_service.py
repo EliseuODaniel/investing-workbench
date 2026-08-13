@@ -238,8 +238,7 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
         for item in payload["portfolio_lifecycle"]["scenario_cards"]
     )
     assert (
-        payload["portfolio_lifecycle"]["withdrawal_plan"]["title"]
-        == "Plano didatico de retirada"
+        payload["portfolio_lifecycle"]["withdrawal_plan"]["title"] == "Plano didatico de retirada"
     )
     assert payload["portfolio_lifecycle"]["withdrawal_plan"]["candidates"]
     assert payload["portfolio_lifecycle"]["withdrawal_plan"]["stress_tests"]
@@ -257,9 +256,9 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
             "scenarios"
         ]
     )
-    monthly_sequence = payload["portfolio_lifecycle"]["withdrawal_plan"][
-        "monte_carlo_preview"
-    ]["monthly_sequence"]
+    monthly_sequence = payload["portfolio_lifecycle"]["withdrawal_plan"]["monte_carlo_preview"][
+        "monthly_sequence"
+    ]
     assert monthly_sequence["title"] == "Simulacao mensal de exaustao"
     assert monthly_sequence["horizon_years"] == 30
     assert any(item["path_id"] == "adverse_sequence" for item in monthly_sequence["paths"])
@@ -267,9 +266,10 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
     assert stochastic["title"] == "Monte Carlo estocastico mensal"
     assert stochastic["simulation_count"] == 250
     assert 0 <= stochastic["success_rate"] <= 1
-    assert stochastic["percentiles"]["final_balance_p10"] <= stochastic["percentiles"][
-        "final_balance_p90"
-    ]
+    assert (
+        stochastic["percentiles"]["final_balance_p10"]
+        <= stochastic["percentiles"]["final_balance_p90"]
+    )
     assert payload["request"]["decision_profile"]["objective"] == "balanced"
     assert any(
         item["objective_id"] == "protect_purchasing_power"
@@ -466,8 +466,7 @@ def test_catalog_exposes_ntnb_etfs_preset(tmp_path: Any) -> None:
     )
     assert payload["product_data_plan"]["source_manifest"]["source_count"] == 4
     assert any(
-        item["step_id"] == "dataset_versioning"
-        and item["status"] == "manifest_available"
+        item["step_id"] == "dataset_versioning" and item["status"] == "manifest_available"
         for item in payload["product_data_plan"]["roadmap_steps"]
     )
     assert any(

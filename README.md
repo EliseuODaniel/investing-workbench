@@ -125,8 +125,12 @@ uv run uvicorn src.api.main:app --reload --port 8001
 cd frontend
 nvm use  # or any Node 22.x runtime that honors frontend/.nvmrc
 npm install
+cp .env.example .env  # optional; customize the backend URL locally
 npm run dev
 ```
+
+`frontend/.env` is intentionally ignored. Keep only non-secret local settings there and update
+`frontend/.env.example` whenever a required frontend variable is introduced.
 
 If you want heavy async jobs to run outside the API process, start the backend in detached mode and
 run a dedicated worker:

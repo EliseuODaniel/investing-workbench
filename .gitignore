@@ -33,6 +33,7 @@ htmlcov/
 .tools/
 =0.14.0
 frontend/.env.local
+frontend/.env
 pairs_backtests/
 research_workspaces/
 data/fixed_income_indexes/

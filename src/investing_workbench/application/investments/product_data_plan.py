@@ -44,9 +44,7 @@ def build_product_data_plan(
         if source["integration_status"] == "connected"
     )
     partial_count = sum(
-        1
-        for source in PRODUCT_DATA_SOURCE_DEFINITIONS
-        if source["integration_status"] == "partial"
+        1 for source in PRODUCT_DATA_SOURCE_DEFINITIONS if source["integration_status"] == "partial"
     )
     release_packages = build_release_packages()
     roadmap_steps = _build_roadmap_steps(release_packages)
@@ -117,9 +115,7 @@ def _build_family_rows(instruments: list[InvestmentInstrument]) -> list[dict[str
 
     rows: list[dict[str, Any]] = []
     for family_id, items in sorted(families.items()):
-        product_profile_count = sum(
-            1 for item in items if item.to_payload().get("product_profile")
-        )
+        product_profile_count = sum(1 for item in items if item.to_payload().get("product_profile"))
         rows.append(
             {
                 "family_id": family_id,
@@ -318,9 +314,9 @@ def build_fii_cvm_bridge(
                 "cnpj_fundo": item["cnpj_fundo"],
                 "bridge_status": "matched_cvm_cache" if cvm_row else "mapped_waiting_cache",
                 "latest_date": cvm_row.get("dt_comptc") if cvm_row else None,
-                "net_worth": round(_float_value(cvm_row.get("vl_patrim_liq")), 2)
-                if cvm_row
-                else None,
+                "net_worth": (
+                    round(_float_value(cvm_row.get("vl_patrim_liq")), 2) if cvm_row else None
+                ),
                 "quota": _float_value(cvm_row.get("vl_quota")) if cvm_row else None,
                 "shareholders": int(_float_value(cvm_row.get("nr_cotst"))) if cvm_row else None,
                 "source_note": item["source_note"],
@@ -621,8 +617,7 @@ def build_methodology_readiness_ranking(
         str(item.ticker).upper(): item
         for item in instruments
         if item.ticker
-        and item.category_id
-        in {"fiis", "etfs_brazil", "international_b3", "fixed_income_b3"}
+        and item.category_id in {"fiis", "etfs_brazil", "international_b3", "fixed_income_b3"}
     }
     rows = [
         *_methodology_fii_rows(
@@ -670,9 +665,7 @@ def _methodology_fii_rows(
         bridge_row = bridge_by_ticker.get(ticker)
         data_quality = _float_value(row.get("data_quality_score"))
         cvm_component = (
-            1.0
-            if bridge_row and bridge_row["bridge_status"] == "matched_cvm_cache"
-            else 0.45
+            1.0 if bridge_row and bridge_row["bridge_status"] == "matched_cvm_cache" else 0.45
         )
         yield_component = min(_float_value(row.get("yield_12m_pct")) / 12.0, 1.0)
         score = round(
@@ -717,9 +710,7 @@ def _methodology_etf_bdr_rows(
         data_quality = _float_value(row.get("data_quality_score"))
         fee = _float_value(row.get("taxa_administracao"))
         fee_component = (
-            max(0.0, min(1.0, 1.0 - (fee / 1.0)))
-            if row.get("taxa_administracao")
-            else 0.5
+            max(0.0, min(1.0, 1.0 - (fee / 1.0))) if row.get("taxa_administracao") else 0.5
         )
         tracking_component = 0.75 if row.get("tracking_note") else 0.35
         score = round(
