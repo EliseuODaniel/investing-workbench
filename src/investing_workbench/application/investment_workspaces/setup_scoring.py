@@ -23,12 +23,11 @@ def build_strategy_setup_scores(
         strategy_id = str(item.get("strategy_id") or "")
         if not strategy_id:
             continue
-        if _optional_float(item.get("total_return")) is not None and _optional_float(
-            item.get("max_drawdown")
-        ) is not None:
-            valid_counts_by_strategy[strategy_id] = (
-                valid_counts_by_strategy.get(strategy_id, 0) + 1
-            )
+        if (
+            _optional_float(item.get("total_return")) is not None
+            and _optional_float(item.get("max_drawdown")) is not None
+        ):
+            valid_counts_by_strategy[strategy_id] = valid_counts_by_strategy.get(strategy_id, 0) + 1
         current = latest_by_strategy.get(strategy_id)
         if current is None or str(item.get("ran_at") or "") > str(current.get("ran_at") or ""):
             latest_by_strategy[strategy_id] = item
@@ -88,9 +87,10 @@ def score_setup_data_validity(item: dict[str, Any]) -> float:
     score = 0.0
     if _optional_str(item.get("run_id")) or _optional_str(item.get("pairs_backtest_id")):
         score += 1.0
-    if _optional_float(item.get("total_return")) is not None and _optional_float(
-        item.get("max_drawdown")
-    ) is not None:
+    if (
+        _optional_float(item.get("total_return")) is not None
+        and _optional_float(item.get("max_drawdown")) is not None
+    ):
         score += 0.75
     if str(item.get("route_hint") or "") in {"/backtest", "/pairs/backtests"}:
         score += 0.25

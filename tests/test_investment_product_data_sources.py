@@ -364,7 +364,9 @@ def test_parse_cvm_daily_report_zip_bytes() -> None:
 def test_catalog_builds_fii_income_ranking_from_cached_rows(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_rows(*, source_id: str, cache_root: str = "data/product_sources") -> list[dict[str, str]]:
+    def fake_rows(
+        *, source_id: str, cache_root: str = "data/product_sources"
+    ) -> list[dict[str, str]]:
         del cache_root
         assert source_id == "b3_fii_listed"
         return [

@@ -65,8 +65,7 @@ PRODUCT_DATA_SOURCE_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "source_id": "tesouro_transparente",
         "label": "Tesouro Transparente - Tesouro Direto",
         "url": (
-            "https://www.tesourotransparente.gov.br/temas/divida-publica-federal/"
-            "tesouro-direto"
+            "https://www.tesourotransparente.gov.br/temas/divida-publica-federal/" "tesouro-direto"
         ),
         "coverage": "Precos, taxas, vendas, resgates e cupons do Tesouro Direto.",
         "freshness_policy": "refresh diario quando estudos de Tesouro forem usados",
@@ -120,9 +119,7 @@ def build_product_data_manifest(
         for source in PRODUCT_DATA_SOURCE_DEFINITIONS
     ]
     warm_count = sum(1 for source in sources if source["file_count"] > 0)
-    stale_count = sum(
-        1 for source in sources if source["freshness_status"] in {"stale", "old"}
-    )
+    stale_count = sum(1 for source in sources if source["freshness_status"] in {"stale", "old"})
     return {
         "title": "Manifesto local de dados externos",
         "plain_language_summary": (
@@ -191,9 +188,9 @@ class ProductDataSourceService:
         }:
             response: dict[str, Any] = {
                 "source_id": source_id,
-            "status": "refresh_not_required",
-            "status_label": "refresh nao requerido",
-            "message": "Esta fonte e resolvida por outro conector operacional do workbench.",
+                "status": "refresh_not_required",
+                "status_label": "refresh nao requerido",
+                "message": "Esta fonte e resolvida por outro conector operacional do workbench.",
                 "manifest": self._existing_manifest(source),
             }
             self._append_history(
@@ -793,10 +790,7 @@ def parse_cvm_daily_report_zip_bytes(
 def _normalize_cvm_daily_report_row(row: dict[str, str]) -> dict[str, str]:
     normalized = {
         "cnpj_fundo": (
-            row.get("CNPJ_FUNDO")
-            or row.get("CNPJ_FUNDO_CLASSE")
-            or row.get("cnpj_fundo")
-            or ""
+            row.get("CNPJ_FUNDO") or row.get("CNPJ_FUNDO_CLASSE") or row.get("cnpj_fundo") or ""
         ),
         "dt_comptc": row.get("DT_COMPTC") or row.get("dt_comptc") or "",
         "vl_total": row.get("VL_TOTAL") or row.get("vl_total") or "",

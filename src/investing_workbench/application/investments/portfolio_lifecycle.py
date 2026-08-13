@@ -157,7 +157,7 @@ def build_portfolio_lifecycle_scenarios(
             "Trocar a previa por Monte Carlo com reamostragem aleatoria de retornos mensais.",
             "Salvar carteiras como entidades compartilhadas entre retorno historico, beta e VaR.",
         ],
-}
+    }
 
 
 def _build_withdrawal_plan(
@@ -224,9 +224,7 @@ def _build_withdrawal_candidate(
 ) -> dict[str, Any]:
     final_value_real_net = _safe_float(row, "final_value_real_net")
     monthly_withdrawal = final_value_real_net * withdrawal_rate / 12
-    income_gap = (
-        monthly_withdrawal - monthly_income_target if monthly_income_target > 0 else None
-    )
+    income_gap = monthly_withdrawal - monthly_income_target if monthly_income_target > 0 else None
     return {
         "instrument_id": row["instrument_id"],
         "label": row["label"],
@@ -339,9 +337,7 @@ def _build_stress_interpretation(
         return f"{label}: renda estimada sem meta mensal informada."
     if income_gap >= 0:
         return f"{label}: sobra estimada de {income_gap:.2f} por mes contra a meta."
-    return (
-        f"{label}: faltam aproximadamente {abs(income_gap):.2f} por mes contra a meta."
-    )
+    return f"{label}: faltam aproximadamente {abs(income_gap):.2f} por mes contra a meta."
 
 
 def _build_monte_carlo_preview(
@@ -449,9 +445,7 @@ def _monte_carlo_preview_scenario(
     monthly_income_target: float,
     description: str,
 ) -> dict[str, Any]:
-    income_gap = (
-        monthly_withdrawal - monthly_income_target if monthly_income_target > 0 else None
-    )
+    income_gap = monthly_withdrawal - monthly_income_target if monthly_income_target > 0 else None
     return {
         "scenario_id": scenario_id,
         "label": label,
@@ -623,9 +617,7 @@ def _build_stochastic_monthly_monte_carlo(
     success_count = sum(1 for path in paths if path["survived_horizon"] is True)
     final_balances = sorted(float(path["final_balance"]) for path in paths)
     exhaustion_months = sorted(
-        int(path["exhaustion_month"])
-        for path in paths
-        if path["exhaustion_month"] is not None
+        int(path["exhaustion_month"]) for path in paths if path["exhaustion_month"] is not None
     )
     return {
         "title": "Monte Carlo estocastico mensal",
@@ -638,9 +630,9 @@ def _build_stochastic_monthly_monte_carlo(
             "final_balance_p50": _percentile(final_balances, 0.50),
             "final_balance_p90": _percentile(final_balances, 0.90),
         },
-        "median_exhaustion_month": _percentile(exhaustion_months, 0.50)
-        if exhaustion_months
-        else None,
+        "median_exhaustion_month": (
+            _percentile(exhaustion_months, 0.50) if exhaustion_months else None
+        ),
         "median_exhaustion_year": (
             round(float(_percentile(exhaustion_months, 0.50)) / 12.0, 1)
             if exhaustion_months
