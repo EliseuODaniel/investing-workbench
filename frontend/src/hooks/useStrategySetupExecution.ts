@@ -134,6 +134,17 @@ export function useStrategySetupExecution() {
     [runCoreBacktestSetup, runPairsSetup]
   );
 
+  const runAllPreparedSetups = useCallback(
+    async (plans: StrategySetupPlanPayload[]) => {
+      for (const plan of plans) {
+        if (plan.route_hint === '/backtest' || plan.route_hint === '/pairs/backtests') {
+          await runPreparedSetup(plan);
+        }
+      }
+    },
+    [runPreparedSetup]
+  );
+
   const loadRunResponse = useCallback(async (runId: string) => {
     setLoadingRunId(runId);
     try {
@@ -192,6 +203,7 @@ export function useStrategySetupExecution() {
     hydrateSetupRuns,
     prepareSetupPlan,
     runPreparedSetup,
+    runAllPreparedSetups,
     loadRunResponse,
     loadPairsBacktestResults,
     sendPairsHandoff,

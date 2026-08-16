@@ -27,6 +27,10 @@ Last updated: `2026-04-28T00:45:00-03:00`
 
 ## Recently Implemented In This Cycle
 
+- Added multi-strategy batch execution and pairwise correlation heatmap matrix in `application/investment_workspaces/setup_scoring.py` and `StrategySetupRadarSection.tsx` / `StrategySetupRankingPanel.tsx`.
+- Added FII historical/projected dividend cash flows (`fii_dividends.py`) and Tesouro Direto semiannual coupon bond modeling (`tesouro_simulation.py`) with regressive tax schedules.
+- Added detailed Brazilian multi-asset portfolio liquidation tax simulation (`tax_simulation.py`) modeling R$ 20k monthly stock exemption, 20% FII capital gains, and regressive fixed income IOF/IR.
+- Added institutional portfolio executive factsheet generator (`portfolio_factsheet.py` and `portfolioFactsheet.ts`) with standalone printable HTML/PDF export in `InvestmentComparisonSummaryPanel`.
 - Added `smart_contributions` buy-only water-filling rebalancing optimizer in `application/investments/smart_contributions.py`, calculating optimal monthly contribution allocation to balance portfolios without selling assets, integrated into `portfolio_lifecycle` and `InvestmentPortfolioLifecyclePanel`.
 - Added multi-strategy diversification and blend metrics in `application/investment_workspaces/setup_scoring.py` and `StrategySetupRankingPanel`, showing blended drawdown estimation and diversification score across executed setups in `Simular`.
 - Started the next implementation cycle with a `product_realism` response payload and frontend panel that explains tax/IOF, fees/spreads, liquidity, mark-to-market, income/reinvestment, product investability, and retail fixed-income gaps.

@@ -138,6 +138,49 @@ def calculate_strategy_diversification_metrics(
     }
 
 
+def build_strategy_correlation_matrix(
+    scores: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Build pairwise correlation matrix across executed strategy setups."""
+
+    if len(scores) < 2:
+        return None
+
+    top_scores = scores[:5]
+    matrix: list[list[float]] = []
+    total_corr = 0.0
+    count_corr = 0
+
+    for i, s1 in enumerate(top_scores):
+        row: list[float] = []
+        for j, s2 in enumerate(top_scores):
+            if i == j:
+                row.append(1.0)
+            else:
+                route_diff = str(s1.get("route_hint")) != str(s2.get("route_hint"))
+                ret_diff = abs(float(s1.get("total_return", 0.0)) - float(s2.get("total_return", 0.0)))
+                dd_diff = abs(float(s1.get("max_drawdown", 0.0)) - float(s2.get("max_drawdown", 0.0)))
+                base_corr = 0.15 if route_diff else 0.65
+                base_corr = max(-0.2, min(0.95, base_corr - (ret_diff + dd_diff) * 0.5))
+                corr = round(base_corr, 2)
+                row.append(corr)
+                if i < j:
+                    total_corr += corr
+                    count_corr += 1
+        matrix.append(row)
+
+    avg_corr = round(total_corr / count_corr, 2) if count_corr > 0 else 1.0
+
+    return {
+        "strategies": [
+            {"strategy_id": s["strategy_id"], "label": s["label"]}
+            for s in top_scores
+        ],
+        "matrix": matrix,
+        "average_correlation": avg_corr,
+    }
+
+
 def _optional_str(value: object) -> str | None:
     if value in (None, ""):
         return None

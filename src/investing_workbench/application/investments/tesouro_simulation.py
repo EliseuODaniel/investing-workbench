@@ -356,3 +356,79 @@ class TesouroSimulationService:
                 for lot in lots
             )
         )
+
+
+def calculate_coupon_bond_cash_flows(
+    *,
+    bond_type: str = "NTN-B_JUROS",
+    principal_amount: float = 10000.0,
+    annual_coupon_rate: float = 0.06,
+    years: int = 5,
+    annual_inflation_rate: float = 0.045,
+    reinvest: bool = False,
+) -> dict[str, Any]:
+    """Calculate semiannual coupon payment schedule and tax withholding for NTN-B / NTN-F."""
+
+    is_ntnb = "NTN-B" in bond_type.upper() or "IPCA" in bond_type.upper()
+    total_semesters = max(1, years * 2)
+    semiannual_coupon_rate = (1.0 + annual_coupon_rate) ** 0.5 - 1.0
+    semiannual_inflation_rate = (1.0 + annual_inflation_rate) ** 0.5 - 1.0 if is_ntnb else 0.0
+
+    current_vna = principal_amount
+    coupons_schedule: list[dict[str, Any]] = []
+    total_gross = 0.0
+    total_net = 0.0
+    total_tax = 0.0
+
+    for s in range(1, total_semesters + 1):
+        holding_days = s * 180
+        if holding_days <= 180:
+            tax_rate = 0.225
+        elif holding_days <= 360:
+            tax_rate = 0.20
+        elif holding_days <= 720:
+            tax_rate = 0.175
+        else:
+            tax_rate = 0.15
+
+        if is_ntnb:
+            current_vna *= 1.0 + semiannual_inflation_rate
+
+        gross_coupon = current_vna * semiannual_coupon_rate
+        # Tax is withheld at source based on holding days
+        tax_amount = gross_coupon * tax_rate
+        net_coupon = gross_coupon - tax_amount
+
+        total_gross += gross_coupon
+        total_tax += tax_amount
+        total_net += net_coupon
+
+        coupons_schedule.append(
+            {
+                "semester_index": s,
+                "holding_days": holding_days,
+                "updated_principal_vna": round(current_vna, 2),
+                "gross_coupon": round(gross_coupon, 2),
+                "tax_rate_pct": round(tax_rate * 100, 1),
+                "tax_withheld": round(tax_amount, 2),
+                "net_coupon": round(net_coupon, 2),
+            }
+        )
+
+    return {
+        "bond_type": bond_type,
+        "principal_initial": round(principal_amount, 2),
+        "principal_final_vna": round(current_vna, 2),
+        "total_semesters": total_semesters,
+        "total_gross_coupons": round(total_gross, 2),
+        "total_tax_withheld": round(total_tax, 2),
+        "total_net_coupons": round(total_net, 2),
+        "effective_tax_rate_pct": (
+            round((total_tax / total_gross) * 100.0, 2) if total_gross > 0 else 0.0
+        ),
+        "schedule": coupons_schedule,
+        "tax_note": (
+            "Cupons semestrais de NTN-B e NTN-F sofrem retencao de IR na fonte conforme tabela "
+            "regressiva (22.5% a 15%), reduzindo a eficiencia de reinvestimento."
+        ),
+    }

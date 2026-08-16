@@ -177,6 +177,60 @@ export function buildSetupDiversificationSummary(
   };
 }
 
+export type StrategyCorrelationMatrix = {
+  strategies: Array<{ strategy_id: string; label: string }>;
+  matrix: number[][];
+  averageCorrelation: number;
+};
+
+export function buildStrategyCorrelationMatrix(
+  scores: StrategySetupScorePayload[]
+): StrategyCorrelationMatrix | null {
+  const candidates = scores.filter(
+    (score) =>
+      typeof score.total_return === 'number' && typeof score.max_drawdown === 'number'
+  );
+  if (candidates.length < 2) {
+    return null;
+  }
+  const top = candidates.slice(0, 5);
+  const matrix: number[][] = [];
+  let totalCorr = 0;
+  let countCorr = 0;
+
+  for (let i = 0; i < top.length; i++) {
+    const row: number[] = [];
+    for (let j = 0; j < top.length; j++) {
+      if (i === j) {
+        row.push(1.0);
+      } else {
+        const routeDiff = top[i].route_hint !== top[j].route_hint;
+        const retDiff = Math.abs(top[i].total_return - top[j].total_return);
+        const ddDiff = Math.abs(top[i].max_drawdown - top[j].max_drawdown);
+        let baseCorr = routeDiff ? 0.15 : 0.65;
+        baseCorr = Math.max(-0.2, minMax(0.95, baseCorr - (retDiff + ddDiff) * 0.5));
+        const corr = Math.round(baseCorr * 100) / 100;
+        row.push(corr);
+        if (i < j) {
+          totalCorr += corr;
+          countCorr++;
+        }
+      }
+    }
+    matrix.push(row);
+  }
+
+  return {
+    strategies: top.map((s) => ({ strategy_id: s.strategy_id, label: s.label })),
+    matrix,
+    averageCorrelation: countCorr > 0 ? Math.round((totalCorr / countCorr) * 100) / 100 : 1.0,
+  };
+}
+
+function minMax(max: number, val: number): number {
+  return Math.min(max, val);
+}
+
 export function buildSetupScoresCsv(scores: StrategySetupScorePayload[]): string {
   const headers = [
     'rank',

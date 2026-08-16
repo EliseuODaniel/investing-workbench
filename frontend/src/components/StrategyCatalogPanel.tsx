@@ -41,6 +41,7 @@ export default function StrategyCatalogPanel() {
     hydrateSetupRuns,
     prepareSetupPlan,
     runPreparedSetup,
+    runAllPreparedSetups,
     loadRunResponse,
     loadPairsBacktestResults,
     sendPairsHandoff,
@@ -120,6 +121,7 @@ export default function StrategyCatalogPanel() {
         onCancelEdit={cancelEditingSetup}
         onSaveEdit={saveEditedSetup}
         onRun={(plan) => void runPreparedSetup(plan)}
+        onRunAll={(plans) => void runAllPreparedSetups(plans)}
         onPairsHandoff={sendPairsHandoff}
         onLoadRunResponse={(runId) => void loadRunResponse(runId)}
         onLoadPairsBacktestResults={(pairsBacktestId) =>

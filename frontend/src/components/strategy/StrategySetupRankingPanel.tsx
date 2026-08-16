@@ -1,6 +1,7 @@
 import {
   buildSetupDiversificationSummary,
   buildSetupScoresCsv,
+  buildStrategyCorrelationMatrix,
   type SetupScoreInsight,
 } from '../../lib/strategySetupScoring';
 import { downloadCSV } from '../../lib/utils';
@@ -20,6 +21,7 @@ export function StrategySetupRankingPanel({
   }
 
   const diversification = buildSetupDiversificationSummary(scores);
+  const correlation = buildStrategyCorrelationMatrix(scores);
 
   return (
     <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs dark:border-indigo-900/50 dark:bg-indigo-950/20">
@@ -102,6 +104,55 @@ export function StrategySetupRankingPanel({
           </div>
           <div className="mt-1 text-[10px] leading-4 text-indigo-900/80 dark:text-indigo-200/80">
             {diversification.interpretation}
+          </div>
+        </div>
+      ) : null}
+      {correlation ? (
+        <div className="mt-3 rounded-lg border border-indigo-100 bg-white/80 p-2.5 text-[11px] text-indigo-950 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-100">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-semibold">Matriz de correlação entre setups</span>
+            <span className="text-[10px] text-indigo-700 dark:text-indigo-300">
+              correlação média: {correlation.averageCorrelation.toFixed(2)}
+            </span>
+          </div>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-center text-[10px]">
+              <thead>
+                <tr>
+                  <th className="py-1 text-left font-medium text-gray-500">Setup</th>
+                  {correlation.strategies.map((s, idx) => (
+                    <th key={s.strategy_id} className="py-1 px-1.5 font-medium text-gray-600 dark:text-gray-300">
+                      S{idx + 1}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {correlation.strategies.map((s1, i) => (
+                  <tr key={s1.strategy_id} className="border-t border-indigo-50 dark:border-indigo-950/30">
+                    <td className="py-1 text-left font-medium text-indigo-900 dark:text-indigo-200 truncate max-w-[120px]">
+                      S{i + 1}. {s1.label}
+                    </td>
+                    {correlation.matrix[i].map((val, j) => (
+                      <td
+                        key={`${i}-${j}`}
+                        className={`py-1 px-1.5 font-semibold ${
+                          i === j
+                            ? 'bg-indigo-100/50 text-indigo-950 dark:bg-indigo-900/40 dark:text-indigo-100'
+                            : val < 0.3
+                              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                              : val > 0.7
+                                ? 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
+                                : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {val.toFixed(2)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : null}

@@ -1,3 +1,5 @@
+import { FileText } from 'lucide-react';
+import { openPortfolioFactsheet } from '../../lib/portfolioFactsheet';
 import { formatCurrency, formatPercent } from '../../lib/utils';
 import type { InvestmentComparisonResponsePayload } from '../../types/api';
 
@@ -13,6 +15,19 @@ export default function InvestmentComparisonSummaryPanel({
   return (
     <section className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
       <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50/70 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900/40">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+            Comparativo Geral
+          </span>
+          <button
+            type="button"
+            onClick={() => openPortfolioFactsheet(comparison)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:border-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+          >
+            <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            Lâmina Executiva (PDF)
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-900/50">

@@ -38,6 +38,7 @@ type StrategySetupRadarSectionProps = {
   onCancelEdit: () => void;
   onSaveEdit: (item: SavedStrategyRadarItem) => void;
   onRun: (plan: StrategySetupPlanPayload) => void;
+  onRunAll?: (plans: StrategySetupPlanPayload[]) => void;
   onPairsHandoff: (plan: StrategySetupPlanPayload) => void;
   onLoadRunResponse: (runId: string) => void;
   onLoadPairsBacktestResults: (pairsBacktestId: string) => void;
@@ -69,10 +70,13 @@ export function StrategySetupRadarSection({
   onCancelEdit,
   onSaveEdit,
   onRun,
+  onRunAll,
   onPairsHandoff,
   onLoadRunResponse,
   onLoadPairsBacktestResults,
 }: StrategySetupRadarSectionProps) {
+  const preparedPlans = Object.values(setupPlans);
+
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -80,9 +84,20 @@ export function StrategySetupRadarSection({
           <Radar className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
           Radar de setups
         </div>
-        <span className="rounded-full border border-gray-300 px-2 py-1 text-[11px] text-gray-600 dark:border-gray-700 dark:text-gray-300">
-          {savedItems.length} favorito(s)
-        </span>
+        <div className="flex items-center gap-2">
+          {preparedPlans.length > 1 && onRunAll ? (
+            <button
+              type="button"
+              className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+              onClick={() => onRunAll(preparedPlans)}
+            >
+              Executar todos ({preparedPlans.length})
+            </button>
+          ) : null}
+          <span className="rounded-full border border-gray-300 px-2 py-1 text-[11px] text-gray-600 dark:border-gray-700 dark:text-gray-300">
+            {savedItems.length} favorito(s)
+          </span>
+        </div>
       </div>
       <ul className="mt-3 space-y-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
         {radarPlan.map((item) => (
