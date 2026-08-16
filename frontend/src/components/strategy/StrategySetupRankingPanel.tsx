@@ -1,4 +1,8 @@
-import { buildSetupScoresCsv, type SetupScoreInsight } from '../../lib/strategySetupScoring';
+import {
+  buildSetupDiversificationSummary,
+  buildSetupScoresCsv,
+  type SetupScoreInsight,
+} from '../../lib/strategySetupScoring';
 import { downloadCSV } from '../../lib/utils';
 import type { StrategySetupScorePayload } from '../../types/api';
 
@@ -14,6 +18,8 @@ export function StrategySetupRankingPanel({
   if (scores.length === 0) {
     return null;
   }
+
+  const diversification = buildSetupDiversificationSummary(scores);
 
   return (
     <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs dark:border-indigo-900/50 dark:bg-indigo-950/20">
@@ -84,6 +90,19 @@ export function StrategySetupRankingPanel({
               </div>
             </div>
           ))}
+        </div>
+      ) : null}
+      {diversification ? (
+        <div className="mt-3 rounded-lg border border-indigo-100 bg-white/80 p-2.5 text-[11px] text-indigo-950 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-100">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-semibold">Diversificação de estratégias combinadas</span>
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200">
+              score {diversification.diversificationScore}/100
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] leading-4 text-indigo-900/80 dark:text-indigo-200/80">
+            {diversification.interpretation}
+          </div>
         </div>
       ) : null}
     </div>

@@ -27,6 +27,8 @@ Last updated: `2026-04-28T00:45:00-03:00`
 
 ## Recently Implemented In This Cycle
 
+- Added `smart_contributions` buy-only water-filling rebalancing optimizer in `application/investments/smart_contributions.py`, calculating optimal monthly contribution allocation to balance portfolios without selling assets, integrated into `portfolio_lifecycle` and `InvestmentPortfolioLifecyclePanel`.
+- Added multi-strategy diversification and blend metrics in `application/investment_workspaces/setup_scoring.py` and `StrategySetupRankingPanel`, showing blended drawdown estimation and diversification score across executed setups in `Simular`.
 - Started the next implementation cycle with a `product_realism` response payload and frontend panel that explains tax/IOF, fees/spreads, liquidity, mark-to-market, income/reinvestment, product investability, and retail fixed-income gaps.
 - Extracted `InvestmentReviewStatsPanel` from `InvestmentsWorkspace.tsx` as the first review-step component split.
 - Added `src/investing_workbench/application/investments/product_realism.py` so the backend service delegates investable-product methodology metadata instead of growing the main service.

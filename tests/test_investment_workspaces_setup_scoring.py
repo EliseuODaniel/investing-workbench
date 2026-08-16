@@ -103,3 +103,28 @@ def test_score_setup_data_validity_rewards_traceable_complete_results() -> None:
         == 2.0
     )
     assert score_setup_data_validity({"total_return": 0.10}) == 0.0
+
+
+def test_calculate_strategy_diversification_metrics() -> None:
+    from src.investing_workbench.application.investment_workspaces.setup_scoring import (
+        calculate_strategy_diversification_metrics,
+    )
+
+    assert calculate_strategy_diversification_metrics([]) is None
+    assert (
+        calculate_strategy_diversification_metrics([{"total_return": 0.10, "max_drawdown": -0.05}])
+        is None
+    )
+
+    metrics = calculate_strategy_diversification_metrics(
+        [
+            {"total_return": 0.15, "max_drawdown": -0.04, "route_hint": "/backtest"},
+            {"total_return": 0.10, "max_drawdown": -0.02, "route_hint": "/pairs/backtests"},
+        ]
+    )
+    assert metrics is not None
+    assert metrics["strategy_count"] == 2
+    assert metrics["diversification_score"] > 50.0
+    assert metrics["average_return"] == 0.125
+    assert metrics["worst_drawdown"] == -0.04
+    assert metrics["estimated_blended_drawdown"] < 0

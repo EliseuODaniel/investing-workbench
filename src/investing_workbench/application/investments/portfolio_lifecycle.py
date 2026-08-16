@@ -5,6 +5,8 @@ from __future__ import annotations
 import random
 from typing import Any, TypedDict
 
+from .smart_contributions import build_smart_contributions_plan
+
 
 class _RetirementStressScenario(TypedDict):
     scenario_id: str
@@ -131,6 +133,10 @@ def build_portfolio_lifecycle_scenarios(
         "withdrawal_plan": _build_withdrawal_plan(
             candidate_rows=candidate_rows,
             monthly_income_target=monthly_income_target,
+        ),
+        "smart_contributions": build_smart_contributions_plan(
+            results=results,
+            contribution_amount=monthly_income_target if monthly_income_target > 0 else 1000.0,
         ),
         "assumptions": [
             "Retirada mensal usa uma regra didatica de 4% ao ano sobre patrimonio real liquido.",

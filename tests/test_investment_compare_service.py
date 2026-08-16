@@ -270,6 +270,11 @@ def test_compare_builds_cross_asset_payload(monkeypatch: Any, tmp_path: Any) -> 
         stochastic["percentiles"]["final_balance_p10"]
         <= stochastic["percentiles"]["final_balance_p90"]
     )
+    smart_contributions = payload["portfolio_lifecycle"]["smart_contributions"]
+    assert smart_contributions is not None
+    assert smart_contributions["title"] == "Aporte inteligente de rebalanceamento"
+    assert len(smart_contributions["allocations"]) >= 2
+    assert smart_contributions["efficiency_score_pct"] >= 0
     assert payload["request"]["decision_profile"]["objective"] == "balanced"
     assert any(
         item["objective_id"] == "protect_purchasing_power"

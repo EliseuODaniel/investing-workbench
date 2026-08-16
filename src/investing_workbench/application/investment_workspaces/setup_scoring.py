@@ -97,6 +97,47 @@ def score_setup_data_validity(item: dict[str, Any]) -> float:
     return score
 
 
+def calculate_strategy_diversification_metrics(
+    scores: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Calculate multi-strategy diversification and blend indicators for executed setups."""
+
+    if len(scores) < 2:
+        return None
+
+    top_scores = scores[:4]
+    routes = {str(item.get("route_hint") or "") for item in top_scores}
+    route_variety_bonus = min(len(routes) * 0.25, 0.5)
+
+    avg_return = sum(float(item["total_return"]) for item in top_scores) / len(top_scores)
+    max_dd = min(float(item["max_drawdown"]) for item in top_scores)
+    avg_dd = sum(float(item["max_drawdown"]) for item in top_scores) / len(top_scores)
+
+    # Estimate blended drawdown benefit (diversification softens max single drawdown)
+    blended_dd_estimate = round(avg_dd * 0.85, 4)
+
+    # Diversification score between 0 and 100
+    div_score = min(
+        100.0,
+        max(
+            10.0,
+            round((0.5 + route_variety_bonus + min(len(top_scores) * 0.1, 0.3)) * 100, 1),
+        ),
+    )
+
+    return {
+        "strategy_count": len(top_scores),
+        "diversification_score": div_score,
+        "average_return": round(avg_return, 4),
+        "worst_drawdown": round(max_dd, 4),
+        "estimated_blended_drawdown": blended_dd_estimate,
+        "interpretation": (
+            f"Combinar os {len(top_scores)} principais setups executados diversifica riscos operacionais "
+            f"e reduz o drawdown maximo estimado para {blended_dd_estimate * 100:.1f}%."
+        ),
+    }
+
+
 def _optional_str(value: object) -> str | None:
     if value in (None, ""):
         return None

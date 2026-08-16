@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSetupDiversificationSummary,
   buildSetupScoreInsights,
   buildSetupScores,
   buildSetupScoresCsv,
@@ -89,6 +90,16 @@ describe('strategySetupScoring', () => {
     ]);
     expect(insights[0].setup_label).toBe('Pairs por cointegracao');
     expect(insights[3].value_label).toBe('2 run(s) · 3 trade(s)');
+  });
+
+  it('builds diversification summary across executed setups', () => {
+    const scores = buildSetupScores(savedItems, history);
+    const diversification = buildSetupDiversificationSummary(scores);
+
+    expect(diversification).not.toBeNull();
+    expect(diversification?.strategyCount).toBe(2);
+    expect(diversification?.diversificationScore).toBeGreaterThanOrEqual(50);
+    expect(diversification?.interpretation).toContain('Combinar os 2 principais setups');
   });
 
   it('exports setup scores as csv', () => {

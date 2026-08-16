@@ -9,6 +9,7 @@ import InvestmentHighlightsPanel from './InvestmentHighlightsPanel';
 import InvestmentMarketExplorerPanel from './InvestmentMarketExplorerPanel';
 import InvestmentMethodologyPanel from './InvestmentMethodologyPanel';
 import InvestmentPortfolioContributionPanel from './InvestmentPortfolioContributionPanel';
+import InvestmentPortfolioLifecyclePanel from './InvestmentPortfolioLifecyclePanel';
 import InvestmentProductRealismPanel from './InvestmentProductRealismPanel';
 import InvestmentReviewStatsPanel from './InvestmentReviewStatsPanel';
 import InvestmentResultFootnotesPanel from './InvestmentResultFootnotesPanel';
@@ -904,5 +905,63 @@ describe('investment decision panels', () => {
 
     expect(screen.getByText('Resultado didatico')).toBeTruthy();
     expect(screen.getByText('Escolha um objetivo, confirme os ativos e rode a comparacao.')).toBeTruthy();
+  });
+
+  it('renders portfolio lifecycle scenarios and smart contribution rebalancing', () => {
+    render(
+      <InvestmentPortfolioLifecyclePanel
+        lifecycle={{
+          title: 'Cenarios completos de carteira',
+          plain_language_summary: 'Traduz o comparativo em perguntas de vida financeira.',
+          uses_portfolio_rows: true,
+          portfolio_count: 1,
+          scenario_cards: [
+            {
+              scenario_id: 'real_monthly_withdrawal',
+              label: 'Retirada mensal real estimada',
+              description: 'Aproxima retirada de 4% ao ano.',
+              metric_label: 'Renda mensal',
+              metric_value: 2500,
+              metric_kind: 'currency',
+              best_match_label: 'Carteira Conservadora',
+            },
+          ],
+          smart_contributions: {
+            title: 'Aporte inteligente de rebalanceamento',
+            description: 'Calcula a distribuicao do proximo aporte.',
+            contribution_amount: 1000,
+            current_total_balance: 10000,
+            projected_total_balance: 11000,
+            efficiency_score_pct: 85,
+            allocations: [
+              {
+                instrument_id: 'petr4',
+                label: 'PETR4',
+                target_weight_pct: 60,
+                current_balance: 5000,
+                current_weight_pct: 50,
+                suggested_contribution: 1000,
+                suggested_contribution_pct: 100,
+                projected_balance: 6000,
+                projected_weight_pct: 54.5,
+                weight_gap_before_pct: -10,
+                weight_gap_after_pct: -5.5,
+                rebalance_status: 'underweight_receiving',
+              },
+            ],
+            unallocated_amount: 0,
+            methodology: 'Water-filling rebalancing.',
+          },
+          assumptions: ['Retirada didatica de 4% ao ano.'],
+          next_steps: ['Ajuste de aportes futuros.'],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Cenarios completos de carteira')).toBeTruthy();
+    expect(screen.getByText('Retirada mensal real estimada')).toBeTruthy();
+    expect(screen.getByText('Aporte inteligente de rebalanceamento')).toBeTruthy();
+    expect(screen.getByText('PETR4')).toBeTruthy();
+    expect(screen.getByText('Aportar')).toBeTruthy();
   });
 });

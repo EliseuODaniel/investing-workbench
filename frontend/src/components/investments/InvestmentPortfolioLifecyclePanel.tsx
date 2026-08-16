@@ -444,6 +444,88 @@ export default function InvestmentPortfolioLifecyclePanel({
         </div>
       ) : null}
 
+      {lifecycle.smart_contributions && lifecycle.smart_contributions.allocations.length > 0 ? (
+        <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
+                {lifecycle.smart_contributions.title}
+              </div>
+              <p className="mt-1 text-xs leading-5 text-indigo-900/80 dark:text-indigo-200/80">
+                {lifecycle.smart_contributions.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-100">
+                Aporte: {formatInvestmentMetric(lifecycle.smart_contributions.contribution_amount, 'currency')}
+              </span>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-100">
+                Eficiência: {lifecycle.smart_contributions.efficiency_score_pct.toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-indigo-200/60 text-indigo-950/70 dark:border-indigo-800/60 dark:text-indigo-200/70">
+                  <th className="py-2 pr-3 font-medium">Ativo</th>
+                  <th className="py-2 px-3 font-medium text-right">Meta</th>
+                  <th className="py-2 px-3 font-medium text-right">Peso Atual</th>
+                  <th className="py-2 px-3 font-medium text-right">Aporte Sugerido</th>
+                  <th className="py-2 px-3 font-medium text-right">Peso Projetado</th>
+                  <th className="py-2 pl-3 font-medium text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-indigo-100/60 dark:divide-indigo-900/40">
+                {lifecycle.smart_contributions.allocations.map((item) => (
+                  <tr key={item.instrument_id} className="text-gray-900 dark:text-gray-100">
+                    <td className="py-2.5 pr-3 font-semibold text-indigo-950 dark:text-indigo-100">
+                      {item.label}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {item.target_weight_pct.toFixed(1)}%
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-gray-600 dark:text-gray-300">
+                      {item.current_weight_pct.toFixed(1)}%
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-indigo-700 dark:text-indigo-300">
+                      {item.suggested_contribution > 0
+                        ? `${formatInvestmentMetric(item.suggested_contribution, 'currency')} (${item.suggested_contribution_pct.toFixed(0)}%)`
+                        : 'R$ 0,00'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-medium">
+                      {item.projected_weight_pct.toFixed(1)}%
+                    </td>
+                    <td className="py-2.5 pl-3 text-center">
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          item.rebalance_status === 'underweight_receiving'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+                            : item.rebalance_status === 'overweight_hold'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                        }`}
+                      >
+                        {item.rebalance_status === 'underweight_receiving'
+                          ? 'Aportar'
+                          : item.rebalance_status === 'overweight_hold'
+                            ? 'Aguardar'
+                            : 'Equilibrado'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 text-[11px] leading-5 text-indigo-900/70 dark:text-indigo-200/70">
+            {lifecycle.smart_contributions.methodology}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <TextList title="Premissas" items={lifecycle.assumptions} />
         <TextList title="Próximos refinamentos" items={lifecycle.next_steps} />

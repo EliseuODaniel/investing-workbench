@@ -1094,6 +1094,30 @@ export interface InvestmentPortfolioLifecyclePayload {
       caveat: string;
     };
   };
+  smart_contributions?: {
+    title: string;
+    description: string;
+    contribution_amount: number;
+    current_total_balance: number;
+    projected_total_balance: number;
+    allocations: Array<{
+      instrument_id: string;
+      label: string;
+      target_weight_pct: number;
+      current_balance: number;
+      current_weight_pct: number;
+      suggested_contribution: number;
+      suggested_contribution_pct: number;
+      projected_balance: number;
+      projected_weight_pct: number;
+      weight_gap_before_pct: number;
+      weight_gap_after_pct: number;
+      rebalance_status: string;
+    }>;
+    unallocated_amount: number;
+    efficiency_score_pct: number;
+    methodology: string;
+  } | null;
   assumptions: string[];
   next_steps: string[];
 }
